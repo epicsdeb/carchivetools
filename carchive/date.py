@@ -43,6 +43,17 @@ from collections import defaultdict
 
 __all__ = ["makeTime", "makeTimeInterval", 'timeTuple']
 
+# python provides no concrete implementations of tzinfo...
+class _UTC(datetime.tzinfo):
+    def utcoffset(self, dt):
+        return datetime.timedelta(0)
+    def tzname(self, dt):
+        return "UTC"
+    def dst(self, dt):
+        return datetime.timedelta(0)
+    def __repr__(self):
+        return "_UTC()"
+
 # match absolute date plus time
 # DAY/MON/YEAR HOUR:MIN:SEC.FRAC
 _abs=re.compile(r"""
@@ -95,26 +106,30 @@ def makeTime(intime, now=None):
     Note: Time may be specified to microsecond precision
 
     >>> import datetime
-    >>> now=datetime.datetime(2011, 3, 15, 12)
+    >>> now=datetime.datetime(2011, 3, 15, 12, tzinfo=_UTC())
+    >>> now
+    datetime.datetime(2011, 3, 15, 12, 0, tzinfo=_UTC())
     >>> makeTime(now,now)==now
     True
     >>> makeTime(65,now)
-    datetime.datetime(1970, 1, 1, 0, 1, 5)
+    datetime.datetime(1970, 1, 1, 0, 1, 5, tzinfo=_UTC())
     >>>
     >>> makeTime(1300584688.9705319,now)
-    datetime.datetime(2011, 3, 20, 1, 31, 28, 970531)
+    datetime.datetime(2011, 3, 20, 1, 31, 28, 970531, tzinfo=_UTC())
     >>> makeTime( '12:01', now)
-    datetime.datetime(2011, 3, 15, 12, 1)
+    datetime.datetime(2011, 3, 15, 12, 1, tzinfo=_UTC())
     >>> makeTime( '12:01:14', now)
-    datetime.datetime(2011, 3, 15, 12, 1, 14)
+    datetime.datetime(2011, 3, 15, 12, 1, 14, tzinfo=_UTC())
     >>> makeTime( '12:01:14.123456789', now)
-    datetime.datetime(2011, 3, 15, 12, 1, 14, 123456)
+    datetime.datetime(2011, 3, 15, 12, 1, 14, 123456, tzinfo=_UTC())
     >>> makeTime( '14/3 12:01', now)
-    datetime.datetime(2011, 3, 14, 12, 1)
+    datetime.datetime(2011, 3, 14, 12, 1, tzinfo=_UTC())
     >>> makeTime( '14/3 12:01:14', now)
-    datetime.datetime(2011, 3, 14, 12, 1, 14)
+    datetime.datetime(2011, 3, 14, 12, 1, 14, tzinfo=_UTC())
     >>> makeTime( '14/3/2012 12:01:14.123456', now)
-    datetime.datetime(2012, 3, 14, 12, 1, 14, 123456)
+    datetime.datetime(2012, 3, 14, 12, 1, 14, 123456, tzinfo=_UTC())
+    >>>
+    >>> now=datetime.datetime.now()
     >>>
     >>> makeTime('-1 hours', now)
     datetime.timedelta(-1, 82800)
@@ -140,11 +155,14 @@ def makeTime(intime, now=None):
     datetime.timedelta(6, 82859, 990)
     >>>
     """
+    tzinfo=None
     if isinstance(intime, (datetime.datetime, datetime.timedelta)):
         return intime
 
     if now is None:
         now=datetime.datetime.now()
+    elif isinstance(now, datetime.datetime):
+        tzinfo=now.tzinfo
 
     if isinstance(intime, (float, int, long)):
         tv=float(intime)
@@ -154,7 +172,7 @@ def makeTime(intime, now=None):
 
     if isinstance(intime, tuple):
         S, NS = intime
-        S=datetime.datetime.fromtimestamp(S)
+        S=datetime.datetime.fromtimestamp(S, tz=tzinfo)
         S+=datetime.timedelta(microseconds=NS/1000)
         return S
 
@@ -178,7 +196,8 @@ def makeTime(intime, now=None):
 
         Y, M, D, H, m, S = G
         return datetime.datetime(year=Y, month=M, day=D, hour=H,
-                                 minute=m, second=S, microsecond=US)
+                                 minute=m, second=S, microsecond=US,
+                                 tzinfo=tzinfo)
 
     M=intime.split()
     if len(M)%2==1:
