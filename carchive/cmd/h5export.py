@@ -49,7 +49,7 @@ def printData(data, meta, archive, info):
 
     valset[start:,:data.shape[1]] = data
 
-    print '>',valset.shape[0]
+    print '>',info.pv,valset.shape[0]
 
 class printInfo(object):
     pass
@@ -81,13 +81,16 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
     pvgroup = F.require_group(path)
     
     Chk = 1000
+    
+    Ds = [None]*len(args)
 
-    for pv in args:
+    for i,pv in enumerate(args):
         pvstore = pvgroup.require_group(pv)
         
         P = printInfo()
         P.file = F
         P.pvstore = pvstore
+        P.pv=pv
         
         P.metaset = pvstore.get('meta')
 
@@ -100,10 +103,17 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
         P.valset = None
 
         print pv
-        D = yield archive.fetchraw(pv, printData, archs=archs,
+        D = archive.fetchraw(pv, printData, archs=archs,
                                    cbArgs=(archive, P),
                                    T0=T0, Tend=Tend,
                                    count=count, chunkSize=Chk)
 
-        C = yield D
-        print 'Found %d points'%C
+        @D.addCallback
+        def show(C, pv=pv):
+            print '%s received %d points'%(pv,C)
+
+        Ds[i] = D
+
+    yield defer.DeferredList(Ds, fireOnOneErrback=True)
+
+    defer.returnValue(0)
