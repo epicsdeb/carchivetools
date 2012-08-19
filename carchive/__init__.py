@@ -6,14 +6,13 @@ Archiver XMLRPC client
 """
 
 __all__ = ['__version__',
-           'Archiver']
+           'getArchive']
 
 import logging
 
-from query import ArchiveQuery
-from archiver import Archiver
+from archive import getArchive
 
-__version__ = 'pre1'
+__version__ = 'pre2'
 
 if not hasattr(logging, 'NullHandler'):
     class NullHandler(logging.Handler):

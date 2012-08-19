@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Date string parsing
+Date string format
 
 Parsing of absolute and relative dates and times
 into datetime.datetime or datetime.timedelta instances
@@ -8,16 +8,12 @@ into datetime.datetime or datetime.timedelta instances
 Supported syntax:
     
   Absolute:
-  
-  "day/month[/year] hour:min[:sec[.fraction]]"
-
-  "hour:min[:sec[.fraction]]"
-  
-  "now"
+    "day/month[/year] hour:min[:sec[.fraction]]"
+    "hour:min[:sec[.fraction]]"
+    "now"
 
   Relative:
-  
-  "### UUU [### UUU ...]"
+    "### UUU [### UUU ...]"
   
   where ### is a signed floating point number,
   and UUU is a unit string.
@@ -33,9 +29,6 @@ Supported syntax:
   w, week, weeks
   
   eg: "-1.4 week 2 hours"
-  
-
-@author: mad
 """
 
 import datetime, time, re
@@ -164,20 +157,22 @@ def makeTime(intime, now=None):
     elif isinstance(now, datetime.datetime):
         tzinfo=now.tzinfo
 
-    if isinstance(intime, (float, int, long)):
+    if isinstance(intime, float):
         tv=float(intime)
         S=tv//1
         NS=(tv%1)*1e9
         intime=(int(S), int(NS))
+    elif isinstance(intime, (int, long)):
+        intime = (intime, 0)
 
     if isinstance(intime, tuple):
         S, NS = intime
-        S=datetime.datetime.fromtimestamp(S, tz=tzinfo)
+        S=datetime.datetime.fromtimestamp(float(S), tz=tzinfo)
         S+=datetime.timedelta(microseconds=NS/1000)
         return S
 
     if not isinstance(intime, str):
-        raise ValueError('Input must be a tuple, number, or string')
+        raise ValueError('Input must be a tuple, number, or string.  Not %s'%type(intime))
 
     intime=intime.strip().lower()
 
@@ -248,6 +243,8 @@ def makeTimeInterval(start, end, now=None):
     """
     if now is None:
         now=datetime.datetime.now()
+    if end is None:
+        end=now
 
     start, end = makeTime(start, now), makeTime(end, now)
 

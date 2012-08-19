@@ -16,7 +16,5 @@ def __loadConfig():
         os.path.expanduser('~/.carchiverc'),
         'carchive.conf'
     ])
-    if not cf.has_section('_unspecified_'):
-        cf.add_section('_unspecified_') # to view DEFAULT
     return cf
 _conf=__loadConfig()
