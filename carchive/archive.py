@@ -228,9 +228,11 @@ class Archive(object):
         Tcur = timeTuple(T0)
         Tlast =timeTuple(Tend)
         N = 0
+        first = True
         last = False
         while not last and Tcur < Tlast:
-            print 'values',arch,pv,Tcur[0], Tcur[1],Tlast[0], Tlast[1],C,how
+            _log.debug('archiver.values(%d,%s,%s,%s,%d,%d)',
+                       arch,pv,Tcur,Tlast,C,how)
             D = self._proxy.callRemote('archiver.values',
                                        arch, [pv],
                                        Tcur[0], Tcur[1],
@@ -292,6 +294,13 @@ class Archive(object):
 
             del XML
             del data
+            
+            if first:
+                first = False
+            else:
+                # remove duplicate sample
+                values = values[1:]
+                metadata = metadata[1:]
 
             Tcur = (int(metadata[-1]['sec']), int(metadata[-1]['ns']+1))
 

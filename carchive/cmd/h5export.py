@@ -25,16 +25,6 @@ def printData(data, meta, archive, info):
         info.valset = valset
     else: # additional data
         valset = info.valset
-        if tuple(meta[0]) == tuple(metaset[-1]) and np.all(data[0,:] == valset[-1,:]):
-            # drop duplicate sample
-            print 'Drop'
-            data = data[1:]
-            meta = meta[1:]
-        else:
-            print 'not drop'
-            print 'M',meta[0],np.all(meta[0] == metaset[-1])
-            print 'S',metaset[-1]
-            print 'dM',meta[0] == metaset[-1]
 
     if metaset.shape[0]:
         lastsamp = (metaset['sec'][-1], metaset['ns'][-1])
