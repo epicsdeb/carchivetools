@@ -24,7 +24,7 @@ _dtypes = {
     2: np.int32,
     3: np.float64
 }
-dbr_sts = [
+dbr_time = [
     ('severity', np.uint32),
     ('status', np.uint16),
     ('sec', np.uint32),
@@ -278,7 +278,7 @@ class Archive(object):
                             V['value'][i] = str(pnt)
 
             maxelem=0
-            metadata = np.ndarray(len(XML), dtype=dbr_sts)
+            metadata = np.ndarray(len(XML), dtype=dbr_time)
             for i,E in enumerate(XML):
                 maxelem = max(maxelem, len(E['value']))
                 metadata[i] = (E['sevr'], E['stat'], E['secs'], E['nano'])

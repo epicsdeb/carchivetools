@@ -15,6 +15,8 @@ elif pname.startswith('argrep'):
     act='grep'
 elif pname.startswith('arget'):
     act='get'
+elif pname.startswith('arh5export'):
+    act='h5export'
 
 par=OptionParser(
     usage='%prog [options] channel <channels ...>',
@@ -29,6 +31,8 @@ par.add_option('-S','--search', action="store_true", default=False,
                help='Search for channels matching the given pattern(s)')
 par.add_option('-G','--get', action="store_true", default=False,
                help='Retrieve data for given channels')
+par.add_option('-E','--export', metavar='TYPE', default=None,
+               help="Retrieve data and write to file in the given format (eg. hdf5)")
 
 par.add_option('-u','--url', metavar='NAME or URL',
                help='Either a config key, host name, or full url for the server')
@@ -85,6 +89,8 @@ elif opt.search:
     act='grep'
 elif opt.get:
     act='get'
+elif opt.export=='hdf5':
+    act='h5export'
 
 @defer.inlineCallbacks
 def haveArchive(act, opt, args, conf):
