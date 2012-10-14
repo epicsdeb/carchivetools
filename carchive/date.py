@@ -147,6 +147,8 @@ def makeTime(intime, now=None):
     >>> makeTime('1 week -1 h +1 m -1 secs 1 ms -10 us', now)
     datetime.timedelta(6, 82859, 990)
     >>>
+    >>> makeTime('2012-10-11 16:36:44.41248000', now)
+    datetime.datetime(2012, 10, 11, 16, 36, 44, 412480)
     """
     tzinfo=None
     if isinstance(intime, (datetime.datetime, datetime.timedelta)):
@@ -178,6 +180,15 @@ def makeTime(intime, now=None):
 
     if intime=='now' or len(intime)==0:
         return now
+
+    S = intime.split('.')
+    if len(S)<=2:
+        try:
+            US = 0 if len(S)==1 else float('0.'+S[1])*1e6
+            T = time.strptime(S[0], '%Y-%m-%d %H:%M:%S')
+            return datetime.datetime(*(T[0:6]+(int(US),)))
+        except ValueError:
+            del S
 
     M=_abs.match(intime)
     if M is not None:
