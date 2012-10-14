@@ -8,6 +8,7 @@ import logging
 _log = logging.getLogger("carchive.archiver")
 
 import time
+from xmlrpclib import Fault
 
 from fnmatch import fnmatch
 from collections import defaultdict
@@ -28,12 +29,24 @@ def _optime(R, S):
     _log.info("Query complete in %f sec", E-S)
     return R
 
+class HandledError(Exception):
+    pass
+
 def _connerror(F):
     if F.check(FirstError):
         F = F.value.subFailure
 
     if F.check(ConnectionRefusedError):
         _log.fatal("Data server connection refused.  Server not reachable?")
+    elif F.check(Fault):
+        E = F.value
+        if E.faultCode==-600:
+            _log.fatal("PV syntax error: %s",E.faultString)
+            raise HandledError()
+        else:
+            _log.fatal("RPC error: %s",E)
+    elif F.check(HandledError):
+        pass
     else:
         _log.fatal("Remote request failed!  %s",F)
     return F
@@ -180,7 +193,7 @@ class Archive(object):
         for i,a in enumerate(archs):
             Ds[i] = self._proxy.callRemote('archiver.names', a, pattern).addErrback(_connerror)
 
-        Ds = yield defer.DeferredList(Ds, fireOnOneErrback=True)
+        Ds = yield defer.DeferredList(Ds, fireOnOneErrback=True).addErrback(_connerror)
 
         if breakDown:
             results = defaultdict(list)

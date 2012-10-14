@@ -71,7 +71,7 @@ LVL={0:logging.WARN, 1:logging.INFO, 2:logging.DEBUG}
 
 logging.basicConfig(format='%(message)s',level=LVL.get(opt.verbose, LVL[2]))
 
-from carchive import getArchive
+from carchive import getArchive, HandledError
 from carchive._conf import _conf as conf
 
 if opt.url:
@@ -102,11 +102,12 @@ def haveArchive(act, opt, args, conf):
     mod = getattr(mod, act)
 
     try:
-        serv = yield getArchive(conf=conf)    
+        serv = yield getArchive(conf=conf)
+    except HandledError:
+        defer.returnValue(None)
     except:
         E = sys.exc_info()[1]
         print 'Failed to fetch data server information.',E
-        reactor.stop()
         defer.returnValue(None)
     
     try:
@@ -115,13 +116,20 @@ def haveArchive(act, opt, args, conf):
                        conf=conf)
 
         yield done
+    except HandledError:
+        pass
     except:
         E = sys.exc_info()[1]
         print 'Operation failed.',E
+
+@defer.inlineCallbacks
+def main(*args):
+    try:
+        yield haveArchive(*args)
     finally:
         reactor.stop()
 
-reactor.callWhenRunning(haveArchive, act, opt, args, conf)
+reactor.callWhenRunning(main, act, opt, args, conf)
 
 reactor.run()
 

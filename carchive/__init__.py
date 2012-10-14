@@ -10,7 +10,7 @@ __all__ = ['__version__',
 
 import logging
 
-from archive import getArchive
+from archive import getArchive, HandledError
 
 __version__ = 'pre2'
 
