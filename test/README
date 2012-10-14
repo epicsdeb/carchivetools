@@ -1,0 +1,7 @@
+Manual test of RPC call
+
+
+wget -O raw.xml --header="Content-Type: text/xml" --post-file=request.info http://localhost:9991/cgi-bin/ArchiveDataServer.cgi
+
+
+Example query files request.* taken from ChannelArchiver source

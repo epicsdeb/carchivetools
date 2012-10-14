@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<!-- archiver.values(19687,SR:C27-VA:G3{RGA:1}Prof:Val-Buf,
+                     (1347632478, 414696000),(1349120699, 940852000),1,0) -->
+<methodCall>
+<methodName>archiver.values</methodName>
+<params>
+<!-- key -->
+<param><value><i4>19687</i4></value></param>
+<!-- channel name array -->
+<param>
+  <value>
+    <array>
+      <data>
+        <value><string>SR:C27-VA:G3{RGA:1}Prof:Val-Buf</string></value>
+      </data>
+    </array>
+  </value>
+</param>
+<!-- start time -->
+<param><value><i4>1347632478</i4></value></param>
+<param><value><i4>0</i4></value></param>
+<!-- start time -->
+<param><value><i4>1349120699</i4></value></param>
+<param><value><i4>0</i4></value></param>
+<!-- count -->
+<param><value><i4>200</i4></value></param>
+<!-- how -->
+<param><value><i4>0</i4></value></param>
+</params>
+</methodCall>
