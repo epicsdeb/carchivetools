@@ -109,11 +109,11 @@ def haveArchive(act, opt, args, conf):
         reactor.stop()
         defer.returnValue(None)
     
-    done = mod.cmd(action=act, archive=serv,
-                   opt=opt, args=args,
-                   conf=conf)
-
     try:
+        done = mod.cmd(action=act, archive=serv,
+                       opt=opt, args=args,
+                       conf=conf)
+
         yield done
     except:
         E = sys.exc_info()[1]
