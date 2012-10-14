@@ -277,15 +277,21 @@ class Archive(object):
 
             D.addCallback(_optime, time.time())
 
-            data = yield D
+            try:
+                data = yield D
+            except:
+                _log.fatal('Query fails')
+                raise
 
             assert len(data)==1, "Server returned more than one PVs?"
 
             assert data[0]['name']==pv, "Server gives us some other PV?"
 
             vals = data[0]['values']
-            
+
             assert len(vals)!=data[0]['count'], "Server gives inconsistent count"
+
+            _log.debug("Query yields %u points"%len(vals))
 
             N += len(vals)
             last = len(vals)<C
@@ -354,12 +360,16 @@ class Archive(object):
                  archs=None, breakDown=None):
         """Fetch raw data for the given PV.
         """
-        
         if breakDown is None:
             breakDown = yield self.search(exact=pv, archs=archs,
                                           breakDown=True, rawTime=True)
 
         breakDown = breakDown[pv]
+
+        if len(breakDown)==0:
+            raise RuntimeError("No match for name '%s'"%pv)
+
+        _log.debug("Planning with: %s",breakDown)
 
         Tcur, Tend = timeTuple(T0), timeTuple(Tend)
 
@@ -382,6 +392,7 @@ class Archive(object):
             Tcur =  Rend
 
         if len(plan)==0:
+            _log.debug("Query plan empty.  No data in request time range")
             defer.returnValue(0)
 
         N = yield self._nextraw(0, pv=pv, plan=plan,

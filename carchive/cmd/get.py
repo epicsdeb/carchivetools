@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+import logging
+_log = logging.getLogger("argrep")
+
 from twisted.internet import defer
 
 from carchive.date import makeTimeInterval, makeTime
@@ -34,6 +37,9 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
         defer.returnValue(0)
     
     T0, Tend = makeTimeInterval(opt.start, opt.end)
+
+    _log.debug("Time range: %s -> %s", T0, Tend)
+
     count = opt.count if opt.count>0 else None
 
     for pv in args:
