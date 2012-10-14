@@ -126,29 +126,3 @@ reactor.callWhenRunning(haveArchive, act, opt, args, conf)
 reactor.run()
 
 sys.exit(0)
-
-#elif act=='get':
-#    if len(args)==0:
-#        par.error('No channel to query')
-#    elif opt.how not in serv.how:
-#        par.error("How %s is invalid.  Use one of %s"%(opt.how, ', '.join(serv.how)))
-#    elif not opt.start:
-#        par.error("Start time is required")
-#
-#    Q=serv.Q().set(names=args, patterns=True, archs=archs)
-#    Q.how=opt.how
-#    Q.count=opt.count
-#    Q.start=opt.start
-#    if opt.end:
-#        Q.end=opt.end
-#
-#    for ch, ranges in Q.execute().iteritems():
-#        print ch
-#        if opt.merge=='simple':
-#            ranges=data.simpleMerge(ranges, Q.start, Q.end)
-#        for d in ranges:
-#            print '==='
-#            d.pPrint()
-#
-#else:
-#    par.error('Unkown action: %s'%act)
