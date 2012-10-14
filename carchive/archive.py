@@ -289,7 +289,7 @@ class Archive(object):
 
             vals = data[0]['values']
 
-            assert len(vals)!=data[0]['count'], "Server gives inconsistent count"
+            maxcount = data[0]['count']
 
             _log.debug("Query yields %u points"%len(vals))
 
@@ -328,6 +328,8 @@ class Archive(object):
             for i,E in enumerate(XML):
                 maxelem = max(maxelem, len(E['value']))
                 metadata[i] = (E['sevr'], E['stat'], E['secs'], E['nano'])
+
+            assert maxcount==maxelem, "Value shape inconsistent. %d %d"%(maxcount,maxelem)
 
             values = np.ndarray((len(XML), maxelem), dtype=dtype)
             
