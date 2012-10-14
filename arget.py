@@ -101,7 +101,13 @@ def haveArchive(act, opt, args, conf):
     mod = __import__('carchive.cmd', fromlist=[act])
     mod = getattr(mod, act)
 
-    serv = yield getArchive(conf=conf)    
+    try:
+        serv = yield getArchive(conf=conf)    
+    except:
+        E = sys.exc_info()[1]
+        print 'Failed to fetch data server information.',E
+        reactor.stop()
+        defer.returnValue(None)
     
     done = mod.cmd(action=act, archive=serv,
                    opt=opt, args=args,
@@ -109,6 +115,9 @@ def haveArchive(act, opt, args, conf):
 
     try:
         yield done
+    except:
+        E = sys.exc_info()[1]
+        print 'Operation failed.',E
     finally:
         reactor.stop()
 

@@ -7,6 +7,8 @@ import re
 import logging
 _log = logging.getLogger("carchive.archiver")
 
+import time
+
 from fnmatch import fnmatch
 from collections import defaultdict
 import numpy as np
@@ -17,6 +19,24 @@ from datetime import datetime
 
 from twisted.internet import defer
 from twisted.web.xmlrpc import Proxy
+from twisted.internet.defer import FirstError
+
+from twisted.internet.error import ConnectionRefusedError
+
+def _optime(R, S):
+    E = time.time()
+    _log.info("Query complete in %f sec", E-S)
+    return R
+
+def _connerror(F):
+    if F.check(FirstError):
+        F = F.value.subFailure
+
+    if F.check(ConnectionRefusedError):
+        _log.fatal("Data server connection refused.  Server not reachable?")
+    else:
+        _log.fatal("Remote request failed!  %s",F)
+    return F
 
 _dtypes = {
     0: np.dtype('a40'),
@@ -48,9 +68,9 @@ def getArchive(name=None, conf=defaultConfig):
     proxy=Proxy(url)
     proxy.connectTimeout=3.0
 
-    info = proxy.callRemote('archiver.info')
-    archs= proxy.callRemote('archiver.archives')
-    X = yield defer.DeferredList([info, archs], fireOnOneErrback=True)
+    info = proxy.callRemote('archiver.info').addErrback(_connerror)
+    archs= proxy.callRemote('archiver.archives').addErrback(_connerror)
+    X = yield defer.DeferredList([info, archs], fireOnOneErrback=True).addErrback(_connerror)
     info, archs = X[0][1], X[1][1]
     
     defer.returnValue(Archive(proxy, conf, info, archs))
@@ -155,7 +175,7 @@ class Archive(object):
         Ds = [None]*len(archs)
         
         for i,a in enumerate(archs):
-            Ds[i] = self._proxy.callRemote('archiver.names', a, pattern)
+            Ds[i] = self._proxy.callRemote('archiver.names', a, pattern).addErrback(_connerror)
 
         Ds = yield defer.DeferredList(Ds, fireOnOneErrback=True)
 
@@ -237,7 +257,9 @@ class Archive(object):
                                        arch, [pv],
                                        Tcur[0], Tcur[1],
                                        Tlast[0], Tlast[1],
-                                       C, how)
+                                       C, how).addErrback(_connerror)
+
+            D.addCallback(_optime, time.time())
 
             data = yield D
 
