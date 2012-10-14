@@ -19,8 +19,11 @@ from date import makeTime, timeTuple
 from datetime import datetime
 
 from twisted.internet import defer
-from twisted.web.xmlrpc import Proxy
 from twisted.internet.defer import FirstError
+
+# Use EOL hack
+from rpcmunge import NiceProxy as Proxy
+#from twisted.web.xmlrpc import Proxy
 
 from twisted.internet.error import ConnectionRefusedError
 
