@@ -62,7 +62,10 @@ def getArchive(name=None, conf=defaultConfig):
     instance.
     """
     if name is None:
-        name=conf.get('DEFAULT', 'default_archive')
+        if conf.has_option('DEFAULT', 'default_archive'):
+	    name=conf.get('DEFAULT', 'default_archive')
+        else:
+            name='DEFAULT'
     url = conf.get(name, 'url')    
     
     proxy=Proxy(url)
