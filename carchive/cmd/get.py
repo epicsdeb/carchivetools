@@ -22,7 +22,7 @@ def printData(data, meta, archive):
             print makeTime((M['sec'],int(M['ns']))),
             print archive.severity(M['severity']),
             print archive.status(M['status']),
-            print data[i,:]
+            print data[i,:].tolist()
 
 @defer.inlineCallbacks
 def cmd(archive=None, opt=None, args=None, conf=None, **kws):
