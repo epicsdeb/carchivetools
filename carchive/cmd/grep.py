@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+import logging
+_log = logging.getLogger("argrep")
+
 from twisted.internet import defer
 
 @defer.inlineCallbacks
@@ -7,10 +10,13 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
     if len(args)==0:
         args=['.*']
 
+    _log.debug('Searching for: %s',args)
+
     archs=set()
     for ar in opt.archive:
         archs|=set(archive.archives(pattern=ar))
     archs=list(archs)
+    _log.info('Looking in: %s',', '.join(archs))
 
     res = {}
 
@@ -18,6 +24,8 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
         S = yield archive.search(pattern=pat, archs=archs,
                                  breakDown=opt.verbose>1)
         res.update(S)
+
+    _log.debug('Found %d results',len(res))
 
     chs=res.keys()
     chs.sort()
