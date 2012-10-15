@@ -1,0 +1,21 @@
+[DEFAULT]
+
+# Specify on of (possibly) several server configurations
+#default_archive=myarchiver
+
+# Gives the default hostname used in no specific configuration is requested
+#host=hostname:port
+
+# Instead of host the full url can be given
+#url = http://%(host)s/cgi-bin/ArchiveDataServer.cgi
+
+# Default pattern to determine which archives are operated on
+#defaultarchs = */Current
+
+[myarchiver]
+
+# host, url, and defaultarchs can be specified in each subsection.
+# A subsection is specified by
+#  $ arget -u myarchiver ...
+
+#host=myarchiver.some.host.local:8888
