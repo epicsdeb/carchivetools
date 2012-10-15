@@ -1,0 +1,10 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+export DH_VERBOSE=1
+
+%:
+	dh $@
+binary: binary-arch binary-indep
+binary-arch binary-indep: install
+install: build
