@@ -3,7 +3,7 @@ Section: python
 Priority: optional
 Maintainer: Michael Davidsaver <mdavidsaver@bnl.gov>
 Build-Depends: debhelper (>= 7.0.50~),
-               python-all-dev, python-all-dbg,
+               python-all-dev,
                python-numpy,
                python-twisted-core, python-twisted-web,
 XS-Python-Version: >= 2.6
