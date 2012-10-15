@@ -9,6 +9,14 @@ binary: binary-arch binary-indep
 binary-arch binary-indep: install
 install: build
 
+override_dh_auto_build:
+	dh_auto_build
+	pod2man --section=1 arget.pod arget.1
+
+override_dh_auto_clean:
+	dh_auto_clean
+	rm -f arget.1
+
 override_dh_install:
 	dh_install
 	cp debian/carchive/etc/carchive.conf.example debian/carchive/etc/carchive.conf
