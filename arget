@@ -78,12 +78,15 @@ logging.basicConfig(format='%(message)s',level=LVL.get(opt.verbose, LVL[2]))
 from carchive import getArchive, HandledError
 from carchive._conf import _conf as conf
 
-if opt.url:
+if opt.url and opt.url.startswith('http'):
     conf.set('DEFAULT', 'url', opt.url)
 
 if len(opt.archive)==0:
-    if conf.has_option('DEFAULT', 'defaultarchs'):
-        opt.archive = [conf.get('DEFAULT', 'defaultarchs')]
+    sect = 'DEFAULT'
+    if opt.url and conf.has_section(opt.url):
+        sect = opt.url
+    if conf.has_option(sect, 'defaultarchs'):
+        opt.archive = [conf.get(sect, 'defaultarchs')]
     else:
         opt.archive = ['*']
 
