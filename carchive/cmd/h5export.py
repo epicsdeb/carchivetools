@@ -80,7 +80,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
     
     pvgroup = F.require_group(path)
     
-    Chk = 1000
+    Chk = opt.chunk
     
     Ds = [None]*len(args)
 

@@ -364,6 +364,8 @@ class Archive(object):
                  count=None, chunkSize=None,
                  archs=None, breakDown=None):
         """Fetch raw data for the given PV.
+
+        Results are passed to the given callback as they arrive.
         """
         if breakDown is None:
             breakDown = yield self.search(exact=pv, archs=archs,
@@ -397,8 +399,10 @@ class Archive(object):
             Tcur =  Rend
 
         if len(plan)==0:
-            _log.debug("Query plan empty.  No data in request time range")
+            _log.info("Query plan empty.  No data in request time range")
             defer.returnValue(0)
+
+        _log.debug("Using plan: %s", plan)
 
         N = yield self._nextraw(0, pv=pv, plan=plan,
                                 Ctot=0, Climit=count,

@@ -47,7 +47,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
         D = yield archive.fetchraw(pv, printData, archs=archs,
                                    cbArgs=(archive,),
                                    T0=T0, Tend=Tend,
-                                   count=count, chunkSize=1000)
+                                   count=count, chunkSize=opt.chunk)
 
         C = yield D
         print 'Found %d points'%C

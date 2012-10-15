@@ -23,6 +23,7 @@ par=OptionParser(
     description='Query the channel archiver'
     )
 
+# Select operation
 par.add_option('', '--helptime', action="store_true", default=False,
                help="Show help on date/time format")
 par.add_option('-I','--info', action="store_true", default=False,
@@ -34,6 +35,7 @@ par.add_option('-G','--get', action="store_true", default=False,
 par.add_option('-E','--export', metavar='TYPE', default=None,
                help="Retrieve data and write to file in the given format (eg. hdf5)")
 
+# Query options
 par.add_option('-u','--url', metavar='NAME or URL',
                help='Either a config key, host name, or full url for the server')
 par.add_option('-s','--start', metavar='TIME',
@@ -41,7 +43,9 @@ par.add_option('-s','--start', metavar='TIME',
 par.add_option('-e','--end', metavar='TIME', default=None,
                help='End of query window (defaults to current system time)')
 par.add_option('-c','--count', metavar='NUM', default=10, type="int",
-               help='Maximum number of samples to read. (10 = default, 0 = inf.)')
+               help='Total maximum number of samples to read. (10 = default, 0 = inf.)')
+par.add_option('-l','--chunk', metavar='NUM', default=1000, type="int",
+               help='Maximum number of samples to request in a single query.  (1000 = default)')
 par.add_option('-a','--archive', metavar='NAME', action='append', default=[],
                help='Archive name.  Wildcards allowed.  Can be given more than once')
 par.add_option('-H','--how', metavar='NAME', default='raw',
