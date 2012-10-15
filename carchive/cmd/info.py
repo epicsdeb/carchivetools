@@ -3,7 +3,7 @@
 import sys
 
 def cmd(archive=None, opt=None, conf=None, **kws):
-    if opt.verbose>0:
+    if opt.verbose>1:
         conf.write(sys.stdout)
         sys.stdout.write('\n')
         print archive
@@ -13,7 +13,8 @@ def cmd(archive=None, opt=None, conf=None, **kws):
         archs|=set(archive.archives(pattern=ar))
     archs=list(archs)
 
-    print 'Archives:'
+    if opt.verbose>0:
+      print 'Archives:'
     archs.sort()
     for ar in archs:
-        print ' ',ar
+        print ar
