@@ -8,7 +8,7 @@ def __loadConfig():
     import ConfigParser
     dflt={'url':'http://%(host)s/cgi-bin/ArchiveDataServer.cgi',
           'host':'%%(host)s',
-          'defaultarchs':'*/Current',
+          'defaultarchs':'*',
         }
     cf=ConfigParser.SafeConfigParser(defaults=dflt)
     cf.read([
