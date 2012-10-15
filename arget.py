@@ -111,8 +111,11 @@ def haveArchive(act, opt, args, conf):
         defer.returnValue(None)
     except:
         E = sys.exc_info()[1]
-        print 'Failed to fetch data server information.',E
-        defer.returnValue(None)
+        if opt.verbose<2:
+            print 'Failed to fetch data server information.',E
+            defer.returnValue(None)
+        else:
+            raise
     
     try:
         done = mod.cmd(action=act, archive=serv,
@@ -124,7 +127,10 @@ def haveArchive(act, opt, args, conf):
         pass
     except:
         E = sys.exc_info()[1]
-        print 'Operation failed.',E
+        if opt.verbose<2:
+            print 'Operation failed.',E
+        else:
+            raise
 
 @defer.inlineCallbacks
 def main(*args):
