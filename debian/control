@@ -1,4 +1,4 @@
-Source: carchive
+Source: carchivetools
 Section: python
 Priority: optional
 Maintainer: Michael Davidsaver <mdavidsaver@bnl.gov>
@@ -11,7 +11,7 @@ Standards-Version: 3.8.0
 Homepage: http://epics.nsls2.bnl.gov/debian
 Vcs-Git: http://epics.nsls2.bnl.gov/git/carchive.git
 
-Package: carchive
+Package: carchivetools
 Architecture: all
 Depends: ${shlibs:Depends}, ${python:Depends},
          python-numpy,

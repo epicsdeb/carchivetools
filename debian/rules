@@ -19,4 +19,4 @@ override_dh_auto_clean:
 
 override_dh_install:
 	dh_install
-	cp debian/carchive/etc/carchive.conf.example debian/carchive/etc/carchive.conf
+	cp debian/carchivetools/etc/carchive.conf.example debian/carchivetools/etc/carchive.conf

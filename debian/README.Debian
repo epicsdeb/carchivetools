@@ -1,0 +1,11 @@
+The channel archiver tools (arget, argrep, arinfo) follow
+the usual convention for configuration with files searched in order
+
+/etc/carchive.conf
+~/.carchiverc
+$PWD/carchive.conf
+
+Each file overwrites settings from the previous.
+
+The file /etc/carchive.conf.example has some explaination
+of the options which can be used.
