@@ -164,6 +164,26 @@ given as a relative time it is treated in relation to the other.
 
  $ arget -s '-10 min' ...
 
+=head1 HDF5 LAYOUT
+
+The HDF5 file given to I<arget> will be created if it does not exist.  If it does exist it will be added to
+if the new data has a timestamp later then any which is currently stored.
+
+When invoking I<arget> an additional argument is given with the filename.  This has the form 'filename:/group'.
+If group is omitted then '/' is used.  For each PV to be stored a sub-group is created with two datasets
+'value' and 'meta'.
+
+ /group/<pv name>/value
+ /group/<pv name>/meta
+
+The 'meta' dataset is a compound type (structure) which four members: severity, status, sec, and ns.
+These are copied verbatim from the data received from the data server.  The field 'sec' is relative to
+Posix Epoch (1 Jan 1970).
+
+The 'value' dataset is an MxN of type string, int32, or float64.  M is the sample number and is matched
+with a corresponding entry in 'meta'.  N is the index in the value of a single sample.  N is choosen
+to hold the longest returned value.
+
 =head1 AUTHOR
 
 Michael Davidsaver <mdavidsaver@bnl.gov>
