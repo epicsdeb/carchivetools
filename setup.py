@@ -3,7 +3,7 @@
 from distutils.core import setup
 
 setup(
-    name = "carchive",
+    name = "carchivetools",
     version = "1.0",
     description = "CLI Tools to query Channel Archiver",
     author = "Michael Davidsaver",
