@@ -9,6 +9,6 @@ setup(
     author = "Michael Davidsaver",
     author_email = "mdavidsaver@bnl.gov",
     license = "BSD",
-    packages = ['carchive'],
+    packages = ['carchive', 'carchive.cmd'],
     scripts = ['arget'],
 )
