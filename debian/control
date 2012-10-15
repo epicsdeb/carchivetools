@@ -18,5 +18,5 @@ Depends: ${shlibs:Depends}, ${python:Depends},
          python-twisted-core, python-twisted-web,
 XB-Python-Version: ${python:Versions}
 Description: CLI utilities for queries the Channel Archiver
- Tools to queries and extract data from the EPICS
+ Tools to query and extract data from the EPICS
  Channel Archiver's XMLRPC data server.
