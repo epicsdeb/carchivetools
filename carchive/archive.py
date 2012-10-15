@@ -351,6 +351,10 @@ class Archive(object):
                 values = values[1:]
                 metadata = metadata[1:]
 
+            # no non-duplicate samples
+            if len(metadata)==0:
+                break
+
             Tcur = (int(metadata[-1]['sec']), int(metadata[-1]['ns']+1))
 
             callback(values, metadata, *cbArgs, **cbKWs)
