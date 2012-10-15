@@ -1,0 +1,171 @@
+=head1 NAME
+
+arget, argrep, arinfo - CLI tools to query Channel Archiver
+
+=head1 SYNOPSIS
+
+arinfo [common options]
+
+argrep [common options] <regex pattern>
+
+arget [common options] [get options] <pv names...>
+
+arget [common options] -E hdf5 [get options] <hdf file:path> <pv names...>
+
+=head1 DESCRIPTION
+
+These utilities will attempt to contact a Channel Archiver Data Server
+using the HTTP protocol.  The server configuration is determined by
+a configuration file and the B<-u> argument.
+
+I<arinfo> serves the purpose of listing which archive sections will
+by queries by default, or with a given set of B<-a> options.
+
+I<argrep> serves to find which PVs in the given archive sections
+match the given regular expression.
+
+I<arget> retrieves data and can either write it to the screen, or an HDF5 file.
+
+=head1 OPTIONS
+
+=head2 Common Options
+
+=over 2
+
+=item B<-h>, B<--help>
+
+Show help message
+
+=item B<-I>, B<-S>, B<-G>
+
+Select operation to perform.  Normally this is implicit in the executable name.
+I<arinfo> is a synonym for I<arget -I>.
+
+=item B<-u> I<URL>, B<--url>=I<URL>
+
+Specify either a full URL (http://...) or a configuration file section name.
+
+=item B<-a> I<NAME>, B<--archive>=I<NAME>
+
+Search the named archive section.  Can be given more than once to add additional archives.
+When given the default archive section specification is overridden.
+
+=item B<-v>, B<--verbose>
+
+Print more information.  May be given up to 3 times.
+
+=back
+
+=head2 Get Options
+
+=over 2
+
+=item B<-s> I<TIME>, B<--start>=I<TIME>, B<-e> I<TIME>, B<--end>=I<TIME>
+
+For I<arget>, specify start and end times to use for the query.  If not specified then
+the current system time is used.  One of these must always be given or the query will
+return no data.
+
+See the section TIMES for information on the formats recognised.
+
+=item B<-c> I<NUM>, B<--count>=I<NUM>
+
+Limit the total number of samples returned to this number.  0 may be given to retrieve
+all samples. However, care should be taken when doing this as it may return a lot of data.
+
+=item B<-l> I<NUM>, B<--chuck>=I<NUM>
+
+I<arget> may make several queries to fetch all of the requested data.
+This option specifies the number of points to request for each of these queries.
+The default will usually be sufficient for scalar PVs.  However, for large waveforms
+if may not.  If the server reports 500 errors then try setting a smaller chunk size.
+
+This option does not effect the data returned.
+
+=back
+
+=head1 EXAMPLES
+
+List all available archive sections.  Override any default pattern which may be set.
+
+ $ arinfo -a '*'
+ section1
+ section2
+ ...
+
+Search for some PVs having 'Dev1' or 'Dev2' in the name.
+
+ $ argrep -a 'section*' 'Dev[12]'
+ X:Dev1:Set
+ X:Dev2:Set
+ ...
+
+To get information on available time ranges for each PV.
+
+ $ argrep -v Dev1:Set
+ ...
+ 2012-04-10 14:41:11.999682 , 2012-10-15 02:02:15.933004 , X:Dev1:Set
+
+Or get a further breakdown by archive section.
+
+ $ argrep -vv Dev1:Set
+ ...
+ X:Dev1:Set
+   2012-04-10 14:41:11.999682 , 2012-10-15 02:00:21.288242 , section1
+   2012-10-15 02:02:15.571932 , 2012-10-15 02:02:15.933004 , section3
+
+To retrieve and print up to 1000 points in the given time range.
+
+ $ arget -s '2012-10-15 01:50:0.0' -e '2012-10-15 02:10:00' -c 1000 X:Dev1:Set
+ X:Dev1:Set
+ 2012-10-15 01:49:57.838879 -14.0
+ ...
+
+Or write all points of in this time range to an HDF5 file.
+
+ $ arget -E hdf5 -s '2012-10-15 01:50:0.0' -e '2012-10-15 02:10:00' -c 0 file.h5:/group X:Dev1:Set
+
+=head1 TIME FORMAT
+
+The time and date formats understood by the B<--start> and B<--end> arguments can be absolute time as
+
+ YYYY-MM-DD HH:MM:SS[.fff]
+
+ DD/MM[/YYYY] HH:MM[:SS[.fff]]
+
+ HH:MM[:SS[.fff]]
+
+When part of the date is omitted then the current day is used.  When part of the time is omitted then zero is used
+for these parts.
+
+ ### UUU [### UUU ...]
+
+where ### is a signed floating point number, and UUU is a unit string.
+
+Supported unit strings
+  
+  us
+  ms
+  s, sec, secs, second, seconds
+  m, min, mins, minute, minutes
+  h, hrs, hour, hours
+  d, day, days
+  w, week, weeks
+
+
+Relative times can also be specified. Only one of B<--start> or B<--end> is allowed to be relative. If one is
+given as a relative time it is treated in relation to the other.
+
+ The following example retrieves 00:00 through 04:00 on 24 March of the current year.
+
+ $ arget -s '24/03' -e '4 h'...
+
+ To retrieve the last 10 minites of data.
+
+ $ arget -s '-10 min' ...
+
+=head1 AUTHOR
+
+Michael Davidsaver <mdavidsaver@bnl.gov>
+
+=cut
