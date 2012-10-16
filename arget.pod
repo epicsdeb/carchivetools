@@ -153,14 +153,21 @@ Supported unit strings
   w, week, weeks
 
 
-Relative times can also be specified. Only one of B<--start> or B<--end> is allowed to be relative. If one is
-given as a relative time it is treated in relation to the other.
+Relative times can also be specified according to the following rules.
 
- The following example retrieves 00:00 through 04:00 on 24 March of the current year.
+If both B<--start> and B<--end> are relative then they are taken to be in relation
+to the current system time.
+
+If only B<--start> is relative then it is taken as relative to the absolute end time.
+
+If only B<--end> is relative then, if end >0 it is taken in relation to the absolute start time.
+However, if <0 it is taken as relative to the current system time.
+
+The following example retrieves 00:00 through 04:00 on 24 March of the current year.
 
  $ arget -s '24/03' -e '4 h'...
 
- To retrieve the last 10 minites of data.
+To retrieve the last 10 minites of data.
 
  $ arget -s '-10 min' ...
 
