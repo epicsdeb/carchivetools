@@ -191,6 +191,18 @@ The 'value' dataset is an MxN of type string, int32, or float64.  M is the sampl
 with a corresponding entry in 'meta'.  N is the index in the value of a single sample.  N is choosen
 to hold the longest returned value.
 
+=head1 CONFIG FILES
+
+Several files are read for configuration parameters.  The order in which they are read is:
+
+ 1) /etc/carchive.conf
+ 2) $HOME/.carchiverc
+ 3) $PWD/carchiver.conf
+
+Values read from each file override values from previous files or defaults.
+
+See /etc/carchive.conf.example for available options.
+
 =head1 AUTHOR
 
 Michael Davidsaver <mdavidsaver@bnl.gov>
