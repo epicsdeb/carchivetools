@@ -86,7 +86,7 @@ elif opt.url:
 if len(opt.archive)==0:
     sect = conf.get('DEFAULT', 'defaultarchive')
     if conf.has_option(sect, 'defaultarchs'):
-        opt.archive = [conf.get(sect, 'defaultarchs')]
+        opt.archive = conf.get(sect, 'defaultarchs').split()
     else:
         opt.archive = ['*']
 
