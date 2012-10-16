@@ -9,6 +9,8 @@ def __loadConfig():
     dflt={'url':'http://%(host)s/cgi-bin/ArchiveDataServer.cgi',
           'host':'%%(host)s',
           'defaultarchs':'*',
+          'defaultcount':'10',
+          'default_archive':'DEFAULT',
         }
     cf=ConfigParser.SafeConfigParser(defaults=dflt)
     cf.read([

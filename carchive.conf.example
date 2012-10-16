@@ -12,6 +12,9 @@
 # Default pattern to determine which archives are operated on
 #defaultarchs = */Current
 
+# Default total number of samples.
+#defaultcount = 10
+
 [myarchiver]
 
 # host, url, and defaultarchs can be specified in each subsection.

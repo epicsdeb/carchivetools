@@ -70,8 +70,11 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
         defer.returnValue(0)
     
     T0, Tend = makeTimeInterval(opt.start, opt.end)
-    count = opt.count if opt.count>0 else None
-    
+
+    sect = conf.get('DEFAULT', 'default_archive')
+
+    count = opt.count if opt.count>0 else conf.getint(sect, 'defaultcount')
+
     h5file, _, path = args.pop(0).partition(':')
     if path=='':
         path='/'
