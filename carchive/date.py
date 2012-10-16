@@ -256,6 +256,8 @@ def makeTimeInterval(start, end, now=None):
         now=datetime.datetime.now()
     if end is None:
         end=now
+    if start is None:
+        start=now
 
     start, end = makeTime(start, now), makeTime(end, now)
 
