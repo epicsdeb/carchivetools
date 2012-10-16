@@ -78,8 +78,8 @@ def getArchive(name=None, conf=defaultConfig):
     instance.
     """
     if name is None:
-        if conf.has_option('DEFAULT', 'default_archive'):
-	    name=conf.get('DEFAULT', 'default_archive')
+        if conf.has_option('DEFAULT', 'defaultarchive'):
+	    name=conf.get('DEFAULT', 'defaultarchive')
         else:
             name='DEFAULT'
     url = conf.get(name, 'url')    

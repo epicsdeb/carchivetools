@@ -10,7 +10,7 @@ def __loadConfig():
           'host':'%%(host)s',
           'defaultarchs':'*',
           'defaultcount':'10',
-          'default_archive':'DEFAULT',
+          'defaultarchive':'DEFAULT',
         }
     cf=ConfigParser.SafeConfigParser(defaults=dflt)
     cf.read([

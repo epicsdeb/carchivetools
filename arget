@@ -81,10 +81,10 @@ from carchive._conf import _conf as conf
 if opt.url and opt.url.startswith('http'):
     conf.set('DEFAULT', 'url', opt.url)
 elif opt.url:
-    conf.set('DEFAULT', 'default_archive', opt.url)
+    conf.set('DEFAULT', 'defaultarchive', opt.url)
 
 if len(opt.archive)==0:
-    sect = conf.get('DEFAULT', 'default_archive')
+    sect = conf.get('DEFAULT', 'defaultarchive')
     if conf.has_option(sect, 'defaultarchs'):
         opt.archive = [conf.get(sect, 'defaultarchs')]
     else:

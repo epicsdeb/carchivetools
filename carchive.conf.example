@@ -1,7 +1,7 @@
 [DEFAULT]
 
 # Specify on of (possibly) several server configurations
-#default_archive=myarchiver
+#defaultarchive=myarchiver
 
 # Gives the default hostname used in no specific configuration is requested
 #host=hostname:port

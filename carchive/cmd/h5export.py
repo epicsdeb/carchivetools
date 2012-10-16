@@ -71,7 +71,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
     
     T0, Tend = makeTimeInterval(opt.start, opt.end)
 
-    sect = conf.get('DEFAULT', 'default_archive')
+    sect = conf.get('DEFAULT', 'defaultarchive')
 
     count = opt.count if opt.count>0 else conf.getint(sect, 'defaultcount')
 
