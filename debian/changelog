@@ -1,3 +1,13 @@
+carchivetools (1.3) unstable; urgency=low
+
+  * add defaultcount config option
+  * start time also default to now
+  * fix documentation on time formats
+  * rename default_archive option to defaultarchive for consistency
+  * allow defaultarchs to contain several patterns
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Wed, 17 Oct 2012 16:24:40 -0400
+
 carchivetools (1.2) unstable; urgency=low
 
   * Missing cachive.cmd module
