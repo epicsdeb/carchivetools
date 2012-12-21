@@ -14,6 +14,7 @@ class NiceQueryProtocol(QueryProtocol):
        # Pass through end of header
        if not line:
            QueryProtocol.lineReceived(self, line)
+           return
 
        # seperate with any single valid EOL combination.
        # '\n\n' becomes ['','']
