@@ -82,9 +82,10 @@ def getArchive(name=None, conf=defaultConfig):
 	    name=conf.get('DEFAULT', 'defaultarchive')
         else:
             name='DEFAULT'
-    url = conf.get(name, 'url')    
+    url = conf.get(name, 'url')
+    maxreq = conf.getint(name, 'maxrequests')
     
-    proxy=Proxy(url)
+    proxy=Proxy(url, limit=maxreq)
     proxy.connectTimeout=3.0
 
     info = proxy.callRemote('archiver.info').addErrback(_connerror)
