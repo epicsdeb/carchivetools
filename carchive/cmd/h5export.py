@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+import logging
+_log = logging.getLogger("carchive.h5export")
+
 import h5py
 
 import numpy as np
@@ -10,7 +13,6 @@ from carchive.date import makeTimeInterval
 from carchive.archive import dbr_time
 
 def printData(data, meta, archive, info):
-    print 'shape',data.shape
     metaset = info.metaset
     
     if not info.valset: # first data
@@ -28,11 +30,10 @@ def printData(data, meta, archive, info):
 
     if metaset.shape[0]:
         lastsamp = (metaset['sec'][-1], metaset['ns'][-1])
-        print 'L',lastsamp
         newstart = (meta['sec'][0], meta['ns'][0])  
         
         if(lastsamp >= newstart):
-            print 'Ignoring overlapping data'
+            _log.info('Ignoring overlapping data. %s >= %s', lastsamp, newstart)
             return  
 
     mstart = info.metaset.shape[0]
@@ -47,9 +48,17 @@ def printData(data, meta, archive, info):
 
     valset.resize(shape)
 
+    if valset.dtype!=data.dtype:
+        if valset.dtype.kind in ['i','f'] and data.dtype.kind in ['i','f']:
+            pass # silently cast between float and int
+        else:
+            _log.warning("Can't cast from %s to %s.  Ignoring samples.",
+                         data.dtype, valset.dtype)
+            return
+
     valset[start:,:data.shape[1]] = data
 
-    print '>',info.pv,valset.shape[0]
+    _log.debug("%s totoal samples for %s", valset.shape, info.pv)
 
 class printInfo(object):
     pass
