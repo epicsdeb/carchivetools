@@ -52,6 +52,10 @@ class NiceProxy(Proxy):
         self.__waiting = []
 
     def callRemote(self, *args):
+        # only limit data queries
+        if args[0]!='archiver.values':
+            return Proxy.callRemote(self, *args)
+
         if self.__inprog<self.__limit:
             _log.debug("Immedate request execution: %s", args)
             D = Proxy.callRemote(self, *args)
