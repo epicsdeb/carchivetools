@@ -55,6 +55,11 @@ par.add_option('-M','--merge', metavar='NAME', default='simple',
                help='How to attempt to combine data for one channel received in '
                'different responces.  Options: none, simple')
 
+# Data options
+par.add_option('', '--no-enum', default=False, action='store_true', dest='enumAsInt',
+               help='Return enumerations as integers')
+
+# General options
 par.add_option('-v','--verbose', action='count', default=0,
                help='Print more')
 par.add_option('-d','--debug', action='store_true', default=False,

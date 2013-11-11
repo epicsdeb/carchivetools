@@ -109,7 +109,8 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
         D = archive.fetchraw(pv, printData, archs=archs,
                                    cbArgs=(archive, P),
                                    T0=T0, Tend=Tend,
-                                   count=count, chunkSize=Chk)
+                                   count=count, chunkSize=Chk,
+                                   enumAsInt=opt.enumAsInt)
 
         @D.addCallback
         def show(C, pv=pv):

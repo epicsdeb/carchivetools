@@ -240,7 +240,7 @@ class Archive(object):
                    cbArgs=(), cbKWs={},
                    T0=None, Tend=None,
                    count=None, chunkSize=None,
-                   how=0):
+                   how=0, enumAsInt=False):
         if count is None and chunkSize is None:
             raise TypeError("If count is None then chunkSize must be given")
         if chunkSize is None:
@@ -307,6 +307,8 @@ class Archive(object):
                 states = []
 
             vtype = data[0]['type']
+            if vtype==1 and enumAsInt:
+                vtype = 2
 
             try:
                 dtype = _dtypes[vtype]
@@ -366,7 +368,8 @@ class Archive(object):
                  cbArgs=(), cbKWs={},
                  T0=None, Tend=None,
                  count=None, chunkSize=None,
-                 archs=None, breakDown=None):
+                 archs=None, breakDown=None,
+                 enumAsInt=False):
         """Fetch raw data for the given PV.
 
         Results are passed to the given callback as they arrive.
@@ -411,12 +414,14 @@ class Archive(object):
         N = yield self._nextraw(0, pv=pv, plan=plan,
                                 Ctot=0, Climit=count,
                                 callback=callback, cbArgs=cbArgs,
-                                cbKWs=cbKWs, chunkSize=chunkSize)
+                                cbKWs=cbKWs, chunkSize=chunkSize,
+                                enumAsInt=enumAsInt)
 
         defer.returnValue(N)
 
     def _nextraw(self, partcount, pv, plan, Ctot, Climit,
-                 callback, cbArgs, cbKWs, chunkSize):
+                 callback, cbArgs, cbKWs, chunkSize,
+                 enumAsInt):
         sofar = partcount + Ctot
         if len(plan)==0 or (Climit and sofar>=Climit):
             return sofar # done
@@ -429,9 +434,10 @@ class Archive(object):
                             cbArgs=cbArgs, cbKWs=cbKWs,
                             T0=T0, Tend=Tend,
                             count=count,
-                            chunkSize=chunkSize)
+                            chunkSize=chunkSize,
+                            enumAsInt=enumAsInt)
 
         D.addCallback(self._nextraw, pv, plan, sofar, Climit,
-                      callback, cbArgs, cbKWs, chunkSize)
+                      callback, cbArgs, cbKWs, chunkSize, enumAsInt)
 
         return D
