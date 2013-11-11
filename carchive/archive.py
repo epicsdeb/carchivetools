@@ -378,7 +378,7 @@ class Archive(object):
         breakDown = breakDown[pv]
 
         if len(breakDown)==0:
-            raise RuntimeError("No match for name '%s'"%pv)
+            defer.returnValue(0)
 
         _log.debug("Planning with: %s",breakDown)
 
