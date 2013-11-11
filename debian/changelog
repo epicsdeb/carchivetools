@@ -1,3 +1,16 @@
+carchivetools (1.5) UNRELEASED; urgency=low
+
+  * nicer error for no data
+  * add option to request enumerated as integer instead of string
+  * more plan debug info
+  * remove default max samples limit
+     New default is to query until all samples in the requested time
+     range are retrieved.
+  * throttle the number of concurrent xmlrpc data requests
+  * add 'maxrequests' config file option
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Mon, 11 Nov 2013 11:32:04 -0500
+
 carchivetools (1.4) unstable; urgency=low
 
   * fix for python 2.7
