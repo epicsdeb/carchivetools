@@ -270,8 +270,8 @@ class Archive(object):
         first = True
         last = False
         while not last and Tcur < Tlast:
-            _log.debug('archiver.values(%d,%s,%s,%s,%d,%d)',
-                       arch,pv,Tcur,Tlast,C,how)
+            _log.debug('archiver.values(%s,%s,%s,%s,%d,%d)',
+                       self.__rarchs[arch],pv,Tcur,Tlast,C,how)
             D = self._proxy.callRemote('archiver.values',
                                        arch, [pv],
                                        Tcur[0], Tcur[1],
@@ -383,7 +383,7 @@ class Archive(object):
         if len(breakDown)==0:
             defer.returnValue(0)
 
-        _log.debug("Planning with: %s",breakDown)
+        _log.debug("Planning with: %s", map(lambda (a,b,c):(a,b,self.__rarchs[c]), breakDown))
 
         Tcur, Tend = timeTuple(T0), timeTuple(Tend)
 
@@ -409,7 +409,7 @@ class Archive(object):
             _log.info("Query plan empty.  No data in request time range")
             defer.returnValue(0)
 
-        _log.debug("Using plan: %s", plan)
+        _log.debug("Using plan of %d queries %s", len(plan), map(lambda (a,b,c):(a,b,self.__rarchs[c]), plan))
 
         N = yield self._nextraw(0, pv=pv, plan=plan,
                                 Ctot=0, Climit=count,
@@ -423,12 +423,17 @@ class Archive(object):
                  callback, cbArgs, cbKWs, chunkSize,
                  enumAsInt):
         sofar = partcount + Ctot
-        if len(plan)==0 or (Climit and sofar>=Climit):
+        if len(plan)==0:
+            _log.debug("Plan complete: %s", pv)
+            return sofar # done
+        elif Climit and sofar>=Climit:
+            _log.debug("Plan point limit reached: %s", pv)
             return sofar # done
 
         count = Climit - sofar if Climit else None
 
         T0, Tend, arch = plan.pop(0)
+        _log.debug("Query %d of %s %s -> %s for %s", len(plan), self.__rarchs[arch], T0, Tend, pv)
 
         D = self._fetchdata(arch, pv, callback,
                             cbArgs=cbArgs, cbKWs=cbKWs,
