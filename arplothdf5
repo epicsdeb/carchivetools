@@ -1,0 +1,148 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from optparse import OptionParser
+
+from carchive import h5data
+
+import numpy as np
+
+from matplotlib import pyplot as plt
+from matplotlib import mlab
+import matplotlib.dates as mdates
+
+# trace line style codes
+_styles=[
+    'b-',
+    'g--',
+    'r-.',
+    'c--',
+    'm-.',
+    'k--',
+]
+
+def opts():
+    par=OptionParser(
+    usage='%prog [options] <file.h5[:/path]>',
+    description='Plot output of arget -E hdf5'
+    )
+    return par
+
+class Sampler(object):
+    """Sample all the y values at the x position given
+    by the cursor.
+    """
+    def __init__(self, fig):
+        self.F = fig
+        self._cid = fig.canvas.mpl_connect('key_press_event', self.onpress)
+    def disconnect(self):
+        self.F.mpl_disconnect(self._sid)
+    def onpress(self, event):
+        #print self,event.key
+        if event.key=='y' and event.inaxes:
+            data = []
+            ax = event.inaxes
+            for L in ax.get_lines():
+                X, Y = L.pv.mtime, L.pv.value
+                Xp = mlab.find(X<=event.xdata)
+                if len(Xp):
+                    data.append((L, Xp[-1]))
+                else:
+                    data.append((L, None))
+
+            data.sort(key=lambda v:v[0].pv.name)
+            self.show(event, data)
+    def show(self, event, data):
+        print 'All Y values at X=',mdates.num2date(event.xdata)
+        for L, i in data:
+            if i is None:
+                print "Not Connected\t%s"%L.pv.name
+            else:
+                print "%s\t%s\t%s\t%s"%(mdates.num2date(L.pv.mtime[i]),L.pv.name,L.pv.value[i], h5data.sevr2str(L.pv.severity[i]))
+
+class RePlay(object):
+    """Replay the events in the visible X region
+    """
+    def __init__(self, fig):
+        self.F = fig
+        self._cid = fig.canvas.mpl_connect('key_press_event', self.onpress)
+    def disconnect(self):
+        self.F.mpl_disconnect(self._sid)
+    def onpress(self, event):
+        #print self,event.key
+        if event.key=='p' and event.inaxes:
+            start, end = event.inaxes.get_xbound()
+
+            inits=[]
+            deltas=[]
+            for L in event.inaxes.get_lines():
+                X, Y = L.pv.mtime, L.pv.value
+
+                # Get sample at start of region
+                Np = mlab.find(X<=start)
+                if len(Np):
+                    inits.append((L, Np[-1]))
+                else:
+                    inits.append((L, None))
+            
+                # Get samples occuring within the region
+                Np = mlab.find(np.logical_and(X>start, X<=end))
+                for i in Np:
+                    deltas.append((L, X[i], i))
+
+            inits.sort(key=lambda T:T[0].pv.name)
+            deltas.sort(key=lambda T:T[1])
+            self.show(event, start, end, inits, deltas)
+    def show(self, event, start, end, inits, deltas):
+        start = mdates.num2date(start)
+        print "Values at", start
+        for L, i in inits:
+            if i is None:
+                print " Not Connected\t%s"%L.pv.name
+            else:
+                print " %s\t%s\t%s\t%s"%(mdates.num2date(L.pv.mtime[i]),L.pv.name,L.pv.value[i], h5data.sevr2str(L.pv.severity[i]))
+        print "Changed within", mdates.num2date(end)-start
+        for L, T, i in deltas:
+            print " %s\t%s\t%s\t%s"%(mdates.num2date(L.pv.mtime[i]),L.pv.name,L.pv.value[i], h5data.sevr2str(L.pv.severity[i]))
+
+def main():
+    par=opts()
+    opt, args = par.parse_args()
+
+    G=h5data.H5Data(args[0])
+    
+    pvs=list(G)
+
+    fig = plt.figure()
+    H=[Sampler(fig), RePlay(fig)]
+    ax = fig.add_subplot(111)
+
+    L=[None]*len(pvs)
+
+    for i,pv in enumerate(pvs):
+        S=_styles[i%len(_styles)]
+        data = G[pv]
+        if not data.scalar:
+            print 'skipping >1d',pv,data['value'].shape
+            continue
+        
+        data.mtime = mdates.epoch2num(data.time)
+        
+        Xp, Yp = data.plotdata()
+        
+        L[i] = ax.plot(mdates.epoch2num(Xp), Yp, S)[0]
+        L[i].pv = data # attach raw data for later use
+
+    print len(L),'lines'
+    
+    for A in fig.axes:
+        loc = mdates.AutoDateLocator()
+        fmt = mdates.AutoDateFormatter(loc)
+        A.xaxis.set_major_formatter(fmt)
+        A.xaxis.set_major_locator(loc)
+    #fig.autofmt_xdate()
+    
+    plt.show()
+
+if __name__=='__main__':
+    main()
