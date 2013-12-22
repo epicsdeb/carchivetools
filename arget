@@ -59,6 +59,10 @@ par.add_option('-M','--merge', metavar='NAME', default='simple',
 par.add_option('', '--no-enum', default=False, action='store_true', dest='enumAsInt',
                help='Return enumerations as integers')
 
+# Output options
+par.add_option('-T','--time', metavar='FMT', dest='timefmt',
+               help='Output time format: string, posix')
+
 # General options
 par.add_option('-v','--verbose', action='count', default=0,
                help='Print more')
