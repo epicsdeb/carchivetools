@@ -1,4 +1,4 @@
-carchivetools (1.5) UNRELEASED; urgency=low
+carchivetools (1.5) unstable; urgency=low
 
   * nicer error for no data
   * add option to request enumerated as integer instead of string
@@ -8,8 +8,9 @@ carchivetools (1.5) UNRELEASED; urgency=low
      range are retrieved.
   * throttle the number of concurrent xmlrpc data requests
   * add 'maxrequests' config file option
+  * add arplothdf5 utility
 
- -- Michael Davidsaver <mdavidsaver@bnl.gov>  Mon, 11 Nov 2013 11:32:04 -0500
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Mon, 21 Apr 2014 11:48:32 -0400
 
 carchivetools (1.4) unstable; urgency=low
 
