@@ -10,5 +10,5 @@ setup(
     author_email = "mdavidsaver@bnl.gov",
     license = "BSD",
     packages = ['carchive', 'carchive.cmd'],
-    scripts = ['arget'],
+    scripts = ['arget','arplothdf5'],
 )

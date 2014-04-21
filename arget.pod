@@ -10,7 +10,7 @@ argrep [common options] <regex pattern>
 
 arget [common options] [get options] <pv names...>
 
-arget [common options] -E hdf5 [get options] <hdf file:path> <pv names...>
+arget [common options] -E hdf5 [get options] <hdf file[:path]> <pv names...>
 
 =head1 DESCRIPTION
 
