@@ -46,17 +46,17 @@ class NiceProxy(Proxy):
     queryFactory = NiceQueryFactory
 
     def __init__(self, *args, **kws):
-        self.__limit = kws.pop('limit', 5)
+        self.__limit = kws.pop('limit', 10)
+        self.__qlimit = kws.pop('qlimit', 10)
         Proxy.__init__(self, *args, **kws)
         self.__inprog = 0
         self.__waiting = []
 
     def callRemote(self, *args):
-        # only limit data queries
+        lim = self.__limit
         if args[0]!='archiver.values':
-            return Proxy.callRemote(self, *args)
-
-        if self.__inprog<self.__limit:
+            lim = self.__qlimit
+        if self.__inprog<lim:
             _log.debug("Immedate request execution: %s", args)
             D = Proxy.callRemote(self, *args)
             D.addBoth(self.__complete)

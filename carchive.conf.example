@@ -13,10 +13,13 @@
 #defaultarchs = */Current
 
 # Default total number of samples.
-#defaultcount = 10
+#defaultcount = 0
 
-# Maximum number of concurrent XMLRPC requests
-#maxrequests = 5
+# Maximum number of concurrent XMLRPC requests for data
+#maxrequests = 10
+
+# Maximum number of concurrent XMLRPC requests for meta-info
+#maxquery = 30
 
 [myarchiver]
 
@@ -25,3 +28,4 @@
 #  $ arget -u myarchiver ...
 
 #host=myarchiver.some.host.local:8888
+

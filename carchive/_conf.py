@@ -11,7 +11,8 @@ def __loadConfig():
           'defaultarchs':'*',
           'defaultcount':'0',
           'defaultarchive':'DEFAULT',
-          'maxrequests':'5',
+          'maxrequests':'10',
+          'maxquery':'30',
         }
     cf=ConfigParser.SafeConfigParser(defaults=dflt)
     cf.read([
