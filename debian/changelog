@@ -1,3 +1,9 @@
+carchivetools (1.6) unstable; urgency=low
+
+  * bump version due to typo when backporting...
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Mon, 21 Apr 2014 12:06:20 -0400
+
 carchivetools (1.5) unstable; urgency=low
 
   * nicer error for no data
