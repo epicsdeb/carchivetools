@@ -109,6 +109,8 @@ def makeTime(intime, now=None):
     >>>
     >>> makeTime(1300584688.9705319,now)
     datetime.datetime(2011, 3, 20, 1, 31, 28, 970531, tzinfo=_UTC())
+    >>> makeTime('1300584688.9705319',now)
+    datetime.datetime(2011, 3, 20, 1, 31, 28, 970531, tzinfo=_UTC())
     >>> makeTime( '12:01', now)
     datetime.datetime(2011, 3, 15, 12, 1, tzinfo=_UTC())
     >>> makeTime( '12:01:14', now)
@@ -158,6 +160,11 @@ def makeTime(intime, now=None):
         now=datetime.datetime.now()
     elif isinstance(now, datetime.datetime):
         tzinfo=now.tzinfo
+
+    try:
+        intime = float(intime)
+    except TypeError:
+        pass
 
     if isinstance(intime, float):
         tv=float(intime)
@@ -294,3 +301,4 @@ def _test():
 
 if __name__=='__main__':
     _test()
+    print 'All tests have run'
