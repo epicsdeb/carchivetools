@@ -59,6 +59,10 @@ par.add_option('-M','--merge', metavar='NAME', default='simple',
 par.add_option('', '--no-enum', default=False, action='store_true', dest='enumAsInt',
                help='Return enumerations as integers')
 
+# Input options
+par.add_option('', '--pv-list', metavar='FILE', dest='pvlist',
+               help='Read PVs from file in addition argument list ("-" for stdin)')
+
 # Output options
 par.add_option('-T','--time', metavar='FMT', dest='timefmt',
                help='Output time format: string, posix')
@@ -79,10 +83,18 @@ if opt.helptime:
 if opt.merge not in ['none','simple']:
     par.error('Invalid merge method %s'%opt.merge)
 
-
 LVL={0:logging.WARN, 1:logging.INFO, 2:logging.DEBUG}
 
 logging.basicConfig(format='%(message)s',level=LVL.get(opt.verbose, LVL[2]))
+
+if opt.pvlist:
+    if opt.pvlist == '-':
+        AF = sys.stdin
+    else:
+        AF = open(opt.pvlist, 'r')
+    args += filter(lambda L:len(L) and L[0]!='#', map(str.rstrip, AF.readlines()))
+    if opt.pvlist != '-':
+        AF.close()
 
 from carchive import getArchive, HandledError
 from carchive._conf import _conf as conf
