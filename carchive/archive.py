@@ -383,11 +383,13 @@ class Archive(object):
         breakDown = breakDown[pv]
 
         if len(breakDown)==0:
+            _log.error("PV not archived")
             defer.returnValue(0)
 
-        _log.debug("Planning with: %s", map(lambda (a,b,c):(a,b,self.__rarchs[c]), breakDown))
-
         Tcur, Tend = timeTuple(T0), timeTuple(Tend)
+
+        _log.debug("Time range: %s -> %s", Tcur, Tend)
+        _log.debug("Planning with: %s", map(lambda (a,b,c):(a,b,self.__rarchs[c]), breakDown))
 
         plan = []
         
@@ -407,8 +409,17 @@ class Archive(object):
             
             Tcur =  Rend
 
-        if len(plan)==0:
-            _log.info("Query plan empty.  No data in request time range")
+        if len(plan)==0 and len(breakDown)>0 and breakDown[-1][1] <= Tcur:
+            # requested range is later than last recorded sample,
+            # which is all we can return
+            F, L, K = breakDown[-1]
+            LS, LN = L
+            plan.append(((LS+1,0),(LS+2,0),K))
+            count=1
+            _log.debug("Returning last sample.  No data in or after requested time range.")
+        elif len(plan)==0:
+            # requested range is earlier than first recorded sample.
+            _log.warn("Query plan empty.  No data in or before request time range.")
             defer.returnValue(0)
 
         _log.debug("Using plan of %d queries %s", len(plan), map(lambda (a,b,c):(a,b,self.__rarchs[c]), plan))
