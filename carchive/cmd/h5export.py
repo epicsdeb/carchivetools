@@ -9,7 +9,7 @@ import numpy as np
 
 from twisted.internet import defer
 
-from carchive.date import makeTimeInterval
+from carchive.date import makeTimeInterval, timeTuple
 from carchive.archive import dbr_time
 
 def printData(data, meta, archive, info):
@@ -79,6 +79,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
         defer.returnValue(0)
     
     T0, Tend = makeTimeInterval(opt.start, opt.end)
+    TT0, TT1 = timeTuple(T0), timeTuple(Tend)
 
     sect = conf.get('DEFAULT', 'defaultarchive')
 
@@ -98,7 +99,22 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
 
     for i,pv in enumerate(args):
         pvstore = pvgroup.require_group(pv)
-        
+
+        # store complete time range covering all *requests*
+        aT0 = pvstore.attrs.get('T0', None)
+        try:
+            if aT0 is None or TT0 < aT0:
+                pvstore.attrs['T0'] = TT0
+        except TypeError:
+            pvstore.attrs['T0'] = TT0
+
+        aT1 = pvstore.attrs.get('T1', None)
+        try:
+            if aT1 is None or TT1 < aT1:
+                pvstore.attrs['T1'] = TT1
+        except TypeError:
+            pvstore.attrs['T1'] = TT1
+
         P = printInfo()
         P.file = F
         P.pvstore = pvstore
