@@ -1,0 +1,3 @@
+
+class HandledError(Exception):
+    pass

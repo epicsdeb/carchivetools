@@ -36,8 +36,6 @@ par.add_option('-E','--export', metavar='TYPE', default=None,
                help="Retrieve data and write to file in the given format (eg. hdf5)")
 
 # Query options
-par.add_option('-u','--url', metavar='NAME or URL',
-               help='Either a config key, host name, or full url for the server')
 par.add_option('-s','--start', metavar='TIME',
                help='Start of query window (required)')
 par.add_option('-e','--end', metavar='TIME', default=None,
@@ -72,6 +70,8 @@ par.add_option('-v','--verbose', action='count', default=0,
                help='Print more')
 par.add_option('-d','--debug', action='store_true', default=False,
                help='Show archiver queries')
+par.add_option('-C','--conf', metavar='KEY', default='DEFAULT',
+               help='Key for the server configuration')
 
 opt, args = par.parse_args()
 
@@ -96,20 +96,14 @@ if opt.pvlist:
     if opt.pvlist != '-':
         AF.close()
 
-from carchive import getArchive, HandledError
-from carchive._conf import _conf as conf
+from carchive.util import HandledError
+from carchive.archive import getArchive
+from carchive._conf import loadConfig
 
-if opt.url and opt.url.startswith('http'):
-    conf.set('DEFAULT', 'url', opt.url)
-elif opt.url:
-    conf.set('DEFAULT', 'defaultarchive', opt.url)
+conf = loadConfig(opt.conf)
 
 if len(opt.archive)==0:
-    sect = conf.get('DEFAULT', 'defaultarchive')
-    if conf.has_option(sect, 'defaultarchs'):
-        opt.archive = conf.get(sect, 'defaultarchs').split()
-    else:
-        opt.archive = ['*']
+    opt.archive = conf.get('defaultarchs','*').split()
 
 if opt.info:
     act='info'
@@ -130,7 +124,7 @@ def haveArchive(act, opt, args, conf):
     mod = getattr(mod, act)
 
     try:
-        serv = yield getArchive(conf=conf)
+        serv = yield getArchive(conf)
     except HandledError:
         defer.returnValue(None)
     except:

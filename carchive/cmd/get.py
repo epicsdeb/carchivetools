@@ -57,9 +57,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
 
     _log.debug("Time range: %s -> %s", T0, Tend)
 
-    sect = conf.get('DEFAULT', 'defaultarchive')
-
-    count = opt.count if opt.count>0 else conf.getint(sect, 'defaultcount')
+    count = opt.count if opt.count>0 else conf.getint('defaultcount')
 
     for pv in args:
         print pv

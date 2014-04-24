@@ -6,11 +6,9 @@ Archiver XMLRPC client
 """
 
 __all__ = ['__version__',
-           'getArchive']
+          ]
 
 import logging
-
-from archive import getArchive, HandledError
 
 __version__ = 'pre2'
 
