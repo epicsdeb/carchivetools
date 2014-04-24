@@ -163,7 +163,7 @@ def makeTime(intime, now=None):
 
     try:
         intime = float(intime)
-    except TypeError:
+    except (TypeError, ValueError):
         pass
 
     if isinstance(intime, float):
