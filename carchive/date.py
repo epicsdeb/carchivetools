@@ -6,7 +6,7 @@ Parsing of absolute and relative dates and times
 into datetime.datetime or datetime.timedelta instances
 
 Supported syntax:
-    
+
   Absolute:
     "day/month[/year] hour:min[:sec[.fraction]]"
     "hour:min[:sec[.fraction]]"
@@ -14,12 +14,12 @@ Supported syntax:
 
   Relative:
     "### UUU [### UUU ...]"
-  
+
   where ### is a signed floating point number,
   and UUU is a unit string.
 
   Supported unit strings
-  
+
   us
   ms
   s, sec, secs, second, seconds
@@ -27,7 +27,7 @@ Supported syntax:
   h, hrs, hour, hours
   d, day, days
   w, week, weeks
-  
+
   eg: "-1.4 week 2 hours"
 """
 
@@ -36,16 +36,11 @@ from collections import defaultdict
 
 __all__ = ["makeTime", "makeTimeInterval", 'timeTuple']
 
-# python provides no concrete implementations of tzinfo...
-class _UTC(datetime.tzinfo):
-    def utcoffset(self, dt):
-        return datetime.timedelta(0)
-    def tzname(self, dt):
-        return "UTC"
-    def dst(self, dt):
-        return datetime.timedelta(0)
-    def __repr__(self):
-        return "_UTC()"
+# python provides no concrete implementations of tzinfo
+# and even if the zone database is available (pytz module)
+# there is no easy way to find the system timezone name
+# in a format which pytz understands.
+# I give up.  doctests will only work in US/Eastern
 
 # match absolute date plus time
 # DAY/MON/YEAR HOUR:MIN:SEC.FRAC
@@ -80,12 +75,34 @@ _units={
 
 def timeTuple(dt):
     """Convert datetime object to (sec, nsec)
-    
+
     *sec* is POSIX seconds
+
+    >>> import datetime
+    >>> now=datetime.datetime(2011, 3, 15, 13)
+    >>> timeTuple(now)
+    (1300208400, 0)
+    >>> now=datetime.datetime(1970, 1, 1, 0, 1, 5)
+    >>> timeTuple(now)
+    (18065, 0)
     """
     S=int(time.mktime(dt.timetuple()))
     NS=dt.microsecond*1000
     return S,NS
+
+def isoString(dt):
+    """Convert a datetime object to a ISO 8601 UTC string representation
+
+    eg. 2014-04-10T16:27:37.767454Z
+
+    >>> import datetime
+    >>> now=datetime.datetime(2011, 3, 15, 13)
+    >>> isoString(now)
+    '2011-03-15T17:00:00Z'
+    """
+    S, NS = timeTuple(dt)
+    udt = datetime.datetime.utcfromtimestamp(S).replace(microsecond=NS/1000)
+    return udt.isoformat('T')+'Z'
 
 def makeTime(intime, now=None):
     """Turn *intime* into datetime or timedelta
@@ -99,30 +116,30 @@ def makeTime(intime, now=None):
     Note: Time may be specified to microsecond precision
 
     >>> import datetime
-    >>> now=datetime.datetime(2011, 3, 15, 12, tzinfo=_UTC())
+    >>> now=datetime.datetime(2011, 3, 15, 12)
     >>> now
-    datetime.datetime(2011, 3, 15, 12, 0, tzinfo=_UTC())
+    datetime.datetime(2011, 3, 15, 12, 0)
     >>> makeTime(now,now)==now
     True
-    >>> makeTime(65,now)
-    datetime.datetime(1970, 1, 1, 0, 1, 5, tzinfo=_UTC())
+    >>> makeTime(18065,now)
+    datetime.datetime(1970, 1, 1, 0, 1, 5)
     >>>
     >>> makeTime(1300584688.9705319,now)
-    datetime.datetime(2011, 3, 20, 1, 31, 28, 970531, tzinfo=_UTC())
+    datetime.datetime(2011, 3, 19, 21, 31, 28, 970531)
     >>> makeTime('1300584688.9705319',now)
-    datetime.datetime(2011, 3, 20, 1, 31, 28, 970531, tzinfo=_UTC())
+    datetime.datetime(2011, 3, 19, 21, 31, 28, 970531)
     >>> makeTime( '12:01', now)
-    datetime.datetime(2011, 3, 15, 12, 1, tzinfo=_UTC())
+    datetime.datetime(2011, 3, 15, 12, 1)
     >>> makeTime( '12:01:14', now)
-    datetime.datetime(2011, 3, 15, 12, 1, 14, tzinfo=_UTC())
+    datetime.datetime(2011, 3, 15, 12, 1, 14)
     >>> makeTime( '12:01:14.123456789', now)
-    datetime.datetime(2011, 3, 15, 12, 1, 14, 123456, tzinfo=_UTC())
+    datetime.datetime(2011, 3, 15, 12, 1, 14, 123456)
     >>> makeTime( '14/3 12:01', now)
-    datetime.datetime(2011, 3, 14, 12, 1, tzinfo=_UTC())
+    datetime.datetime(2011, 3, 14, 12, 1)
     >>> makeTime( '14/3 12:01:14', now)
-    datetime.datetime(2011, 3, 14, 12, 1, 14, tzinfo=_UTC())
+    datetime.datetime(2011, 3, 14, 12, 1, 14)
     >>> makeTime( '14/3/2012 12:01:14.123456', now)
-    datetime.datetime(2012, 3, 14, 12, 1, 14, 123456, tzinfo=_UTC())
+    datetime.datetime(2012, 3, 14, 12, 1, 14, 123456)
     >>>
     >>> now=datetime.datetime.now()
     >>>
@@ -268,7 +285,7 @@ def makeTimeInterval(start, end, now=None):
 
     start, end = makeTime(start, now), makeTime(end, now)
 
-    rstart=isinstance(start, datetime.timedelta)    
+    rstart=isinstance(start, datetime.timedelta)
     rend=isinstance(end, datetime.timedelta)
 
     if rstart and rend:
