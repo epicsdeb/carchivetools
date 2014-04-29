@@ -10,10 +10,11 @@ import numpy as np
 from twisted.internet import defer
 
 from carchive.date import makeTimeInterval, timeTuple
-from carchive.archive import dbr_time
+from carchive.dtype import dbr_time
 
 def printData(data, meta, archive, info):
     metaset = info.metaset
+    assert len(meta)>0, 'Empty dataset'
     
     if not info.valset: # first data
         pvstore = info.pvstore
@@ -56,9 +57,12 @@ def printData(data, meta, archive, info):
                          data.dtype, valset.dtype)
             return
 
+    # (serialized) callbacks on multiple threads triggers "warnings"
+    # fixed in h5py >= 2.1.1
+    # http://groups.google.com/forum/?fromgroups=#!topic/h5py/fS5398h3cQI
     valset[start:,:data.shape[1]] = data
 
-    _log.debug("%s totoal samples for %s", valset.shape, info.pv)
+    _log.debug("%s total samples for %s", valset.shape, info.pv)
 
 class printInfo(object):
     pass
@@ -81,9 +85,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
     T0, Tend = makeTimeInterval(opt.start, opt.end)
     TT0, TT1 = timeTuple(T0), timeTuple(Tend)
 
-    sect = conf.get('DEFAULT', 'defaultarchive')
-
-    count = opt.count if opt.count>0 else conf.getint(sect, 'defaultcount')
+    count = opt.count if opt.count>0 else conf.getint('defaultcount')
 
     h5file, _, path = args.pop(0).partition(':')
     if path=='':
@@ -139,7 +141,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
 
         @D.addCallback
         def show(C, pv=pv):
-            print '%s received %d points'%(pv,C)
+            print '%s received %s points'%(pv,C)
 
         Ds[i] = D
 

@@ -5,7 +5,7 @@ PVER=0
 
 import re
 import logging
-_log = logging.getLogger("carchive.archiver")
+_log = logging.getLogger("carchive.classic")
 
 import time
 from xmlrpclib import Fault

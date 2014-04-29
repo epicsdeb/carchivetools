@@ -68,4 +68,4 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
                                    enumAsInt=opt.enumAsInt)
 
         C = yield D
-        print 'Found %d points'%C
+        print 'Found %s points'%C

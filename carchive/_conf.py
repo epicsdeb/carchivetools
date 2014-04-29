@@ -58,6 +58,7 @@ class ConfigDict(object):
 def loadConfig(N):
     import os.path
     dflt={'url':'http://%(host)s/cgi-bin/ArchiveDataServer.cgi',
+          'urltype':'classic',
           'host':'%%(host)s',
           'defaultarchs':'*',
           'defaultcount':'0',

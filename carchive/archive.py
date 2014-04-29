@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from .backend import classic
+from .backend import classic, appl
 
-getArchive = classic.getArchive
+def getArchive(conf):
+    if conf['urltype']=='classic':
+        return classic.getArchive(conf)
+    elif conf['urltype']=='appl':
+        return appl.getArchive(conf)
