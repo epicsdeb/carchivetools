@@ -101,14 +101,14 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
         pvstore = pvgroup.require_group(pv)
 
         # store complete time range covering all *requests*
-        aT0 = pvstore.attrs.get('T0', None)
+        aT0 = tuple(pvstore.attrs.get('T0', ()))
         try:
             if aT0 is None or TT0 < aT0:
                 pvstore.attrs['T0'] = TT0
         except TypeError:
             pvstore.attrs['T0'] = TT0
 
-        aT1 = pvstore.attrs.get('T1', None)
+        aT1 = tuple(pvstore.attrs.get('T1', ()))
         try:
             if aT1 is None or TT1 < aT1:
                 pvstore.attrs['T1'] = TT1
