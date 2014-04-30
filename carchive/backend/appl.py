@@ -115,7 +115,8 @@ class PBReceiver(protocol.Protocol):
             self._B.truncate(0)
             self._B.write(L[-1]) # any bytes after the last newline (partial message)
 
-            self.process(L[:-1])
+            L = map(unescape, L[:-1])
+            self.process(L)
         except:
             _log.exception("dataReceived")
             raise
@@ -150,75 +151,60 @@ class PBReceiver(protocol.Protocol):
         return V, M
 
     def process(self, lines):
-        total = len(lines)
-        V = M = None
-        if self.header is not None:
-            # optimistically assume that all lines are data lines
-            V, M = self.allocArrays(total)
-            N = 0
+        # find the index of blank lines which preceed new headers
+        # These are assumed to be relatively rare (so 'splits' is short)
+        #
+        # 'splits' will be a list of indicies of blank lines
+        splits = map(lambda (a,b):a, filter(lambda (i,x):len(x)==0, enumerate(lines)))
+        # break up the single list of lines into a list of lists
+        # where eash sub-list where the first element is a header (except for the first)
+        # and the remaining lines are all of the same type
+        parts = map(lambda (a,b):lines[a+1:b], zip([-1] + splits, splits + [None]))
+        
+        dparts = map(lambda (a,b):(a+1,b), zip([-1] + splits, splits + [None]))
+        print dparts
 
-        for i,L in enumerate(map(unescape, lines)):
-            if not L:
-                self.header, self._dec = None, None
+        if len(parts)==0:
+            _log.warn("no parts in %d lines?  %s", len(lines), lines[:5])
+            return
+
+        first = True
+        for P in parts:
+            if len(P)==0:
+                _log.warn("Part with no lines? %s", P)
                 continue
 
-            # select which protobuf decoder to use
-            if self.header:
-                D = self._dec()
-            else:
-                OH = self.header # save old header
-                D = self.header = pb.PayloadInfo()
+            H = self.header
+            if not first or H is None:
+                first = False
+                # first message in the stream
+                H = self.header = pb.PayloadInfo()
+                H.ParseFromString(P[0])
+                self._year = calendar.timegm(datetime.date(H.year,1,1).timetuple())
+                P = P[1:]
 
-            try:
-                D.ParseFromString(L)
-            except:
-                _log.fatal("Error Decoding %s", repr(L))
-                raise
+            Nsamp = len(P)
+            if not Nsamp:
+                continue # header w/o samples...
 
-            if D is self.header:
-                # New header received
-                self._year = calendar.timegm(datetime.date(D.year,1,1).timetuple())
-                self._dec = _fields[D.type] # lookup protobuf decoder
+            V = np.ndarray((Nsamp,1), dtype=_dtypes[H.type])
+            M = np.ndarray(Nsamp, dtype=dbr_time)
 
-                if OH is not None and OH.type != D.type:
-                    _log.warn("PV %s change type from %d to %d",
-                              self.name, OH.type, D.type)
-                    self.pushCB(V[:N], M[:N])
-                    V, M = self.allocArrays(total-i)
-                    N = 0
+            I = _fields[H.type]()
 
-                elif V is None:
-                    V, M = self.allocArrays(total-i)
-                    N = 0
+            def _decode((i,L)):
+                I.Clear()
+                I.ParseFromString(L)
+                V[i] = I.val
+                M[i] = (I.severity, I.status, self._year + I.secondsintoyear, I.nano)
+                return None
 
-            else:
-                # New sample
-
-                if self.header.type not in _is_vect:
-                    V[N] = D.val
-                else:
-                    if len(D.val)>V.shape[1]:
-                        V = self._buf_val = np.resize((V.shape[0], len(D.val)))
-                    V[N,:len(D.val)] = D
-                    V[N,:len(D.val)] = 0
-
-                M[N]['sec'] = self._year + D.secondsintoyear
-                M[N]['ns'] = D.nano
-                M[N]['severity'] = D.severity
-                M[N]['status'] = D.status
-                N += 1
-                self._count += 1
-                if self._count_limit and self._count >= self._count_limit:
-                    _log.info("Count limit met for %s (%d)", self.name, self._count_limit)
-                    self.pushCB(V[:N], M[:N])
-                    self.transport.stopProducing()
-                    return
-
-        self.pushCB(V[:N], M[:N])
+            map(_decode, enumerate(P))
+            self.pushCB(V, M)
 
     def pushCB(self, V, M):
         if len(M)==0:
-            _log.warn("%s discarding 0 length array %s %s", V, M)
+            _log.warn("%s discarding 0 length array %s %s", self.name, V, M)
             return
         _log.debug("pushing %s samples: %s", V.shape, self.name)
         self._CB(V, M, *self._CB_args, **self._CB_kws)
