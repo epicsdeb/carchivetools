@@ -33,6 +33,8 @@ def _esc_fn(M):
 def unescape(S):
     return _esc.sub(_esc_fn, S)
 
+from carchive.backend.pbdecode import decode_double
+
 # Proto buffer instances for decoding individual samples
 _fields = {
     0:pb.ScalarString,
@@ -115,8 +117,7 @@ class PBReceiver(protocol.Protocol):
             self._B.truncate(0)
             self._B.write(L[-1]) # any bytes after the last newline (partial message)
 
-            L = map(unescape, L[:-1])
-            self.process(L)
+            self.process(L[:-1])
         except:
             _log.exception("dataReceived")
             raise
@@ -151,6 +152,7 @@ class PBReceiver(protocol.Protocol):
         return V, M
 
     def process(self, lines):
+        lines = map(unescape, lines)
         # find the index of blank lines which preceed new headers
         # These are assumed to be relatively rare (so 'splits' is short)
         #
@@ -187,19 +189,28 @@ class PBReceiver(protocol.Protocol):
             if not Nsamp:
                 continue # header w/o samples...
 
-            V = np.ndarray((Nsamp,1), dtype=_dtypes[H.type])
-            M = np.ndarray(Nsamp, dtype=dbr_time)
+            if H.type==6:
+                T0 = time.time()
+                V, M = decode_double(P)
+                V = np.expand_dims(np.asarray(V, dtype=_dtypes[H.type]), axis=1)
+                M = np.asarray(M, dtype=dbr_time)
 
-            I = _fields[H.type]()
-
-            def _decode((i,L)):
-                I.Clear()
-                I.ParseFromString(L)
-                V[i] = I.val
-                M[i] = (I.severity, I.status, self._year + I.secondsintoyear, I.nano)
-                return None
-
-            map(_decode, enumerate(P))
+            else:
+                V = np.ndarray((Nsamp,1), dtype=_dtypes[H.type])
+                M = np.ndarray(Nsamp, dtype=dbr_time)
+    
+                    
+                I = _fields[H.type]()
+    
+                def _decode((i,L)):
+                    I.Clear()
+                    I.ParseFromString(L)
+                    V[i] = I.val
+                    M[i] = (I.severity, I.status, self._year + I.secondsintoyear, I.nano)
+                    return None
+    
+                T0 = time.time()
+                map(_decode, enumerate(P))
             self.pushCB(V, M)
 
     def pushCB(self, V, M):
