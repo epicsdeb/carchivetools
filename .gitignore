@@ -2,3 +2,5 @@
 *.pyc
 *.pyo
 *.h5
+build
+_trial_temp
