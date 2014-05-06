@@ -183,7 +183,19 @@ class PBReceiver(protocol.Protocol):
 
             M['sec'] += self._year
 
+            if self._count_limit and self._count+len(M)>=self._count_limit:
+                assert self._count < self._count_limit
+                cnt = self._count_limit-self._count
+                V, M = V[:cnt], M[:cnt]
+
+            self._count += len(M)
+
             self.pushCB(V, M)
+
+            if self._count_limit and self._count>=self._count_limit:
+                _log.info("%s count limit reached", self.name)
+                self.transport.stopProducing()
+                break
         self.header = H
 
     def pushCB(self, V, M):
