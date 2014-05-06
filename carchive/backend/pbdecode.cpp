@@ -245,10 +245,29 @@ static PyMethodDef PBDMethods[] = {
     {NULL}
 };
 
+struct mapent {
+    const char *v;
+    int k;
+};
+static const mapent decodemap[] = {
+    {"decode_string", EPICS::SCALAR_STRING},
+    {"decode_byte", EPICS::SCALAR_BYTE},
+    {"decode_short", EPICS::SCALAR_SHORT},
+    {"decode_int", EPICS::SCALAR_INT},
+    {"decode_enum", EPICS::SCALAR_ENUM},
+    {"decode_float", EPICS::SCALAR_FLOAT},
+    {"decode_double", EPICS::SCALAR_DOUBLE},
+    {NULL}
+};
+
 PyMODINIT_FUNC
 initpbdecode(void)
 {
+    Ref<PyObject> map(PyDict_New());
     PyObject *mod;
+
+    if(!map.get())
+        return;
 
     GOOGLE_PROTOBUF_VERIFY_VERSION;
 
@@ -256,4 +275,20 @@ initpbdecode(void)
     if(!mod)
         return;
     import_array();
+
+    /* build a dictionary mapping PayloadType to decoder function */
+    for(const mapent *pcur = decodemap; pcur->v; pcur++) {
+        PyObject *meth = PyObject_GetAttrString(mod, pcur->v);
+        if(!meth)
+            break;
+        PyObject *pint = PyInt_FromLong(pcur->k);
+        if(!pint)
+            break;
+        if(PyDict_SetItem(map.get(), pint, meth)==-1) {
+            Py_DECREF(pint);
+            break;
+        }
+    }
+
+    PyModule_AddObject(mod, "decoders", map.release());
 }

@@ -33,7 +33,7 @@ def _esc_fn(M):
 def unescape(S):
     return _esc.sub(_esc_fn, S)
 
-from carchive.backend.pbdecode import decode_double
+from carchive.backend.pbdecode import decoders
 
 # Proto buffer instances for decoding individual samples
 _fields = {
@@ -170,48 +170,35 @@ class PBReceiver(protocol.Protocol):
             _log.warn("no parts in %d lines?  %s", len(lines), lines[:5])
             return
 
-        first = True
         for P in parts:
             if len(P)==0:
                 _log.warn("Part with no lines? %s", P)
                 continue
 
-            H = self.header
-            if not first or H is None:
-                first = False
+            if not self.header:
                 # first message in the stream
-                H = self.header = pb.PayloadInfo()
+                H = pb.PayloadInfo()
                 H.ParseFromString(P[0])
                 self._year = calendar.timegm(datetime.date(H.year,1,1).timetuple())
                 P = P[1:]
+            else:
+                # reuse header (interrupted stream)
+                H, self.header = self.header, None
 
             Nsamp = len(P)
             if not Nsamp:
                 continue # header w/o samples...
 
-            if H.type==6:
-                T0 = time.time()
-                V, M = decode_double(P)
-                V = np.expand_dims(np.asarray(V, dtype=_dtypes[H.type]), axis=1)
-                M = np.asarray(M, dtype=dbr_time)
+            decode = decoders[H.type]
+            V = np.ndarray((len(P),1), dtype=_dtypes[H.type])
+            M = np.ndarray((len(P),), dtype=dbr_time)
 
-            else:
-                V = np.ndarray((Nsamp,1), dtype=_dtypes[H.type])
-                M = np.ndarray(Nsamp, dtype=dbr_time)
-    
-                    
-                I = _fields[H.type]()
-    
-                def _decode((i,L)):
-                    I.Clear()
-                    I.ParseFromString(L)
-                    V[i] = I.val
-                    M[i] = (I.severity, I.status, self._year + I.secondsintoyear, I.nano)
-                    return None
-    
-                T0 = time.time()
-                map(_decode, enumerate(P))
+            decode(P, V, M)
+
+            M['sec'] += self._year
+
             self.pushCB(V, M)
+        self.header = H
 
     def pushCB(self, V, M):
         if len(M)==0:

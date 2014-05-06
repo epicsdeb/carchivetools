@@ -57,7 +57,7 @@ class TestDecodeScalar(TestCase):
                     S.nano = 0x1234+i
                     raw.append(S.SerializeToString())
     
-                V = numpy.ndarray((len(vals),), dtype=dtype)
+                V = numpy.ndarray((len(vals),1), dtype=dtype)
                 M = numpy.ndarray((len(vals),), dtype=dbr_time)
     
                 decode(raw, V, M)
@@ -86,7 +86,7 @@ class TestDecodeScalar(TestCase):
 
         raw[1] = S.SerializeToString()
         
-        V = numpy.ndarray((2,), dtype=numpy.int8)
+        V = numpy.ndarray((2,1), dtype=numpy.int8)
         M = numpy.ndarray((2,), dtype=dbr_time)
 
         pbdecode.decode_byte(raw, V, M)
