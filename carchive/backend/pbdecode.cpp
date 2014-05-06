@@ -100,13 +100,7 @@ PyObject* PBD_unescape(PyObject *unused, PyObject *args)
 
     char *outbuf = PyString_AS_STRING(ret.get());
 
-    int err;
-    Py_BEGIN_ALLOW_THREADS {
-
-        err = unescape(inbuf, inbuflen, outbuf, outbuflen);
-
-    } Py_END_ALLOW_THREADS
-
+    int err = unescape(inbuf, inbuflen, outbuf, outbuflen);
     if(err)
         return PyErr_Format(PyExc_ValueError, "Invalid escape sequence in input (%d)", err);
 
@@ -195,29 +189,33 @@ PyObject* PBD_decode_scalar(PyObject *unused, PyObject *args)
 
     PB decoder;
 
-    for(Py_ssize_t i=0; i<nlines; i++) {
-        PyObject *line = PyList_GET_ITEM(lines, i);
-        const char *buf = PyString_AS_STRING(line);
-        Py_ssize_t buflen = PyString_GET_SIZE(line);
+    Py_BEGIN_ALLOW_THREADS {
 
-        try {
-            decoder.Clear();
-            if(!decoder.ParseFromArray((const void*)buf, buflen))
-                return PyErr_Format(PyExc_ValueError, "Decode error in element %lu", (unsigned long)i);
+        for(Py_ssize_t i=0; i<nlines; i++) {
+            PyObject *line = PyList_GET_ITEM(lines, i);
+            const char *buf = PyString_AS_STRING(line);
+            Py_ssize_t buflen = PyString_GET_SIZE(line);
 
-            frompb<E>::decodeval(curval, decoder);
-            curmeta->severity = decoder.severity();
-            curmeta->status = decoder.status();
-            curmeta->sec = decoder.secondsintoyear();
-            curmeta->nano = decoder.nano();
+            try {
+                decoder.Clear();
+                if(!decoder.ParseFromArray((const void*)buf, buflen))
+                    return PyErr_Format(PyExc_ValueError, "Decode error in element %lu", (unsigned long)i);
 
-        } catch(...) {
-            return PyErr_Format(PyExc_RuntimeError, "C++ exception");
+                frompb<E>::decodeval(curval, decoder);
+                curmeta->severity = decoder.severity();
+                curmeta->status = decoder.status();
+                curmeta->sec = decoder.secondsintoyear();
+                curmeta->nano = decoder.nano();
+
+            } catch(...) {
+                return PyErr_Format(PyExc_RuntimeError, "C++ exception");
+            }
+
+            curmeta += 1;
+            curval = store<E>::next(curval);
         }
 
-        curmeta += 1;
-        curval = store<E>::next(curval);
-    }
+    } Py_END_ALLOW_THREADS
 
     Py_RETURN_NONE;
 }
