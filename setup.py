@@ -9,6 +9,6 @@ setup(
     author = "Michael Davidsaver",
     author_email = "mdavidsaver@bnl.gov",
     license = "BSD",
-    packages = ['carchive', 'carchive.cmd'],
+    packages = ['carchive', 'carchive.cmd', 'carchive.backend'],
     scripts = ['arget','arplothdf5'],
 )
