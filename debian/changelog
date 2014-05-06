@@ -1,3 +1,9 @@
+carchivetools (1.8) unstable; urgency=low
+
+  * Add carchive.backend to setup.py
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Tue, 06 May 2014 18:04:31 -0400
+
 carchivetools (1.7) unstable; urgency=low
 
   * throttle all requests (including name search).
