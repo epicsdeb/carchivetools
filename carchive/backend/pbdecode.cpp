@@ -30,6 +30,7 @@ public:
 
 }
 
+/* compute the size of the unescaped string */
 static
 Py_ssize_t unescape_plan(const char *in, Py_ssize_t inlen)
 {

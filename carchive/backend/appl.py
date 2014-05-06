@@ -19,21 +19,7 @@ from ..date import isoString
 from ..dtype import dbr_time
 from . import EPICSEvent_pb2 as pb
 
-# in http replies a new-line is used to seperate samples
-# So \n and a few others must be escaped to prevent confusion.
-# Escapes are a two charactor sequence with \x1b (ascii ESC)
-# followed by an index.  Currently 1 (ESC), 2 (NL), and 3 (CR)
-# are defined.  Others are invalid.
-_esc = re.compile('\x1b(.)', re.DOTALL)
-_esc_chr = [None, '\x1b', '\n', '\r']
-
-def _esc_fn(M):
-    return _esc_chr[ord(M.group(1))]
-
-def unescape(S):
-    return _esc.sub(_esc_fn, S)
-
-from carchive.backend.pbdecode import decoders
+from carchive.backend.pbdecode import decoders, unescape
 
 # Proto buffer instances for decoding individual samples
 _fields = {
