@@ -128,3 +128,60 @@ class TestDecodeScalar(TestCase):
 
         # decode partial string in second item
         self.assertRaises(ValueError, pbdecode.decode_byte, [raw,raw[:5]], V, M)
+
+class TestDecodeVector(TestCase):
+    def test_double(self):
+        S = EPICSEvent_pb2.VectorDouble()
+        S.val.extend([1.1, 2.2, 3.3])
+        S.secondsintoyear = 1024
+        S.nano = 0x1234
+
+        raw = [S.SerializeToString()]
+
+        V = numpy.ndarray((1,1), dtype=numpy.float64)
+        M = numpy.ndarray((1,), dtype=dbr_time)
+
+        I, L = pbdecode.decode_vector_double(raw, V, M)
+
+        self.assertEqual(I, 0)
+        self.assertEqual(L, 3)
+
+        V = numpy.ndarray((1,3), dtype=numpy.float64)
+        M = numpy.ndarray((1,), dtype=dbr_time)
+
+        I, L = pbdecode.decode_vector_double(raw, V, M)
+
+        self.assertEqual(I, 1)
+        self.assertIs(L, None)
+        self.assertEqual(list(V[0,:]), [1.1, 2.2, 3.3])
+
+        S.Clear()
+        S.val.extend([0.1, 1.1, 2.2, 3.3])
+        S.secondsintoyear = 1025
+        S.nano = 0x1235
+
+        raw.append(S.SerializeToString())
+
+        V = numpy.ndarray((2,1), dtype=numpy.float64)
+        M = numpy.ndarray((2,), dtype=dbr_time)
+
+        I, L = pbdecode.decode_vector_double(raw, V, M)
+
+        self.assertEqual(I, 0)
+        self.assertEqual(L, 3)
+
+        V.resize((V.shape[0], L), refcheck=True)
+
+        I, L = pbdecode.decode_vector_double(raw, V, M)
+
+        self.assertEqual(I, 1)
+        self.assertEqual(L, 4)
+
+        V.resize((V.shape[0], L), refcheck=True)
+
+        I, L = pbdecode.decode_vector_double(raw, V, M)
+
+        self.assertEqual(I, 2)
+        self.assertIs(L, None)
+        self.assertEqual(list(V[0,:]), [1.1, 2.2, 3.3, 0.0])
+        self.assertEqual(list(V[1,:]), [0.1, 1.1, 2.2, 3.3])
