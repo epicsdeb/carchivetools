@@ -185,3 +185,7 @@ class TestDecodeVector(TestCase):
         self.assertIs(L, None)
         self.assertEqual(list(V[0,:]), [1.1, 2.2, 3.3, 0.0])
         self.assertEqual(list(V[1,:]), [0.1, 1.1, 2.2, 3.3])
+
+if __name__=='__main__':
+    import unittest
+    unittest.main()

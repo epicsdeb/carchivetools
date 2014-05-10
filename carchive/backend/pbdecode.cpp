@@ -28,6 +28,15 @@ public:
     inline PyObject* py() const { return (PyObject*)obj; }
 };
 
+class GIL {
+    PyThreadState *_save;
+public:
+    GIL():_save(NULL) {unlock();}
+    ~GIL() { lock(); }
+    void unlock() { if(!_save) _save=PyEval_SaveThread(); }
+    void lock() { if(_save) PyEval_RestoreThread(_save); _save=NULL; }
+};
+
 }
 
 /* compute the size of the unescaped string */
@@ -189,34 +198,36 @@ PyObject* PBD_decode_scalar(PyObject *unused, PyObject *args)
 
     PB decoder;
 
-    Py_BEGIN_ALLOW_THREADS {
+    GIL locker;
 
-        for(Py_ssize_t i=0; i<nlines; i++) {
-            PyObject *line = PyList_GET_ITEM(lines, i);
-            const char *buf = PyString_AS_STRING(line);
-            Py_ssize_t buflen = PyString_GET_SIZE(line);
+    for(Py_ssize_t i=0; i<nlines; i++) {
+        PyObject *line = PyList_GET_ITEM(lines, i);
+        const char *buf = PyString_AS_STRING(line);
+        Py_ssize_t buflen = PyString_GET_SIZE(line);
 
-            try {
-                decoder.Clear();
-                if(!decoder.ParseFromArray((const void*)buf, buflen))
-                    return PyErr_Format(PyExc_ValueError, "Decode error in element %lu", (unsigned long)i);
-
-                frompb<E>::decodeval(curval, decoder.val());
-                curmeta->severity = decoder.severity();
-                curmeta->status = decoder.status();
-                curmeta->sec = decoder.secondsintoyear();
-                curmeta->nano = decoder.nano();
-
-            } catch(...) {
-                return PyErr_Format(PyExc_RuntimeError, "C++ exception");
+        try {
+            decoder.Clear();
+            if(!decoder.ParseFromArray((const void*)buf, buflen)) {
+                locker.lock();
+                return PyErr_Format(PyExc_ValueError, "Decode error in element %lu", (unsigned long)i);
             }
 
-            curmeta += 1;
-            curval = store<E>::next(curval);
+            frompb<E>::decodeval(curval, decoder.val());
+            curmeta->severity = decoder.severity();
+            curmeta->status = decoder.status();
+            curmeta->sec = decoder.secondsintoyear();
+            curmeta->nano = decoder.nano();
+
+        } catch(...) {
+            locker.lock();
+            return PyErr_Format(PyExc_RuntimeError, "C++ exception");
         }
 
-    } Py_END_ALLOW_THREADS
+        curmeta += 1;
+        curval = store<E>::next(curval);
+    }
 
+    locker.lock();
     Py_RETURN_NONE;
 }
 
@@ -268,6 +279,8 @@ PyObject* PBD_decode_vector(PyObject *unused, PyObject *args)
 
     meta* curmeta = (meta*)PyArray_BYTES(metaarr);
 
+    GIL locker;
+
     PB decoder;
 
     Py_ssize_t i;
@@ -278,14 +291,16 @@ PyObject* PBD_decode_vector(PyObject *unused, PyObject *args)
 
         try {
             decoder.Clear();
-            if(!decoder.ParseFromArray((const void*)buf, buflen))
+            if(!decoder.ParseFromArray((const void*)buf, buflen)) {
+                locker.lock();
                 return PyErr_Format(PyExc_ValueError, "Decode error in element %lu", (unsigned long)i);
-
+            }
             if(decoder.val_size()>PyArray_DIM(valarr,1)) {
                 /* value array is no long enough.
                  * inform caller of our progress in the input list and
                  * how long the 2nd dim must be to continue
                  */
+                locker.lock();
                 return Py_BuildValue("ni", i, (int)decoder.val_size());
             }
 
@@ -303,12 +318,14 @@ PyObject* PBD_decode_vector(PyObject *unused, PyObject *args)
             curmeta->nano = decoder.nano();
 
         } catch(...) {
+            locker.lock();
             return PyErr_Format(PyExc_RuntimeError, "C++ exception");
         }
 
         curmeta += 1;
     }
 
+    locker.lock();
     return Py_BuildValue("nO", i, Py_None);
 }
 
