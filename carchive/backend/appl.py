@@ -125,18 +125,6 @@ class PBReceiver(protocol.Protocol):
 
     # Internal methods
 
-    def allocArrays(self, L):
-        H = self.header
-        dtype = _dtypes[H.type]
-        
-        # TODO: not optimal for arrays as the 2nd dim will certainly
-        # be too small and we will re-allocate when decoding the first
-        # actual sample
-        V = np.ndarray((L,1), dtype)
-
-        M = np.ndarray(L, dtype=dbr_time)
-        return V, M
-
     def process(self, lines):
         lines = map(unescape, lines)
         # find the index of blank lines which preceed new headers
@@ -175,20 +163,30 @@ class PBReceiver(protocol.Protocol):
             if not Nsamp:
                 continue # header w/o samples...
 
-            decode = decoders[H.type]
-            V = np.ndarray((len(P),1), dtype=_dtypes[H.type])
-            M = np.ndarray((len(P),), dtype=dbr_time)
+            elif self._count_limit and self._count+Nsamp>=self._count_limit:
+                assert self._count < self._count_limit
+                cnt = self._count_limit-self._count
+                P = P[:cnt]
+                Nsamp = len(P)
 
-            decode(P, V, M)
+            decode = decoders[H.type]
+            V = np.ndarray((Nsamp,1), dtype=_dtypes[H.type])
+            M = np.ndarray((Nsamp,), dtype=dbr_time)
+
+            I = 0
+            while I<Nsamp:
+                Ix, L = decode(P[I:], V[I:], M[I:])
+                assert Ix>0 or I==0
+                I += Ix
+                assert L is None or I<len(M)
+                if L is not None:
+                    # Must extend 2nd dim
+                    # V.resize pads with zeros
+                    V.resize((V.shape[0], L))
 
             M['sec'] += self._year
 
-            if self._count_limit and self._count+len(M)>=self._count_limit:
-                assert self._count < self._count_limit
-                cnt = self._count_limit-self._count
-                V, M = V[:cnt], M[:cnt]
-
-            self._count += len(M)
+            self._count += Nsamp
 
             self.pushCB(V, M)
 
