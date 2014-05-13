@@ -11,6 +11,8 @@
 
 #include "EPICSEvent.pb.h"
 
+static PyObject *decoderError;
+
 namespace {
 
 /* quick scoped pointer for PyObject and friends */
@@ -209,7 +211,8 @@ PyObject* PBD_decode_scalar(PyObject *unused, PyObject *args)
             decoder.Clear();
             if(!decoder.ParseFromArray((const void*)buf, buflen)) {
                 locker.lock();
-                return PyErr_Format(PyExc_ValueError, "Decode error in element %lu", (unsigned long)i);
+                PyErr_SetObject(decoderError, PyInt_FromLong(i));
+                return NULL;
             }
 
             frompb<E>::decodeval(curval, decoder.val());
@@ -293,7 +296,8 @@ PyObject* PBD_decode_vector(PyObject *unused, PyObject *args)
             decoder.Clear();
             if(!decoder.ParseFromArray((const void*)buf, buflen)) {
                 locker.lock();
-                return PyErr_Format(PyExc_ValueError, "Decode error in element %lu", (unsigned long)i);
+                PyErr_SetObject(decoderError, PyInt_FromLong(i));
+                return NULL;
             }
             if(decoder.val_size()>PyArray_DIM(valarr,1)) {
                 /* value array is no long enough.
@@ -387,6 +391,8 @@ static const mapent decodemap[] = {
     {NULL}
 };
 
+char decoderErrorName[] = "carchive.backend.pbdecode.DecodeError";
+
 PyMODINIT_FUNC
 initpbdecode(void)
 {
@@ -418,4 +424,9 @@ initpbdecode(void)
     }
 
     PyModule_AddObject(mod, "decoders", map.release());
+
+    decoderError = PyErr_NewException(decoderErrorName,
+                                      PyExc_ValueError, NULL);
+    Py_XINCREF(decoderError);
+    PyModule_AddObject(mod, "DecodeError", decoderError);
 }

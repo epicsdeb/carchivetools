@@ -121,13 +121,19 @@ class TestDecodeScalar(TestCase):
                           numpy.ndarray((2,), dtype=numpy.int16), M)
 
         # decode empty string
-        self.assertRaises(ValueError, pbdecode.decode_scalar_byte, ['',''], V, M)
+        self.assertRaises(pbdecode.DecodeError, pbdecode.decode_scalar_byte, ['',''], V, M)
 
         # decode partial string
-        self.assertRaises(ValueError, pbdecode.decode_scalar_byte, [raw[:5],''], V, M)
+        self.assertRaises(pbdecode.DecodeError, pbdecode.decode_scalar_byte, [raw[:5],''], V, M)
 
         # decode partial string in second item
-        self.assertRaises(ValueError, pbdecode.decode_scalar_byte, [raw,raw[:5]], V, M)
+        self.assertRaises(pbdecode.DecodeError, pbdecode.decode_scalar_byte, [raw,raw[:5]], V, M)
+
+        try:
+            pbdecode.decode_scalar_byte([raw,raw[:5]], V, M)
+            self.assertTrue(False, "Should not get here")
+        except pbdecode.DecodeError as e:
+            self.assertEqual(e.args, (1,))
 
 class TestDecodeVector(TestCase):
     _vals = [
