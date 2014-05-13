@@ -60,7 +60,9 @@ class TestDecodeScalar(TestCase):
                 V = numpy.ndarray((len(vals),1), dtype=dtype)
                 M = numpy.ndarray((len(vals),), dtype=dbr_time)
 
-                pbdecode.decoders[decode](raw, V, M)
+                I,L = pbdecode.decoders[decode](raw, V, M)
+                self.assertTrue(L is None)
+                self.assertEqual(I, len(vals))
 
                 for i,eV in enumerate(vals):
                     self.assertEqual(V[i], eV)

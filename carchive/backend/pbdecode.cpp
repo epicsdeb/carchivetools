@@ -202,7 +202,8 @@ PyObject* PBD_decode_scalar(PyObject *unused, PyObject *args)
 
     GIL locker;
 
-    for(Py_ssize_t i=0; i<nlines; i++) {
+    Py_ssize_t i;
+    for(i=0; i<nlines; i++) {
         PyObject *line = PyList_GET_ITEM(lines, i);
         const char *buf = PyString_AS_STRING(line);
         Py_ssize_t buflen = PyString_GET_SIZE(line);
@@ -231,7 +232,7 @@ PyObject* PBD_decode_scalar(PyObject *unused, PyObject *args)
     }
 
     locker.lock();
-    Py_RETURN_NONE;
+    return Py_BuildValue("nO", i, Py_None);
 }
 
 template<typename E, class PB>
