@@ -36,32 +36,32 @@ class TestEscape(TestCase):
 
 class TestDecodeScalar(TestCase):
     _vals = [
-        #('byte', EPICSEvent_pb2.ScalarByte, pbdecode.decode_byte, numpy.int8, ['a', 'b']),
-        ('short', EPICSEvent_pb2.ScalarShort, pbdecode.decode_short, numpy.int16, [512, 513]),
-        ('int', EPICSEvent_pb2.ScalarInt, pbdecode.decode_int, numpy.int32, [0x12345, 0x54321]),
-        ('string', EPICSEvent_pb2.ScalarString, pbdecode.decode_string, numpy.dtype('a40'), ["hello", "world"]),
-        ('float', EPICSEvent_pb2.ScalarFloat, pbdecode.decode_float, numpy.float32, [42.5, 43.5]),
-        ('double', EPICSEvent_pb2.ScalarDouble, pbdecode.decode_double, numpy.float64, [42.1, 42.2]),
+        ('short', EPICSEvent_pb2.ScalarShort, 1, numpy.int16, [512, 513]),
+        ('int', EPICSEvent_pb2.ScalarInt, 5, numpy.int32, [0x12345, 0x54321]),
+        ('string', EPICSEvent_pb2.ScalarString, 0, numpy.dtype('a40'), ["hello", "world"]),
+        ('float', EPICSEvent_pb2.ScalarFloat, 2, numpy.float32, [42.5, 43.5]),
+        ('double', EPICSEvent_pb2.ScalarDouble, 6, numpy.float64, [42.1, 42.2]),
     ]
 
     def test_decode(self):
-        
+
         for L, PB, decode, dtype, vals in self._vals:
             try:
                 S = PB()
                 raw = []
-    
+
                 for i,V in enumerate(vals):
+                    S.Clear()
                     S.val = V
                     S.secondsintoyear = 1024+i
                     S.nano = 0x1234+i
                     raw.append(S.SerializeToString())
-    
+
                 V = numpy.ndarray((len(vals),1), dtype=dtype)
                 M = numpy.ndarray((len(vals),), dtype=dbr_time)
-    
-                decode(raw, V, M)
-                
+
+                pbdecode.decoders[decode](raw, V, M)
+
                 for i,eV in enumerate(vals):
                     self.assertEqual(V[i], eV)
                     self.assertEqual(tuple(M[i]), (0, 0, 1024+i, 0x1234+i))
@@ -85,11 +85,11 @@ class TestDecodeScalar(TestCase):
         S.nano = 0x1235
 
         raw[1] = S.SerializeToString()
-        
+
         V = numpy.ndarray((2,1), dtype=numpy.int8)
         M = numpy.ndarray((2,), dtype=dbr_time)
 
-        pbdecode.decode_byte(raw, V, M)
+        pbdecode.decode_scalar_byte(raw, V, M)
 
         self.assertEqual(V[0], ord('a'))
         self.assertEqual(tuple(M[0]), (0, 0, 1024, 0x1234))
@@ -108,28 +108,77 @@ class TestDecodeScalar(TestCase):
         M = numpy.ndarray((2,), dtype=dbr_time)
 
         # wrong number of list elements
-        self.assertRaises(ValueError, pbdecode.decode_byte, [''], V, M)
+        self.assertRaises(ValueError, pbdecode.decode_scalar_byte, [''], V, M)
 
         # wrong number of meta elements
-        self.assertRaises(ValueError, pbdecode.decode_byte, ['',''], V, M[:1])
+        self.assertRaises(ValueError, pbdecode.decode_scalar_byte, ['',''], V, M[:1])
 
         # wrong number of value elements
-        self.assertRaises(ValueError, pbdecode.decode_byte, ['',''], V[:1], M)
+        self.assertRaises(ValueError, pbdecode.decode_scalar_byte, ['',''], V[:1], M)
 
         # wrong value dtype
-        self.assertRaises(ValueError, pbdecode.decode_byte, ['',''],
+        self.assertRaises(ValueError, pbdecode.decode_scalar_byte, ['',''],
                           numpy.ndarray((2,), dtype=numpy.int16), M)
 
         # decode empty string
-        self.assertRaises(ValueError, pbdecode.decode_byte, ['',''], V, M)
+        self.assertRaises(ValueError, pbdecode.decode_scalar_byte, ['',''], V, M)
 
         # decode partial string
-        self.assertRaises(ValueError, pbdecode.decode_byte, [raw[:5],''], V, M)
+        self.assertRaises(ValueError, pbdecode.decode_scalar_byte, [raw[:5],''], V, M)
 
         # decode partial string in second item
-        self.assertRaises(ValueError, pbdecode.decode_byte, [raw,raw[:5]], V, M)
+        self.assertRaises(ValueError, pbdecode.decode_scalar_byte, [raw,raw[:5]], V, M)
 
 class TestDecodeVector(TestCase):
+    _vals = [
+        ('short', EPICSEvent_pb2.VectorShort, 8, numpy.int16,
+             [[512, 513],[514, 515, 516]]),
+        ('int', EPICSEvent_pb2.VectorInt, 12, numpy.int32,
+             [[0x12345, 0x54321], [0x12345, 0x54321, 0x21312]]),
+        ('string', EPICSEvent_pb2.VectorString, 7, numpy.dtype('a40'),
+             [["hello", "world"],["This","is","a test"]]),
+        ('float', EPICSEvent_pb2.VectorFloat, 9, numpy.float32,
+             [[42.5, 43.5], [45.5, 46.5, 47.5]]),
+        ('double', EPICSEvent_pb2.VectorDouble, 13, numpy.float64,
+             [[42.5, 43.5], [45.5, 46.5, 47.5]]),
+    ]
+
+    def test_decode(self):
+
+        for name, PB, decode, dtype, vals in self._vals:
+            try:
+                S = PB()
+                raw = []
+
+                for i,V in enumerate(vals):
+                    S.Clear()
+                    S.val.extend(V)
+                    S.secondsintoyear = 1024+i
+                    S.nano = 0x1234+i
+                    raw.append(S.SerializeToString())
+
+                V = numpy.ndarray((len(vals),1), dtype=dtype)
+                M = numpy.ndarray((len(vals),), dtype=dbr_time)
+
+                I=0
+                while I<len(M):
+                    Ix,L = pbdecode.decoders[decode](raw[I:], V[I:], M[I:])
+                    I+=Ix
+                    assert L is None or I<len(M)
+                    if L is not None:
+                        assert L>V.shape[1]
+                        V.resize((V.shape[0], L))
+                    else:
+                        assert I==len(M)
+
+                for i,eV in enumerate(vals):
+                    self.assertTrue(numpy.all(V[i,:len(eV)]==numpy.asarray(eV, dtype=dtype)))
+                    #self.assertFalse(numpy.any(V[i,len(eV):]))
+                    self.assertEqual(tuple(M[i]), (0, 0, 1024+i, 0x1234+i))
+            except:
+                print 'Error in test_decode for',name
+                raise
+
     def test_double(self):
         S = EPICSEvent_pb2.VectorDouble()
         S.val.extend([1.1, 2.2, 3.3])

@@ -306,10 +306,9 @@ PyObject* PBD_decode_vector(PyObject *unused, PyObject *args)
 
             char *curval=(char*)PyArray_GETPTR2(valarr, i, 0);
 
-            int i;
-            for(i=0; i<decoder.val_size(); i++, curval+=store<E>::esize()) {
+            for(int j=0; j<decoder.val_size(); j++, curval+=store<E>::esize()) {
                 /*TODO: memcpy */
-                frompb<E>::decodeval(curval, decoder.val(i));
+                frompb<E>::decodeval(curval, decoder.val(j));
             }
 
             curmeta->severity = decoder.severity();
@@ -335,23 +334,33 @@ static PyMethodDef PBDMethods[] = {
     {"unescape", PBD_unescape, METH_VARARGS,
      "Unescape a byte string"},
 
-    {"decode_string", PBD_decode_scalar<std::string, EPICS::ScalarString>, METH_VARARGS,
+    {"decode_scalar_string", PBD_decode_scalar<std::string, EPICS::ScalarString>, METH_VARARGS,
      "Decode protobuf stream into numpy array of strings"},
-    {"decode_byte", PBD_decode_scalar<char, EPICS::ScalarByte>, METH_VARARGS,
+    {"decode_scalar_byte", PBD_decode_scalar<char, EPICS::ScalarByte>, METH_VARARGS,
      "Decode protobuf stream into numpy array of int8"},
-    {"decode_short", PBD_decode_scalar<short, EPICS::ScalarShort>, METH_VARARGS,
+    {"decode_scalar_short", PBD_decode_scalar<short, EPICS::ScalarShort>, METH_VARARGS,
      "Decode protobuf stream into numpy array of int16"},
-    {"decode_int", PBD_decode_scalar<int32_t, EPICS::ScalarInt>, METH_VARARGS,
+    {"decode_scalar_int", PBD_decode_scalar<int32_t, EPICS::ScalarInt>, METH_VARARGS,
      "Decode protobuf stream into numpy array of int32"},
-    {"decode_enum", PBD_decode_scalar<int32_t, EPICS::ScalarEnum>, METH_VARARGS,
+    {"decode_scalar_enum", PBD_decode_scalar<int32_t, EPICS::ScalarEnum>, METH_VARARGS,
      "Decode protobuf stream into numpy array of int32"},
-    {"decode_float", PBD_decode_scalar<float, EPICS::ScalarFloat>, METH_VARARGS,
+    {"decode_scalar_float", PBD_decode_scalar<float, EPICS::ScalarFloat>, METH_VARARGS,
      "Decode protobuf stream into numpy array of float32"},
-    {"decode_double", PBD_decode_scalar<double, EPICS::ScalarDouble>, METH_VARARGS,
+    {"decode_scalar_double", PBD_decode_scalar<double, EPICS::ScalarDouble>, METH_VARARGS,
      "Decode protobuf stream into numpy array of float64"},
 
+    {"decode_vector_string", PBD_decode_vector<std::string, EPICS::VectorString>, METH_VARARGS,
+     "Decode protobuf stream into numpy array"},
+    {"decode_vector_short", PBD_decode_vector<short, EPICS::VectorShort>, METH_VARARGS,
+     "Decode protobuf stream into numpy array"},
+    {"decode_vector_int", PBD_decode_vector<uint32_t, EPICS::VectorInt>, METH_VARARGS,
+     "Decode protobuf stream into numpy array"},
+    {"decode_vector_enum", PBD_decode_vector<uint32_t, EPICS::VectorEnum>, METH_VARARGS,
+     "Decode protobuf stream into numpy array"},
+    {"decode_vector_float", PBD_decode_vector<float, EPICS::VectorFloat>, METH_VARARGS,
+     "Decode protobuf stream into numpy array"},
     {"decode_vector_double", PBD_decode_vector<double, EPICS::VectorDouble>, METH_VARARGS,
-     "Decode protobuf stream into numpy array of float64"},
+     "Decode protobuf stream into numpy array"},
 
     {NULL}
 };
@@ -361,13 +370,20 @@ struct mapent {
     int k;
 };
 static const mapent decodemap[] = {
-    {"decode_string", EPICS::SCALAR_STRING},
-    {"decode_byte", EPICS::SCALAR_BYTE},
-    {"decode_short", EPICS::SCALAR_SHORT},
-    {"decode_int", EPICS::SCALAR_INT},
-    {"decode_enum", EPICS::SCALAR_ENUM},
-    {"decode_float", EPICS::SCALAR_FLOAT},
-    {"decode_double", EPICS::SCALAR_DOUBLE},
+    {"decode_scalar_string", EPICS::SCALAR_STRING},
+    {"decode_scalar_byte", EPICS::SCALAR_BYTE},
+    {"decode_scalar_short", EPICS::SCALAR_SHORT},
+    {"decode_scalar_int", EPICS::SCALAR_INT},
+    {"decode_scalar_enum", EPICS::SCALAR_ENUM},
+    {"decode_scalar_float", EPICS::SCALAR_FLOAT},
+    {"decode_scalar_double", EPICS::SCALAR_DOUBLE},
+
+    {"decode_vector_string", EPICS::WAVEFORM_STRING},
+    {"decode_vector_short", EPICS::WAVEFORM_SHORT},
+    {"decode_vector_int", EPICS::WAVEFORM_INT},
+    {"decode_vector_enum", EPICS::WAVEFORM_ENUM},
+    {"decode_vector_float", EPICS::WAVEFORM_FLOAT},
+    {"decode_vector_double", EPICS::WAVEFORM_DOUBLE},
     {NULL}
 };
 
