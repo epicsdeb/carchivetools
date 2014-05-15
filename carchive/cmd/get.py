@@ -37,7 +37,7 @@ class Printer(object):
                 print self.timefmt((M['sec'],int(M['ns']))),
                 print archive.severity(M['severity']),
                 print archive.status(M['status']),
-                print data[i,:].tolist()
+                print ', '.join(map(str,data[i,:].tolist()))
 
 @defer.inlineCallbacks
 def cmd(archive=None, opt=None, args=None, conf=None, **kws):
