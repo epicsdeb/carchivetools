@@ -24,7 +24,9 @@ def printData(data, meta, archive, info):
                                             shape = (0,0),
                                             dtype=data.dtype,
                                             maxshape=(None,None),
-                                            chunks=data.shape)
+                                            chunks=data.shape,
+                                            shuffle=True,
+                                            compression='gzip')
         info.valset = valset
     else: # additional data
         valset = info.valset
@@ -128,7 +130,9 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
             P.metaset = pvstore.create_dataset('meta', shape=(0,),
                                                dtype=dbr_time,
                                                maxshape=(None,),
-                                               chunks=(Chk,))
+                                               chunks=(Chk,),
+                                               shuffle=True,
+                                               compression='gzip')
 
         P.valset = None
 
