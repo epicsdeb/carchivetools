@@ -55,7 +55,7 @@ class PBReceiver(protocol.Protocol):
     # requests, which by default is 2 per host and we only talk to 1 host.
     # so this number can be set large to better the chance that the entire
     # responce can be processed at once.
-    _rx_buf_size = 10*2**20
+    _rx_buf_size = 2**20
 
     def __init__(self, cb, cbArgs=(), cbKWs={}, nreport=1000, count=None, name=None):
         self._S, self.defer = StringIO(), defer.Deferred()
