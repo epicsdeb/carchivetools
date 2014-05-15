@@ -3,7 +3,7 @@
 import logging
 _log = logging.getLogger("carchive.appl")
 
-import json, time, re, calendar, datetime
+import json, time, calendar, datetime
 
 from urllib import urlencode
 
@@ -17,29 +17,9 @@ from twisted.web.client import Agent, ResponseDone, ResponseFailed
 
 from ..date import isoString
 from ..dtype import dbr_time
-from . import EPICSEvent_pb2 as pb
+from .EPICSEvent_pb2 import PayloadInfo
 
 from carchive.backend.pbdecode import decoders, unescape, DecodeError
-
-# Proto buffer instances for decoding individual samples
-_fields = {
-    0:pb.ScalarString,
-    1:pb.ScalarShort,
-    2:pb.ScalarFloat,
-    3:pb.ScalarEnum,
-    4:pb.ScalarByte,
-    5:pb.ScalarInt,
-    6:pb.ScalarDouble,
-    7:pb.VectorString,
-    8:pb.VectorShort,
-    9:pb.VectorFloat,
-    10:pb.VectorEnum,
-    #11:pb.VectorByte, # missing?
-    12:pb.VectorInt,
-    13:pb.VectorDouble,
-    14:pb.V4GenericBytes,
-}
-
 
 _dtypes = {
     0: np.dtype('a40'),
@@ -151,7 +131,7 @@ class PBReceiver(protocol.Protocol):
 
             if not self.header:
                 # first message in the stream
-                H = pb.PayloadInfo()
+                H = PayloadInfo()
                 H.ParseFromString(P[0])
                 self._year = calendar.timegm(datetime.date(H.year,1,1).timetuple())
                 P = P[1:]
