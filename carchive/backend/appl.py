@@ -261,7 +261,17 @@ class Appliance(object):
                archs=None, breakDown=False,
                rawTime=False):
 
-        url='%s/getAllPVs?%s'%(self._info['mgmtURL'],urlencode({'pv':pattern}))
+        # ArchiveDataServer looks for partial matches
+        # Archive Appliance matches the entire line (implicit ^...$)
+        if not pattern:
+            pattern='.*'
+        else:
+            if not pattern.startswith('^'):
+                pattern='.*'+pattern
+            if not pattern.endswith('$'):
+                pattern=pattern+'.*'
+
+        url='%s/getAllPVs?%s'%(self._info['mgmtURL'],urlencode({'regex':pattern}))
         _log.debug("Query: %s", url)
 
         R = yield fetchJSON(self._agent, url)
