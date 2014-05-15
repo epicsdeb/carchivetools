@@ -10,6 +10,8 @@ from twisted.web.server import NOT_DONE_YET
 
 import applinfo
 
+from .xrpcrequest import NamesRequest
+
 _info = {
     'ver':0,
     'desc':'Archiver to Applicance gateway',
@@ -33,7 +35,7 @@ _archives_rep = dumps((_archives,), methodresponse=True)
 
 class DataServer(Resource):
     isLeaf=True
-    NamesRequest=None
+    NamesRequest=NamesRequest
     ValuesRequest=None
     def render_GET(self, req):
         return "Nothing to see here.  Make an XMLRPC request"
@@ -47,6 +49,7 @@ class DataServer(Resource):
         # read from the request transport (circa Twisted 12.0)
         try:
             args, meth = loads(req.content.read())
+            _log.info("Request: %s%s", meth,args)
         except Exception as e:
             import traceback
             traceback.print_exc()

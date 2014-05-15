@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+import logging
+_log = logging.getLogger(__name__)
+
 import time
 
 from xmlrpclib import dumps, Fault
@@ -23,7 +26,8 @@ class XMLRPCRequest(object):
                 return
 
         self._complete = httprequest.notifyFinish()
-        self._complete.addCallbacks(self.normalEnd, self.abortEnd)
+        self._complete.addCallback(self.normalEnd)
+        self._complete.addErrback(self.abortEnd)
 
     def normalEnd(self, R):
         return R
@@ -38,10 +42,22 @@ class NamesRequest(XMLRPCRequest):
     def __init__(self, httprequest, args, applinfo=None):
         super(NamesRequest, self).__init__(httprequest, args)
         self.applinfo = applinfo
+        pattern = self.args[1]
 
-        self._remote = S = applinfo.search(self.args[1])
+        # ArchiveDataServer looks for partial matches
+        # Archive Appliance matches the entire line (implicit ^...$)
+        if not pattern:
+            pattern='.*'
+        else:
+            if not pattern.startswith('^'):
+                pattern='.*'+pattern
+            if not pattern.endswith('$'):
+                pattern=pattern+'.*'
 
-        S.addCallbacks(self.results, self.error)
+        self._remote = S = applinfo.search(pattern)
+
+        S.addCallback(self.results)
+        S.addErrback(self.error)
 
     def results(self, R):
         """Have results
@@ -56,7 +72,7 @@ class NamesRequest(XMLRPCRequest):
             D = {'name':name}
             D.update(static)
             rep.append(D)
-        self.request.write(dumps(rep, methodresponse=True))
+        self.request.write(dumps((rep,), methodresponse=True))
         self.request.finish()
 
     def error(self, R):
@@ -65,6 +81,7 @@ class NamesRequest(XMLRPCRequest):
         self.request.write(dumps(Fault(405, str(R)),
                                        methodresponse=True))
         self.request.finish()
+        return R
 
     def abortEnd(self, R):
         """Client closed connection early

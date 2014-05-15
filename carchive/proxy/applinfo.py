@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+import logging
+_log = logging.getLogger(__name__)
+
 import time
 
 from urllib import urlencode
@@ -40,7 +43,7 @@ class ApplInfo(object):
 
         url='%s/getAllPVs?%s'%(I['mgmtURL'],urlencode({'regex':pattern}))
 
-        R = yield self.agent.request('GET', url)
+        R = yield self.agent.request('GET', str(url))
 
         if R.code!=200:
             # spoil cache in case the server changed on us
