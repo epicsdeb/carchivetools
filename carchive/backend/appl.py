@@ -138,7 +138,7 @@ class PBReceiver(protocol.Protocol):
         parts = map(lambda (a,b):lines[a+1:b], zip([-1] + splits, splits + [None]))
         
         dparts = map(lambda (a,b):(a+1,b), zip([-1] + splits, splits + [None]))
-        print dparts
+        _log.debug("Parts: %s", dparts)
 
         if len(parts)==0:
             _log.warn("no parts in %d lines?  %s", len(lines), lines[:5])
@@ -282,7 +282,7 @@ class Appliance(object):
                rawTime=False):
 
         url='%s/getAllPVs?%s'%(self._info['mgmtURL'],urlencode({'pv':pattern}))
-        _log.debug("Fetch: %s", url)
+        _log.debug("Query: %s", url)
 
         R = yield fetchJSON(self._agent, url)
 
@@ -309,9 +309,9 @@ class Appliance(object):
             'to':isoString(Tend),
             'donotchunk':'true',
         }
-        _log.debug("Query %s", Q)
 
         url=str('%s/data/getData.raw?%s'%(self._info['dataRetrievalURL'],urlencode(Q)))
+        _log.debug("Query: %s", url)
 
         R = yield self._agent.request('GET', url)
 
