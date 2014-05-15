@@ -19,7 +19,7 @@ from ..date import isoString
 from ..dtype import dbr_time
 from . import EPICSEvent_pb2 as pb
 
-from carchive.backend.pbdecode import decoders, unescape
+from carchive.backend.pbdecode import decoders, unescape, DecodeError
 
 # Proto buffer instances for decoding individual samples
 _fields = {
@@ -144,7 +144,7 @@ class PBReceiver(protocol.Protocol):
             _log.warn("no parts in %d lines?  %s", len(lines), lines[:5])
             return
 
-        for P in parts:
+        for P,dP in zip(parts,dparts):
             if len(P)==0:
                 _log.warn("Part with no lines? %s", P)
                 continue
@@ -175,7 +175,10 @@ class PBReceiver(protocol.Protocol):
 
             I = 0
             while I<Nsamp:
-                Ix, L = decode(P[I:], V[I:], M[I:])
+                try:
+                    Ix, L = decode(P[I:], V[I:], M[I:])
+                except DecodeError as e:
+                    raise DecodeError("Failed to decode %s of %s: %s"%(e.args,dP,repr(P[e.args[0]])))
                 assert Ix>0 or I==0
                 I += Ix
                 assert L is None or I<len(M)
