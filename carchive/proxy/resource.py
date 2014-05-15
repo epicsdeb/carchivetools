@@ -8,6 +8,8 @@ from xmlrpclib import loads, dumps, Fault
 from twisted.web.resource import Resource
 from twisted.web.server import NOT_DONE_YET
 
+import applinfo
+
 _info = {
     'ver':0,
     'desc':'Archiver to Applicance gateway',
@@ -60,11 +62,11 @@ class DataServer(Resource):
         elif meth=='archiver.names':
             _log.debug("%s: archiver.names %s",
                        req.getClientIP(), args)
-            self.NamesRequest(req, args)
+            self.NamesRequest(req, args, applinfo=self.applinfo)
         elif meth=='archiver.values':
             _log.debug("%s: archiver.values %s",
                        req.getClientIP(), args)
-            self.ValuesRequest(req, args)
+            self.ValuesRequest(req, args, applinfo=self.applinfo)
         else:
             _log.error("%s: Request for unknown method %s",
                        req.getClientIP(), meth)
@@ -73,11 +75,13 @@ class DataServer(Resource):
 
         return NOT_DONE_YET
 
-def buildResource():
+def buildResource(infourl=None):
+    I = applinfo.ApplInfo(infourl)
     root= Resource()
     cgibin = Resource()
     root.putChild('cgi-bin', cgibin)
     C = DataServer()
+    C.applinfo = I
     cgibin.putChild('ArchiveDataServer.cgi', C)
     return root
 

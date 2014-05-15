@@ -14,8 +14,8 @@ from .. import resource, xrpcrequest
 class TestNamesRequest(xrpcrequest.XMLRPCRequest):
     # key, pattern
     argumentTypes = (int, str)
-    def __init__(self, *args):
-        super(TestNamesRequest, self).__init__(*args)
+    def __init__(self, httprequest, args, applinfo=None):
+        super(TestNamesRequest, self).__init__(httprequest, args)
         R = dumps([
             {'name':'testpv',
              'start_sec':42, 'start_nano':1234,
@@ -27,8 +27,8 @@ class TestNamesRequest(xrpcrequest.XMLRPCRequest):
 class TestValuesRequest(xrpcrequest.XMLRPCRequest):
     # key, names, start_sec, start_nano, end_sec, end_nano, count, how
     argumentTypes = (int, list, int, int, int, int, int, int)
-    def __init__(self, *args):
-        super(TestValuesRequest, self).__init__(*args)
+    def __init__(self, httprequest, args, applinfo=None):
+        super(TestValuesRequest, self).__init__(httprequest, args)
         R = []
         for name in self.args[1]:
             R.append(

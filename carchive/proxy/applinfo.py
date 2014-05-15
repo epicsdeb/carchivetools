@@ -7,7 +7,7 @@ from urllib import urlencode
 from twisted.internet import defer, reactor
 from twisted.web.client import Agent
 
-from ..backend.appl import JSONReceiver
+from ..backend.appl import JSONReceiver, PBReceiver
 
 class ApplInfo(object):
     reactor = reactor
