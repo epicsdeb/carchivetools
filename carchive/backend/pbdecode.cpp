@@ -9,7 +9,7 @@
 #include <string>
 #include <typeinfo>
 
-#include "EPICSEvent.pb.h"
+#include "carchive/backend/EPICSEvent.pb.h"
 
 static PyObject *decoderError;
 
