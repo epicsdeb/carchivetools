@@ -13,7 +13,8 @@ import numpy as np
 
 from twisted.internet import defer, protocol, reactor
 
-from twisted.web.client import Agent, ResponseDone, ResponseFailed
+from twisted.web.client import Agent, ResponseDone
+from twisted.web._newclient import ResponseFailed
 
 from ..date import isoString
 from ..dtype import dbr_time
