@@ -42,6 +42,7 @@ class ApplInfo(object):
         I = yield self.getInfo()
 
         url='%s/getAllPVs?%s'%(I['mgmtURL'],urlencode({'regex':pattern}))
+        _log.debug("Query: %s", url)
 
         R = yield self.agent.request('GET', str(url))
 
@@ -55,3 +56,32 @@ class ApplInfo(object):
         L = yield J.defer
 
         defer.returnValue(L)
+
+    @defer.inlineCallbacks
+    def fetch(self, pv, start=None, end=None, count=None,
+              cb=None):
+        I = yield self.getInfo()
+
+
+        Q = {
+            'pv':pv,
+            'from':self._start,
+            'to':self._end,
+            'donotchunk':'true',
+        }
+
+        url=str('%s/data/getData.raw?%s'%(I['dataRetrievalURL'],urlencode(Q)))
+        _log.debug("Query: %s", url)
+
+        R = yield self.agent.request('GET', str(url))
+
+        if R.code!=200:
+            # spoil cache in case the server changed on us
+            self._info = self._info_time = None
+            raise RuntimeError('%d: %s'%(R.code, url))
+
+        P = PBReceiver(cb, name=pv, count=count)
+        R.deliverBody(P)
+        yield P.defer
+
+        defer.returnValue(None)
