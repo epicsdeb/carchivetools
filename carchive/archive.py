@@ -1,13 +1,19 @@
 # -*- coding: utf-8 -*-
 
+import logging
+_log = logging.getLogger(__name__)
 
 try:
     from .backend import classic
 except ImportError:
+    if _log.isEnabledFor(logging.DEBUG):
+        _log.exception("Failed to import classic backend")
     classic=None
 try:
     from .backend import appl
 except ImportError:
+    if _log.isEnabledFor(logging.DEBUG):
+        _log.exception("Failed to import appliance backend")
     appl=None
 
 def getArchive(conf):
