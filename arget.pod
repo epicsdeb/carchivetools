@@ -165,7 +165,7 @@ However, if <0 it is taken as relative to the current system time.
 
 The following example retrieves 00:00 through 04:00 on 24 March of the current year.
 
- $ arget -s '24/03' -e '4 h'...
+ $ arget -s '24/03 00:00' -e '4 h'...
 
 To retrieve the last 10 minites of data.
 

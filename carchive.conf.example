@@ -3,11 +3,14 @@
 # Specify on of (possibly) several server configurations
 #defaultarchive=myarchiver
 
-# Gives the default hostname used in no specific configuration is requested
-#host=hostname:port
-
-# Instead of host the full url can be given
+# Retrieval URL is required
+# (default)
 #url = http://%(host)s/cgi-bin/ArchiveDataServer.cgi
+# or for an Archiver Appliance
+#url = http://%(host)s/mgmt/bpl/getApplianceInfo
+
+# Gives the default hostname used if no specific configuration is requested
+#host=hostname:port
 
 # Default pattern to determine which archives are operated on
 #defaultarchs = */Current
@@ -25,7 +28,6 @@
 
 # host, url, and defaultarchs can be specified in each subsection.
 # A subsection is specified by
-#  $ arget -u myarchiver ...
+#  $ arget -C myarchiver ...
 
 #host=myarchiver.some.host.local:8888
-
