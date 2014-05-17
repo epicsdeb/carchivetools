@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from distutils.core import setup, Distribution, Extension, Command, DistutilsSetupError
-from distutils.command import build, build_ext
+from distutils.command import build, build_ext, install
 
 from numpy.distutils.misc_util import get_numpy_include_dirs
 
@@ -19,7 +19,7 @@ class GenProtobuf(Command):
         self.build_lib = None
 
     def finalize_options(self):
-        self.proto = self.distribution.x_proto
+        self.proto = self.distribution.x_proto or ()
 
         self.set_undefined_options('build',
                                    ('build_temp', 'build_temp'),
@@ -51,16 +51,40 @@ class BuildExtGen(build_ext.build_ext):
         # Search for generated headers referenced from top level (eg. carchive/backend/...)
         self.include_dirs.append(self.build_temp)
 
+class LinkScripts(Command):
+    """Symlink or copy scripts
+    """
+    def initialize_options(self):
+        self.install_dir = None
+    def finalize_options(self):
+        self.set_undefined_options('install',
+                                   ('install_scripts', 'install_dir'))
+        self.links = self.distribution.x_link_scripts or ()
+    def run(self):
+        from os.path import join
+        for target, dest in self.links:
+            self.copy_file(target,
+                           join(self.install_dir, dest),
+                           link='sym')
+
 # Allow setup(x_proto=...)
 Distribution.x_proto = None
+Distribution.x_link_scripts = None
 
 # Hook into build command early.
 build.build.sub_commands.insert(0, ('build_protobuf', lambda cmd:True))
+# Hook into install command late
+install.install.sub_commands.append(('install_links', lambda cmd:True))
 
 setup(
     name = "carchivetools",
-    version = "1.0",
-    description = "CLI Tools to query Channel Archiver",
+    version = "1.9-dev",
+    description = "Tools to query EPICS Channel Archiver and Archiver Appliance",
+    long_description = """Tools to retrieve data from EPICS data archivers.
+Support Channel Archiver as well as Archiver Appliance.
+""",
+    url = "https://github.com/epicsdeb/carchivetools",
+    download_url = "https://github.com/epicsdeb/carchivetools/releases",
     author = "Michael Davidsaver",
     author_email = "mdavidsaver@bnl.gov",
     license = "BSD",
@@ -77,10 +101,15 @@ setup(
     cmdclass={
         'build_protobuf':GenProtobuf,
         'build_ext':BuildExtGen,
+        'install_links':LinkScripts,
     },
 
     # local options
     x_proto = (
         ('carchive/backend/EPICSEvent.proto', {'cpp':True, 'py':True}),
     ),
+    x_link_scripts = (
+        ('arget', 'arinfo'),
+        ('arget', 'argrep'),
+    )
 )
