@@ -16,7 +16,7 @@ try:
 except ImportError:
     ShellFactory = None
 
-from carchive.proxy.resource import buildResource
+from carchive.a2aproxy.resource import buildResource
 
 class Log2Twisted(logging.StreamHandler):
     """Print logging module stream to the twisted log
