@@ -40,6 +40,7 @@ class NiceQueryProtocol(QueryProtocol):
            
 
 class NiceQueryFactory(_QueryFactory):
+    noisy = False
     protocol = NiceQueryProtocol
 
 class NiceProxy(Proxy):
