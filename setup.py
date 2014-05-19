@@ -10,6 +10,13 @@ class GenProtobuf(Command):
     """
     user_options = [
         ('protoc=', 'P', "protobuf compiler"),
+        ('build-lib=', 'b',
+         "directory for compiled extension modules"),
+        ('build-temp=', 't',
+         "directory for temporary files (build by-products)"),
+        ('inplace', 'i',
+         "ignore build-lib and put compiled extensions into the source " +
+         "directory alongside your pure Python modules"),
     ]
 
     def initialize_options(self):
@@ -17,6 +24,7 @@ class GenProtobuf(Command):
         self.proto = None
         self.build_temp = None
         self.build_lib = None
+        self.inplace = 0
 
     def finalize_options(self):
         self.proto = self.distribution.x_proto or ()
@@ -24,6 +32,9 @@ class GenProtobuf(Command):
         self.set_undefined_options('build',
                                    ('build_temp', 'build_temp'),
                                    ('build_lib', 'build_lib'),
+                                  )
+        self.set_undefined_options('build_ext',
+                                   ('inplace','inplace'),
                                   )
 
         from os.path import isfile
@@ -34,14 +45,18 @@ class GenProtobuf(Command):
             raise DistutilsSetupError("Unable to find 'protoc'")
 
     def run(self):
-        self.mkpath(self.build_temp)
-        self.mkpath(self.build_lib)
+        outtemp, outlib = self.build_temp, self.build_lib
+        if self.inplace:
+            outtemp, outlib = '.', '.'
+        else:
+            self.mkpath(outtemp)
+            self.mkpath(outlib)
 
         for pbd, opts in self.proto:
             if opts.get('py', False):
-                self.spawn([self.protoc, '--python_out='+self.build_lib, pbd])
+                self.spawn([self.protoc, '--python_out='+outlib, pbd])
             if opts.get('cpp', False):
-                self.spawn([self.protoc, '--cpp_out='+self.build_temp, pbd])
+                self.spawn([self.protoc, '--cpp_out='+outtemp, pbd])
 
 class BuildExtGen(build_ext.build_ext):
     """Extend -I search path to find generated files
@@ -49,7 +64,10 @@ class BuildExtGen(build_ext.build_ext):
     def finalize_options(self):
         build_ext.build_ext.finalize_options(self)
         # Search for generated headers referenced from top level (eg. carchive/backend/...)
-        self.include_dirs.append(self.build_temp)
+        if self.inplace:
+            self.include_dirs.append('.')
+        else:
+            self.include_dirs.append(self.build_temp)
 
 class LinkScripts(Command):
     """Symlink or copy scripts
