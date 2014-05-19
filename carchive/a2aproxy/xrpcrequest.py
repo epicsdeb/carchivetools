@@ -119,6 +119,55 @@ _encoder = {
     3:lambda v:"<value><double>%s</double></value>"%repr(v),
 }
 
+# Some default meta-data
+_static_meta = "<struct>\n"+\
+"<member>\n<name>units</name>\n<value><string></string></value>\n</member>\n"+\
+"<member>\n<name>warn_high</name>\n<value><double>0.0</double></value>\n</member>\n"+\
+"<member>\n<name>alarm_high</name>\n<value><double>0.0</double></value>\n</member>\n"+\
+"<member>\n<name>disp_high</name>\n<value><double>0.0</double></value>\n</member>\n"+\
+"<member>\n<name>warn_low</name>\n<value><double>0.0</double></value>\n</member>\n"+\
+"<member>\n<name>type</name>\n<value><int>1</int></value>\n</member>\n"+\
+"<member>\n<name>alarm_low</name>\n<value><double>0.0</double></value>\n</member>\n"+\
+"<member>\n<name>prec</name>\n<value><int>0</int></value>\n</member>\n"+\
+"<member>\n<name>disp_low</name>\n<value><double>0.0</double></value>\n</member>\n"+\
+"</struct>"
+
+
+# Parts of the response, in order
+
+# Once.  Opens array.
+_values_start = "<?xml version='1.0'?>\n<methodResponse>\n<params>\n<param>\n<value><array><data>\n"
+
+# For each PV.  Opens Struct, Opens array.
+# macros: name, type, count
+_values_head = "<value><struct>\n"+\
+"<member>\n<name>name</name>\n<value><string>%(name)s</string></value>\n</member>\n"+\
+"<member>\n<name>type</name>\n<value><int>%(type)s</int></value>\n</member>\n"+\
+"<member>\n<name>meta</name>\n<value>"+_static_meta+"</value>\n</member>\n"+\
+"<member>\n<name>count</name>\n<value><int>%(count)s</int></value>\n</member>\n"+\
+"<member>\n<name>values</name>\n<value><array><data>\n"
+
+# For each Pv.  For each sample.  Opens Struct, Opens array.
+# macros: stat, sevr, secs, nano
+_sample_head = "<value><struct>\n"+\
+"<member>\n<name>stat</name>\n<value><int>%(stat)s</int></value>\n</member>\n"+\
+"<member>\n<name>sevr</name>\n<value><int>%(sevr)s</int></value>\n</member>\n"+\
+"<member>\n<name>secs</name>\n<value><int>%(secs)s</int></value>\n</member>\n"+\
+"<member>\n<name>nano</name>\n<value><int>%(nano)s</int></value>\n</member>\n"+\
+"<member>\n<name>value</name>\n<value><array><data>\n"
+
+# use _encoder to emit a series of <value>...</value>
+
+# For each Pv.  For each sample.  Closes array.  Closes Struct,
+_sample_foot = "</data></array></value>\n</member>\n</struct>\n</value>\n"
+
+# For each PV.  Closes array. Closes Struct.
+_values_foot = "</data></array></value>\n</member>\n"+\
+"</struct>\n</value>\n"
+
+# Once.  Closes array.
+_values_end = "</data></array></value>\n</param>\n</params></methodResponse>\n"
+
 class ValuesRequest(XMLRPCRequest):
     # key, names, start_sec, start_nano, end_sec, end_nano, count, how
     argumentTypes = (int, list, int, int, int, int, int, int)
@@ -132,7 +181,7 @@ class ValuesRequest(XMLRPCRequest):
         self._count_limit = self.args[6]
         self._how = self.args[7]
 
-        if self._how!=0:
+        if self._how not in [0,3]:
             self.returnError(406, "how=%s is not supported"%self._how)
             return
         elif self._count_limit<0:
@@ -142,12 +191,19 @@ class ValuesRequest(XMLRPCRequest):
             self.returnError(408, "Start time is after end time")
             return
 
-        #TODO: write response header
-        self.request.write("<?xml version='1.0'?>\n<methodResponse>\n<params>\n<param>\n<value><array><data>\n")
+        self._cur_pv, self._first_val = None, True
+        self._count = 0
+
+        self.request.write(_values_start)
 
         self.defer = self.getPV(None)
 
     def getPV(self, V):
+        if not self._first_val:
+            # emit footer for completed PV
+            self.request.write(_values_foot)
+        self._first_val = True
+
         pv = self._cur_pv = self._names.pop(0)
 
         self._count = 0
@@ -159,13 +215,44 @@ class ValuesRequest(XMLRPCRequest):
             # More PVs
             D.addCallback(self.getPV)
         else:
+            # Last PV
             D.addCallback(self.footer)
 
         return D
 
     def process(self, V, M):
-        pass
+        if len(M)==0:
+            return
 
-    def footer(self):
-        self.request.write("</data></array></value>\n</param>\n</params>\n")
+        xtype = _d2x[V.dtype]
+
+        if self._first_val:
+            # first callback for this PV, emit header
+            self.request.write(_values_head%{'name':self._cur_pv,
+                                             'type':xtype,
+                                             'count':V.shape[1]})
+        self._first_val = False
+
+        E = _encoder[xtype]
+
+        for i in range(len(M)):
+            SM = M[i]
+            self.request.write(_sample_head%{'stat':SM['status'],
+                                             'sevr':SM['severity'],
+                                             'secs':SM['sec'],
+                                             'nano':SM['ns']})
+
+            self.request.write(''.join(map(E, V[i,:])))
+
+            self.request.write(_sample_foot)
+
+        self._count += len(M)
+
+    def footer(self, D):
+        if self._cur_pv is not None:
+            # emit footer for completed PV
+            self.request.write(_values_foot)
+        self._first_val = True
+
+        self.request.write(_values_end)
         self.request.finish()

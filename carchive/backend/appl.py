@@ -39,6 +39,7 @@ _dtypes = {
     13:np.float64,
     14:np.uint8,
 }
+_dtypes = dict([(k,np.dtype(v)) for k,v in _dtypes.iteritems()])
 
 _is_vect = set([7,8,9,10,11,12,13,14])
 
@@ -217,7 +218,7 @@ def fetchJSON(agent, url, code=200):
 
 @defer.inlineCallbacks
 def getArchive(conf):
-    A = Agent(reactor)
+    A = Agent(reactor, connectTimeout=5)
 
     R = yield A.request('GET', conf['url'])
 

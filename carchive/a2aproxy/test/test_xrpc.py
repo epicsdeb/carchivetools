@@ -11,47 +11,6 @@ from twisted.trial import unittest
 
 from .. import resource, xrpcrequest
 
-class TestNamesRequest(xrpcrequest.XMLRPCRequest):
-    # key, pattern
-    argumentTypes = (int, str)
-    def __init__(self, httprequest, args, applinfo=None):
-        super(TestNamesRequest, self).__init__(httprequest, args)
-        R = dumps([
-            {'name':'testpv',
-             'start_sec':42, 'start_nano':1234,
-             'end_sec':45, 'end_nano':5678},
-        ])
-        self.request.write(dumps(R, methodresponse=True))
-        self.request.finish()
-
-class TestValuesRequest(xrpcrequest.XMLRPCRequest):
-    # key, names, start_sec, start_nano, end_sec, end_nano, count, how
-    argumentTypes = (int, list, int, int, int, int, int, int)
-    def __init__(self, httprequest, args, applinfo=None):
-        super(TestValuesRequest, self).__init__(httprequest, args)
-        R = []
-        for name in self.args[1]:
-            R.append(
-                {'name':name, 'type':2,
-                 'meta':{'type':1,
-                         'disp_high':0, 'disp_low':0,
-                         'alarm_high':0, 'alarm_low':0,
-                         'warn_high':0, 'warn_low':0,
-                         'prec':0, 'units':'',
-                         },
-                 'count':2,
-                 'values':[
-                     {'stat':0, 'sevr':0, 'secs':self.args[2],
-                      'nano':self.args[3], 'values':[1]},
-                     {'stat':0, 'sevr':0, 'secs':self.args[4],
-                      'nano':self.args[5], 'values':[2]},
-                 ],
-                }
-            )
-        self.request.write(dumps(R, methodresponse=True))
-        self.request.finish()
-
-
 class TestRequest(object):
     code = 200
     def __init__(self, content=None):
@@ -80,8 +39,6 @@ class TestRequest(object):
 class TestReq(unittest.TestCase):
     def setUp(self):
         self.S = resource.DataServer()
-        self.S.NamesRequest = TestNamesRequest
-        self.S.ValuesRequest = TestValuesRequest
 
     def test_info(self):
         R = TestRequest(content=dumps((), 'archiver.info'))
@@ -117,3 +74,71 @@ class TestServer(unittest.TestCase):
     def test_archives(self):
         R = yield self.client.callRemote('archiver.archives')
         self.assertEqual(R ,resource._archives)
+
+class TestValuesEncoder(unittest.TestCase):
+    _data = [
+        (0, 'test'),
+        (2, 42),
+        (3, 4.5),
+    ]
+
+    def test_no_pvs(self):
+        A = xrpcrequest._values_start + xrpcrequest._values_end
+        X = loads(A)[0][0]
+        self.assertEqual(X,[])
+
+    def test_no_samples(self):
+        A = [xrpcrequest._values_start,
+             xrpcrequest._values_head%{'name':'pvx','type':42},
+             xrpcrequest._values_foot%{'count':43},
+             xrpcrequest._values_end,
+            ]
+        X = loads(''.join(A))[0][0]
+        self.assertEqual(X,[{'count': 43,
+                          'meta': {'alarm_high': 0.0,
+                                   'alarm_low': 0.0,
+                                   'disp_high': 0.0,
+                                   'disp_low': 0.0,
+                                   'prec': 0,
+                                   'type': 1,
+                                   'units': '',
+                                   'warn_high': 0.0,
+                                   'warn_low': 0.0},
+                          'name': 'pvx',
+                          'type': 42,
+                          'values': []}])
+
+    def test_encode(self):
+        for type, val in self._data:
+            try:
+                v = xrpcrequest._encoder[type](val)
+                A = [xrpcrequest._values_start,
+                     xrpcrequest._values_head%{'name':'pvx','type':42},
+                     xrpcrequest._sample_head%{'stat':1, 'sevr':2, 'secs':3, 'nano':4},
+                     v,
+                     xrpcrequest._sample_foot,
+                     xrpcrequest._values_foot%{'count':43},
+                     xrpcrequest._values_end,
+                    ]
+
+                A = ''.join(A)
+                X = loads(A)[0][0]
+
+                self.assertEqual(X, [{'count': 43,
+                                      'meta': {'alarm_high': 0.0,
+                                               'alarm_low': 0.0,
+                                               'disp_high': 0.0,
+                                               'disp_low': 0.0,
+                                               'prec': 0,
+                                               'type': 1,
+                                               'units': '',
+                                               'warn_high': 0.0,
+                                               'warn_low': 0.0},
+                                      'name': 'pvx',
+                                      'type': 42,
+                                      'values': [{'nano': 4, 'secs': 3, 'sevr': 2, 'stat': 1, 'value': [val]}],
+                                     }])
+
+            except:
+                print 'Error in',type,val
+                raise

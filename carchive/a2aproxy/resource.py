@@ -10,7 +10,7 @@ from twisted.web.server import NOT_DONE_YET
 
 import applinfo
 
-from .xrpcrequest import NamesRequest
+from .xrpcrequest import NamesRequest, ValuesRequest
 
 _info = {
     'ver':0,
@@ -33,10 +33,21 @@ _archives = [
 _archives_rep = dumps((_archives,), methodresponse=True)
 
 
+def cleanupRequest(R, req):
+    print 'cleanup',req,R
+    if not req._disconnected:
+        if not req.startedWriting:
+            req.setResponseCode(500)
+            req.write("")
+        if not req.finished:
+            req.finish()
+    return R
+
+
 class DataServer(Resource):
     isLeaf=True
     NamesRequest=NamesRequest
-    ValuesRequest=None
+    ValuesRequest=ValuesRequest
     def render_GET(self, req):
         return "Nothing to see here.  Make an XMLRPC request"
 
@@ -65,16 +76,18 @@ class DataServer(Resource):
         elif meth=='archiver.names':
             _log.debug("%s: archiver.names %s",
                        req.getClientIP(), args)
-            self.NamesRequest(req, args, applinfo=self.applinfo)
+            D = self.NamesRequest(req, args, applinfo=self.applinfo)
         elif meth=='archiver.values':
             _log.debug("%s: archiver.values %s",
                        req.getClientIP(), args)
-            self.ValuesRequest(req, args, applinfo=self.applinfo)
+            D = self.ValuesRequest(req, args, applinfo=self.applinfo)
         else:
             _log.error("%s: Request for unknown method %s",
                        req.getClientIP(), meth)
             return dumps(Fault(400, "Unknown method"),
                          methodresponse=True)
+
+        D.defer.addBoth(cleanupRequest, req)
 
         return NOT_DONE_YET
 

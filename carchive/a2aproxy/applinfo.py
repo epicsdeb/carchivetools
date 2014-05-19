@@ -15,7 +15,7 @@ from ..backend.appl import JSONReceiver, PBReceiver
 class ApplInfo(object):
     reactor = reactor
     def __init__(self, infourl):
-        self.agent = Agent(self.reactor)
+        self.agent = Agent(self.reactor, connectTimeout=5)
         self.infourl = infourl
         self._info = self._info_time = None
 
@@ -65,8 +65,8 @@ class ApplInfo(object):
 
         Q = {
             'pv':pv,
-            'from':self._start,
-            'to':self._end,
+            'from':start,
+            'to':end,
             'donotchunk':'true',
         }
 
