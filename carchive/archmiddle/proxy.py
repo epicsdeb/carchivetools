@@ -38,8 +38,9 @@ class ReverseProxyProducer(protocol.Protocol):
         self._req, self._done, self._buf = req, False, ''
         self._paused = False
         self.defer = defer.Deferred()
+        req.registerProducer(self, True)
 
-    # IBodyProducer methods
+    # IPushProducer methods
     # Called by server Request
     def pauseProducing(self):
         self._paused = True
@@ -60,6 +61,7 @@ class ReverseProxyProducer(protocol.Protocol):
             return
         self._done, self._paused = True, True
         self.transport.stopProducing()
+        self._req.unregisterProducer()
         self._req.finish()
         self.defer.callback(None)
 
@@ -76,6 +78,7 @@ class ReverseProxyProducer(protocol.Protocol):
 
     def connectionLost(self, reason):
         if not self._done:
+            self._req.unregisterProducer()
             self._req.finish()
             self.transport.stopProducing()
             self.defer.callback(None)

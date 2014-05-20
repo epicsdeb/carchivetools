@@ -229,7 +229,7 @@ def getArchive(conf):
     R.deliverBody(P)
     D = yield P.defer
 
-    _log.info("Appliance info")
+    _log.info("Appliance info: %s", conf['url'])
     for k,v in D.iteritems():
         _log.info(" %s: %s", k,v)
 

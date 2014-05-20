@@ -154,7 +154,9 @@ def haveArchive(act, opt, args, conf):
 def main(*args):
     try:
         yield haveArchive(*args)
-    finally:
+    except:
+        logging.exception("Error")
+    else:
         reactor.stop()
 
 reactor.callWhenRunning(main, act, opt, args, conf)
