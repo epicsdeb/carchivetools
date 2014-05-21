@@ -59,7 +59,7 @@ class ApplInfo(object):
 
     @defer.inlineCallbacks
     def fetch(self, pv, start=None, end=None, count=None,
-              cb=None):
+              cb=None, cbArgs=(), cbKWs={}):
         I = yield self.getInfo()
 
 
@@ -80,7 +80,7 @@ class ApplInfo(object):
             self._info = self._info_time = None
             raise RuntimeError('%d: %s'%(R.code, url))
 
-        P = PBReceiver(cb, name=pv, count=count)
+        P = PBReceiver(cb, name=pv, count=count, cbArgs=cbArgs, cbKWs=cbKWs)
         R.deliverBody(P)
         yield P.defer
 

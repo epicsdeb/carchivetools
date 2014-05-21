@@ -276,7 +276,7 @@ class Archive(object):
                 _log.fatal('Query fails')
                 raise
 
-            assert len(data)==1, "Server returned more than one PVs?"
+            assert len(data)==1, "Server returned more than one PVs? (%s)"%len(data)
 
             assert data[0]['name']==pv, "Server gives us some other PV?"
 

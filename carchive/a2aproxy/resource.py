@@ -7,6 +7,7 @@ from xmlrpclib import loads, dumps, Fault
 
 from twisted.web.resource import Resource
 from twisted.web.server import NOT_DONE_YET
+from twisted.python.failure import Failure
 
 import applinfo
 
@@ -16,7 +17,7 @@ _info = {
     'ver':0,
     'desc':'Archiver to Applicance gateway',
     # list all the possible "how"s even though we won't support them
-    'how':['raw', 'spreadsheeet', 'averaged', 'plot binning', 'linear'],
+    'how':['raw', 'spreadsheeet', 'averaged', 'plot-binning', 'linear'],
     'stat':map(str, range(22)),
     'sevr':[
         {'num':0, 'sevr':'NO_ALARM','has_value':True, 'txt_stat':True},
@@ -28,7 +29,7 @@ _info = {
 _info_rep = dumps((_info,), methodresponse=True)
 
 _archives = [
-    {'key':42, 'name':'All', 'path':'/dev/random'},
+    {'key':42, 'name':'All', 'path':'All Data'},
 ]
 _archives_rep = dumps((_archives,), methodresponse=True)
 
@@ -41,7 +42,11 @@ def cleanupRequest(R, req):
             req.write("")
         if not req.finished:
             req.finish()
-    return R
+    if isinstance(R, Failure):
+        try:
+            R.raiseException()
+        except:
+            _log.exception("Unhandled example in request: %s", req)
 
 
 class DataServer(Resource):
@@ -62,8 +67,7 @@ class DataServer(Resource):
             args, meth = loads(req.content.read())
             _log.info("Request: %s%s", meth,args)
         except Exception as e:
-            import traceback
-            traceback.print_exc()
+            _log.exception("Error decoding request: ")
             req.setResponseCode(400)
             return e.message
 
