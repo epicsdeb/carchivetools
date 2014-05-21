@@ -135,7 +135,14 @@ class PBReceiver(protocol.Protocol):
                 # first message in the stream
                 H = PayloadInfo()
                 H.ParseFromString(P[0])
-                self._year = calendar.timegm(datetime.date(H.year,1,1).timetuple())
+                try:
+                    if H.year<0:
+                        H.year = 1 # -1 when no samples available
+                    self._year = calendar.timegm(datetime.date(H.year,1,1).timetuple())
+                except ValueError:
+                    _log.error("Error docoding: %s %s", H.year, repr(P[0]))
+                    print H
+                    raise
                 P = P[1:]
             else:
                 # reuse header (interrupted stream)

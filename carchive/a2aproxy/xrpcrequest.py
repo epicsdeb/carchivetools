@@ -40,6 +40,7 @@ class XMLRPCRequest(object):
     def returnError(self, code, msg):
         """Return an XMLRPC error.
         """
+        _log.error("%s: %s", msg, self.request)
         self.request.write(dumps(Fault(code, msg),
                                        methodresponse=True))
         self.request.finish()
