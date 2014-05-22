@@ -207,7 +207,11 @@ class JSONReceiver(protocol.Protocol):
     def connectionLost(self, reason):
         if reason.check(ResponseDone):
             S = self._S.getvalue()
-            J = json.loads(S)
+            try:
+                J = json.loads(S)
+            except ValueError:
+                _log.error("Failed to decode json: %s", repr(S))
+                raise
             self.defer.callback(J)
         else:
             self.defer.errback(reason)
