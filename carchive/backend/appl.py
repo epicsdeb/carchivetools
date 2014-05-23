@@ -97,9 +97,13 @@ class PBReceiver(protocol.Protocol):
 
         elif reason.check(ResponseDone):
             _log.debug("All available samples received for %s", self.name)
-            if self._B.tell()>0:
-                self.dataReceived('', flush=True)
-            self.defer.callback(self._count)
+            try:
+                if self._B.tell()>0:
+                    self.dataReceived('', flush=True)
+            except:
+                self.defer.errback()
+            else:
+                self.defer.callback(self._count)
 
         else:
             _log.error("Connection lost while reading %s (%s)", self.name, reason)
@@ -180,20 +184,17 @@ class PBReceiver(protocol.Protocol):
 
             self._count += Nsamp
 
-            self.pushCB(V, M)
+            if len(M)==0:
+                _log.warn("%s discarding 0 length array %s %s", self.name, V, M)
+            else:
+                #_log.debug("pushing %s samples: %s", V.shape, self.name)
+                self._CB(V, M, *self._CB_args, **self._CB_kws)
 
             if self._count_limit and self._count>=self._count_limit:
                 _log.info("%s count limit reached", self.name)
                 self.transport.stopProducing()
                 break
         self.header = H
-
-    def pushCB(self, V, M):
-        if len(M)==0:
-            _log.warn("%s discarding 0 length array %s %s", self.name, V, M)
-            return
-        _log.debug("pushing %s samples: %s", V.shape, self.name)
-        self._CB(V, M, *self._CB_args, **self._CB_kws)
 
 class JSONReceiver(protocol.Protocol):
     """Receive a JSON encoded object
