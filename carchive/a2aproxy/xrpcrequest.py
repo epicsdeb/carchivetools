@@ -217,7 +217,7 @@ class ValuesRequest(XMLRPCRequest):
             bin0 = self.args[2]
             binN = self.args[4]
             self._bin_size, rem = divmod(binN-bin0, self._count_limit)
-            if self._bin_size<4:
+            if self._bin_size<=1:
                 # bin time resolution is 1 sec.
                 # pretend this is a raw request
                 self._how = 0
