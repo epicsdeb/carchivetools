@@ -24,6 +24,11 @@ _info = {
         {'num':1, 'sevr':'MINOR',   'has_value':True, 'txt_stat':True},
         {'num':2, 'sevr':'MAJOR',   'has_value':True, 'txt_stat':True},
         {'num':3, 'sevr':'INVALID', 'has_value':True, 'txt_stat':True},
+        {'num':3968, 'sevr':'Est_Repeat',      'has_value':True,  'txt_stat':False},
+        {'num':3856, 'sevr':'Repeat',          'has_value':True,  'txt_stat':False},
+        {'num':3904, 'sevr':'Disconnect',      'has_value':False, 'txt_stat':True},
+        {'num':3872, 'sevr':'Archive_Off',     'has_value':False, 'txt_stat':True},
+        {'num':3848, 'sevr':'Archive_Disable', 'has_value':False, 'txt_stat':True},
     ],
 }
 _info_rep = dumps((_info,), methodresponse=True)
