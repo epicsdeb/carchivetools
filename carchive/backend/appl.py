@@ -96,7 +96,7 @@ class PBReceiver(protocol.Protocol):
             self.defer.callback(self._count)
 
         elif reason.check(ResponseDone):
-            _log.debug("All available samples received for %s", self.name)
+            _log.debug("%s samples received for %s", self._count, self.name)
             try:
                 if self._B.tell()>0:
                     self.dataReceived('', flush=True)

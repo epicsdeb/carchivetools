@@ -59,7 +59,8 @@ class ApplInfo(object):
 
     @defer.inlineCallbacks
     def fetch(self, pv, start=None, end=None, count=None,
-              cb=None, cbArgs=(), cbKWs={}):
+              cb=None, cbArgs=(), cbKWs={},
+              consumer=None):
         I = yield self.getInfo()
 
 
@@ -79,6 +80,9 @@ class ApplInfo(object):
             # spoil cache in case the server changed on us
             self._info = self._info_time = None
             raise RuntimeError('%d: %s'%(R.code, url))
+
+        if consumer:
+            consumer.addProducer(R._transport)
 
         P = PBReceiver(cb, name=pv, count=count, cbArgs=cbArgs, cbKWs=cbKWs)
         R.deliverBody(P)

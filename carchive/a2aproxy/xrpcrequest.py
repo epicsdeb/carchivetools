@@ -13,6 +13,7 @@ from twisted.internet import defer
 
 from ..date import isoString,makeTime
 from ..backend.appl import _dtypes
+from ..util import MultiProducerAdapter
 
 class XMLRPCRequest(object):
     def __init__(self, httprequest, args):
@@ -238,9 +239,14 @@ class ValuesRequest(XMLRPCRequest):
         #TODO: throttle reply
         self.request.write(_values_start)
 
+        self._mpa = MultiProducerAdapter()
+        self.request.registerProducer(self._mpa, True)
+
         self.defer = self.getPV(None)
 
+
     def getPV(self, V):
+        self._mpa.clear()
         if not self._first_val:
             # emit footer for completed PV
             self.request.write(_values_foot)
@@ -248,6 +254,7 @@ class ValuesRequest(XMLRPCRequest):
 
         if len(self._names)==0:
             _log.debug("Complete %s after %s samples", self._cur_pv, self._count)
+            self.request.unregisterProducer()
             self.request.write(_values_end)
             self.request.finish()
             return
@@ -267,7 +274,8 @@ class ValuesRequest(XMLRPCRequest):
 
     def fetchRaw(self):
         return self.applinfo.fetch(self._cur_pv, start=self._start, end=self._end,
-                                   count=self._count_limit, cb=self.processRaw)
+                                   count=self._count_limit, cb=self.processRaw,
+                                   consumer=self._mpa)
 
     def processRaw(self, V, M):
         if len(M)==0:
@@ -311,7 +319,8 @@ class ValuesRequest(XMLRPCRequest):
             pv = templ%(self._bin_size, self._cur_pv)
             D = self.applinfo.fetch(pv, start=self._start, end=self._end,
                                     count=self._count_limit,
-                                    cb=self.processSlot, cbArgs=(i,))
+                                    cb=self.processSlot, cbArgs=(i,),
+                                    consumer=self._mpa)
             Ds.append(D)
 
         return defer.DeferredList(Ds, fireOnOneErrback=True, consumeErrors=True)

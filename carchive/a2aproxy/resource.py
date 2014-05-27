@@ -46,12 +46,13 @@ def cleanupRequest(R, req):
             req.setResponseCode(500)
             req.write("")
         if not req.finished:
+            req.unregisterProducer()
             req.finish()
     if isinstance(R, Failure):
         try:
             R.raiseException()
         except:
-            _log.exception("Unhandled example in request: %s", req)
+            _log.exception("Unhandled execption during request: %s", req)
 
 
 class DataServer(Resource):
@@ -78,25 +79,29 @@ class DataServer(Resource):
 
         req.setHeader('Content-Type', 'text/xml')
 
-        if meth=='archiver.info':
-            return _info_rep
-        elif meth=='archiver.archives':
-            return _archives_rep
-        elif meth=='archiver.names':
-            _log.debug("%s: archiver.names %s",
-                       req.getClientIP(), args)
-            D = self.NamesRequest(req, args, applinfo=self.applinfo)
-        elif meth=='archiver.values':
-            _log.debug("%s: archiver.values %s",
-                       req.getClientIP(), args)
-            D = self.ValuesRequest(req, args, applinfo=self.applinfo)
+        try:
+            if meth=='archiver.info':
+                return _info_rep
+            elif meth=='archiver.archives':
+                return _archives_rep
+            elif meth=='archiver.names':
+                _log.debug("%s: archiver.names %s",
+                           req.getClientIP(), args)
+                D = self.NamesRequest(req, args, applinfo=self.applinfo)
+            elif meth=='archiver.values':
+                _log.debug("%s: archiver.values %s",
+                           req.getClientIP(), args)
+                D = self.ValuesRequest(req, args, applinfo=self.applinfo)
+            else:
+                _log.error("%s: Request for unknown method %s",
+                           req.getClientIP(), meth)
+                return dumps(Fault(400, "Unknown method"),
+                             methodresponse=True)
+        except:
+            _log.exception("Failure starting response: %s", req)
+            cleanupRequest(None, req)
         else:
-            _log.error("%s: Request for unknown method %s",
-                       req.getClientIP(), meth)
-            return dumps(Fault(400, "Unknown method"),
-                         methodresponse=True)
-
-        D.defer.addBoth(cleanupRequest, req)
+            D.defer.addBoth(cleanupRequest, req)
 
         return NOT_DONE_YET
 
