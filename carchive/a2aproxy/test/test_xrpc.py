@@ -89,8 +89,8 @@ class TestValuesEncoder(unittest.TestCase):
 
     def test_no_samples(self):
         A = [xrpcrequest._values_start,
-             xrpcrequest._values_head%{'name':'pvx','type':42},
-             xrpcrequest._values_foot%{'count':43},
+             xrpcrequest._values_head%{'name':'pvx','type':42,'count':43},
+             xrpcrequest._values_foot,
              xrpcrequest._values_end,
             ]
         X = loads(''.join(A))[0][0]
@@ -113,11 +113,12 @@ class TestValuesEncoder(unittest.TestCase):
             try:
                 v = xrpcrequest._encoder[type](val)
                 A = [xrpcrequest._values_start,
-                     xrpcrequest._values_head%{'name':'pvx','type':42},
+                     xrpcrequest._values_head%{'name':'pvx','type':42,'count':43},
                      xrpcrequest._sample_head%{'stat':1, 'sevr':2, 'secs':3, 'nano':4},
+                     xrpcrequest._sample_start,
                      v,
                      xrpcrequest._sample_foot,
-                     xrpcrequest._values_foot%{'count':43},
+                     xrpcrequest._values_foot,
                      xrpcrequest._values_end,
                     ]
 
