@@ -88,7 +88,7 @@ int unescape(const char *in, Py_ssize_t inlen, char *out, Py_ssize_t outlen)
             *out++ = I;
         }
     }
-    if(initout+outlen!=out)
+    if(initout+outlen<out)
         return 2;
     return 0;
 }
@@ -128,30 +128,34 @@ struct meta {
     uint32_t nano;
 } __attribute__((packed));
 
+// value typep specific operations
+
 template<typename E> struct store {
+    // element size
     static Py_ssize_t esize() { return sizeof(E); }
+    // advance iterator to next item in element array.
     static char* next(char* V) { return V+sizeof(E); }
+    // copy a single value from a the appropriate protobuf container
+    // xx.val() return type.
+    template<class PBV>
+    static void decodeval(char* V, const PBV& pb) { *(E*)V = pb; }
 };
 template<> struct store<std::string> {
     static Py_ssize_t esize() { return 40; }
     static char* next(char* V) { return V+40; }
-};
-
-template<typename E> struct frompb {
-    template<class PBV>
-    static void decodeval(char* V, const PBV& pb) { *(E*)V = pb; }
-};
-template<> struct frompb<std::string> {
     static void decodeval(char* V, const std::string& pb) {
         strncpy(V, pb.c_str(), 40);
         V[39]='\0';
     }
 };
-template<> struct frompb<char> {
+template<> struct store<char> {
+    static Py_ssize_t esize() { return 1; }
+    static char* next(char* V) { return V+1; }
     static void decodeval(char* V, const std::string& pb) {
         *V = pb[0];
     }
 };
+
 
 template<typename E, class PB>
 PyObject* PBD_decode_scalar(PyObject *unused, PyObject *args)
@@ -216,7 +220,7 @@ PyObject* PBD_decode_scalar(PyObject *unused, PyObject *args)
                 return NULL;
             }
 
-            frompb<E>::decodeval(curval, decoder.val());
+            store<E>::decodeval(curval, decoder.val());
             curmeta->severity = decoder.severity();
             curmeta->status = decoder.status();
             curmeta->sec = decoder.secondsintoyear();
@@ -313,7 +317,7 @@ PyObject* PBD_decode_vector(PyObject *unused, PyObject *args)
 
             for(int j=0; j<decoder.val_size(); j++, curval+=store<E>::esize()) {
                 /*TODO: memcpy */
-                frompb<E>::decodeval(curval, decoder.val(j));
+                store<E>::decodeval(curval, decoder.val(j));
             }
 
             curmeta->severity = decoder.severity();
