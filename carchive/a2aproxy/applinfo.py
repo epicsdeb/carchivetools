@@ -68,7 +68,6 @@ class ApplInfo(object):
             'pv':pv,
             'from':start,
             'to':end,
-            'donotchunk':'true',
         }
 
         url=str('%s/data/getData.raw?%s'%(I['dataRetrievalURL'],urlencode(Q)))

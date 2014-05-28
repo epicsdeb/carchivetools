@@ -311,7 +311,6 @@ class Appliance(object):
             'pv':pv,
             'from':isoString(T0),
             'to':isoString(Tend),
-            'donotchunk':'true',
         }
 
         url=str('%s/data/getData.raw?%s'%(self._info['dataRetrievalURL'],urlencode(Q)))
