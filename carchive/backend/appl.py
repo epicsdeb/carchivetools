@@ -87,8 +87,9 @@ class PBReceiver(protocol.Protocol):
 
             self.process(L[:-1])
         except:
+            self.transport.stopProducing()
             _log.exception("dataReceived")
-            raise
+            return
 
     def connectionLost(self, reason):
         if self._count_limit and self._count>=self._count_limit and reason.check(ResponseFailed):
@@ -211,9 +212,9 @@ class JSONReceiver(protocol.Protocol):
             try:
                 J = json.loads(S)
             except ValueError:
-                _log.error("Failed to decode json: %s", repr(S))
-                raise
-            self.defer.callback(J)
+                self.defer.errback()
+            else:
+                self.defer.callback(J)
         else:
             self.defer.errback(reason)
 
