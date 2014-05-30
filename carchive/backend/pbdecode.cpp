@@ -4,6 +4,7 @@
 #include <numpy/arrayobject.h>
 
 #include <string.h>
+#include <sstream>
 
 #include <vector>
 #include <string>
@@ -16,18 +17,20 @@ static PyObject *decoderError;
 namespace {
 
 /* quick scoped pointer for PyObject and friends */
-template<class C>
-class Ref {
-    C *obj;
+class PyRef {
+    PyObject *obj;
 public:
-    Ref(C *P) : obj(P) {}
-    ~Ref() {Py_XDECREF((PyObject*)obj);}
-    inline C& operator*() const { return *obj; }
-    inline C* operator->() const { return obj; }
-    inline C* release() { C* ret=obj; obj=NULL; return ret; }
-    inline C* get() const { return obj; }
-    inline PyObject* releasepy() { C* ret=obj; obj=NULL; return (PyObject*)ret; }
-    inline PyObject* py() const { return (PyObject*)obj; }
+    PyRef(PyObject *P) : obj(P) {}
+    ~PyRef() {Py_XDECREF(obj);}
+    //inline PyObject& operator*() const { return *obj; }
+    inline PyObject* operator->() const { return obj; }
+    inline PyObject* release() { PyObject* ret=obj; obj=NULL; return ret; }
+    inline PyObject* get() const { return obj; }
+    inline bool isnull() const { return obj==NULL; }
+    template<class C>
+    inline C* as() const { return (C*)obj; }
+    template<class C>
+    inline C* releaseas() { C* ret=as<C>(); obj=NULL; return ret; }
 };
 
 class GIL {
@@ -57,10 +60,8 @@ Py_ssize_t unescape_plan(const char *in, Py_ssize_t inlen)
         }
     }
 
-    if(outlen<0) {
-        PyErr_Format(PyExc_ValueError, "Invalid escaping");
+    if(outlen<0)
         return -1;
-    }
 
     return outlen;
 }
@@ -88,7 +89,7 @@ int unescape(const char *in, Py_ssize_t inlen, char *out, Py_ssize_t outlen)
             *out++ = I;
         }
     }
-    if(initout+outlen<out)
+    if(initout+outlen!=out)
         return 2;
     return 0;
 }
@@ -103,9 +104,9 @@ PyObject* PBD_unescape(PyObject *unused, PyObject *args)
 
     Py_ssize_t outbuflen = unescape_plan(inbuf, inbuflen);
     if(outbuflen<0)
-        return NULL;
+        return PyErr_Format(PyExc_ValueError, "Invalid escaping");
 
-    Ref<PyObject> ret(PyString_FromStringAndSize(NULL, outbuflen));
+    PyRef ret(PyString_FromStringAndSize(NULL, outbuflen));
     if(!ret.get())
         return NULL;
 
@@ -115,7 +116,7 @@ PyObject* PBD_unescape(PyObject *unused, PyObject *args)
     if(err)
         return PyErr_Format(PyExc_ValueError, "Invalid escape sequence in input (%d)", err);
 
-    return ret.releasepy();
+    return ret.release();
 }
 
 namespace {
@@ -127,6 +128,32 @@ struct meta {
     uint32_t sec;
     uint32_t nano;
 } __attribute__((packed));
+
+static PyArray_Descr* dtype_meta;
+static PyArray_Descr* dtype_val_str;
+
+// map type to NPY_* type code
+
+template<typename E> struct type2npy {};
+#define TYPE2NPY(type, TYPE) template<> struct type2npy<type> { enum {code=NPY_ ## TYPE}; }
+TYPE2NPY(char, BYTE);
+TYPE2NPY(short, SHORT);
+TYPE2NPY(int32_t, INT32);
+TYPE2NPY(float, FLOAT32);
+TYPE2NPY(double, FLOAT64);
+#undef TYPE2NPY
+
+// give a numpy type descriptor for the given C++ type
+
+template<typename E> struct npytype {
+    static PyArray_Descr* get() {
+        return PyArray_DescrFromType((int)type2npy<E>::code);
+    }
+};
+
+template<> struct npytype<std::string> {
+    static PyArray_Descr* get() { Py_INCREF((PyObject*)dtype_val_str); return dtype_val_str; }
+};
 
 // value typep specific operations
 
@@ -156,17 +183,32 @@ template<> struct store<char> {
     }
 };
 
+template<typename E, class PB, bool vect> struct vectop {
+    static size_t nelem(const PB& pb) {return pb.val_size();}
+    static void store(const PB& pb, char *out) {
+        for(int j=0; j<pb.val_size(); j++, out+=::store<E>::esize()) {
+            /*TODO: memcpy */
+            ::store<E>::decodeval(out, pb.val(j));
+        }
+    }
+};
 
-template<typename E, class PB>
-PyObject* PBD_decode_scalar(PyObject *unused, PyObject *args)
+template<typename E, class PB> struct vectop<E, PB, false> {
+    static size_t nelem(const PB& pb) {return 1;}
+    static void store(const PB& pb, char *out) {
+        ::store<E>::decodeval(out, pb.val());
+    }
+};
+
+template<typename E, class PB, bool vect>
+PyObject* PBD_decode_X(PyObject *unused, PyObject *args)
 {
     PyObject *lines;
-    PyArrayObject *valarr, *metaarr;
+    int cadismod;
 
-    if(!PyArg_ParseTuple(args, "O!O!O!",
+    if(!PyArg_ParseTuple(args, "O!i",
                          &PyList_Type, &lines,
-                         &PyArray_Type, &valarr,
-                         &PyArray_Type, &metaarr
+                         &cadismod
                          ))
         return NULL;
 
@@ -174,167 +216,160 @@ PyObject* PBD_decode_scalar(PyObject *unused, PyObject *args)
     if(nlines<0)
         return NULL;
 
-    if(!PyArray_ISCARRAY(valarr) || !PyArray_ISCARRAY(metaarr))
-        return PyErr_Format(PyExc_ValueError, "output arrays must be C-contingious and writable");
+    if(cadismod<0 || cadismod>1)
+        return PyErr_Format(PyExc_ValueError, "CA disconnect mode not recognised: %d", cadismod);
 
-    if(nlines!=PyArray_SIZE(valarr) || nlines!=PyArray_SIZE(metaarr))
-        return PyErr_Format(PyExc_ValueError, "output arrays must have the same length of input lines");
+    GIL locker;
 
-    if(store<E>::esize()!=PyArray_ITEMSIZE(valarr) ||
-            sizeof(meta)!=PyArray_ITEMSIZE(metaarr))
-        return PyErr_Format(PyExc_ValueError, "output item sizes must be consistent with type %s. %lu %lu %lu %lu",
-                            typeid(E).name(),
-                            (unsigned long)store<E>::esize(),
-                            (unsigned long)PyArray_ITEMSIZE(valarr),
-                            (unsigned long)sizeof(meta),
-                            (unsigned long)PyArray_ITEMSIZE(metaarr)
-                            );
+    std::vector<PB> decoders(nlines);
+    // keep track of which lines expand to more than one sample.
+    std::vector<bool> extrasamp(nlines);
+    Py_ssize_t nextrasamp = 0; // # of output lines
+    size_t maxelements = 0;
 
     /* check that all elements of input list are strings */
     for(Py_ssize_t i=0; i<nlines; i++) {
         PyObject *line = PyList_GET_ITEM(lines, i);
 
-        if(!PyString_Check(line) || PyString_GET_SIZE(line)<0) {
-            return PyErr_Format(PyExc_TypeError, "Input list item is not string");
+        if(!PyString_Check(line)) {
+            locker.lock();
+            return PyErr_Format(PyExc_TypeError, "Input list item must be a string");
         }
-    }
 
-    char *curval=PyArray_BYTES(valarr);
-    meta* curmeta = (meta*)PyArray_BYTES(metaarr);
-
-    PB decoder;
-
-    GIL locker;
-
-    Py_ssize_t i;
-    for(i=0; i<nlines; i++) {
-        PyObject *line = PyList_GET_ITEM(lines, i);
         const char *buf = PyString_AS_STRING(line);
         Py_ssize_t buflen = PyString_GET_SIZE(line);
+        PB& D = decoders[i];
 
         try {
-            decoder.Clear();
-            if(!decoder.ParseFromArray((const void*)buf, buflen)) {
+            const char *outbuf = buf;
+            std::vector<char> unE;
+
+            Py_ssize_t outbuflen = unescape_plan(buf, buflen);
+
+            if(outbuflen<0) {
                 locker.lock();
-                PyErr_SetObject(decoderError, PyInt_FromLong(i));
+                return PyErr_Format(PyExc_ValueError, "Invalid escaping");
+
+            } else if(outbuflen!=buflen) {
+                unE.resize(outbuflen);
+                outbuf = &unE[0];
+                int err = unescape(buf, buflen, &unE[0], outbuflen);
+                if(err) {
+                    locker.lock();
+                    return PyErr_Format(PyExc_ValueError, "Invalid escape sequence in input (%d)", err);
+                }
+                buflen = outbuflen;
+            }
+
+            if(!D.ParseFromArray((const void*)outbuf, buflen)) {
+                locker.lock();
+                PyErr_SetObject(decoderError, PyByteArray_FromStringAndSize(outbuf, buflen));
                 return NULL;
             }
 
-            store<E>::decodeval(curval, decoder.val());
-            curmeta->severity = decoder.severity();
-            curmeta->status = decoder.status();
-            curmeta->sec = decoder.secondsintoyear();
-            curmeta->nano = decoder.nano();
+            maxelements = std::max(maxelements, vectop<E,PB,vect>::nelem(D));
+
+            for(int j=0; j<D.fieldvalues_size(); ++j) {
+                const ::EPICS::FieldValue& FV = D.fieldvalues(j);
+
+                if(FV.name()=="cnxregainedepsecs" ||
+                   FV.name()=="cnxlostepsecs")
+                {
+                    extrasamp[i] = true;
+                    nextrasamp++;
+                    break;
+                }
+            }
 
         } catch(...) {
             locker.lock();
             return PyErr_Format(PyExc_RuntimeError, "C++ exception");
         }
+    }
 
-        curmeta += 1;
-        curval = store<E>::next(curval);
+    // allocate output buffers
+
+    npy_intp valdims[2], metadims;
+    valdims[0] = metadims = nlines;
+    valdims[1] = maxelements;
+
+    if(cadismod==0) {
+        // inject artificial samples
+        valdims[0] = metadims = nlines + nextrasamp;
     }
 
     locker.lock();
-    return Py_BuildValue("nO", i, Py_None);
-}
 
-template<typename E, class PB>
-PyObject* PBD_decode_vector(PyObject *unused, PyObject *args)
-{
-    PyObject *lines;
-    PyArrayObject *valarr, *metaarr;
+    PyRef outval(PyArray_Zeros(2, valdims, npytype<E>::get(), 0));
+    Py_INCREF(dtype_meta);
+    PyRef outmeta(PyArray_Zeros(1, &metadims, dtype_meta, 0));
 
-    if(!PyArg_ParseTuple(args, "O!O!O!",
-                         &PyList_Type, &lines,
-                         &PyArray_Type, &valarr,
-                         &PyArray_Type, &metaarr
-                         ))
+    if(outval.isnull() || outmeta.isnull())
         return NULL;
 
-    Py_ssize_t nlines = PyList_Size(lines);
-    if(nlines<0)
-        return NULL;
+    locker.unlock();
 
-    if(!PyArray_ISCARRAY(valarr) || !PyArray_ISCARRAY(metaarr))
-        return PyErr_Format(PyExc_ValueError, "output arrays must be C-contingious and writable");
+    for(Py_ssize_t i=0, j=0; i<nlines; i++, j++) {
+        const PB& D = decoders[i];
+        meta *M = (meta*)PyArray_GETPTR1(outmeta.get(), j);
+        char *val = (char*)PyArray_GETPTR2(outval.get(), j, 0);
 
-    if(PyArray_NDIM(valarr)!=2 || PyArray_DIM(valarr,0)!=nlines)
-        return PyErr_Format(PyExc_ValueError, "output value array first diminsion must be %lu",
-                            (unsigned long)nlines);
+        if(cadismod==0 && extrasamp[i]) {
+            bool havets = false;
+            // inject disconnect event here
+/*
+ *TODO: use provided time
+            for(int k=0; k<D.fieldvalues_size(); ++k) {
+                const ::EPICS::FieldValue& FV = D.fieldvalues(k);
 
-    if(nlines!=PyArray_SIZE(metaarr))
-        return PyErr_Format(PyExc_ValueError, "output meta array must have the same length of input lines");
-
-    if(store<E>::esize()!=PyArray_ITEMSIZE(valarr) ||
-            sizeof(meta)!=PyArray_ITEMSIZE(metaarr))
-        return PyErr_Format(PyExc_ValueError, "output item sizes must be consistent with type %s. %lu %lu %lu %lu",
-                            typeid(E).name(),
-                            (unsigned long)store<E>::esize(),
-                            (unsigned long)PyArray_ITEMSIZE(valarr),
-                            (unsigned long)sizeof(meta),
-                            (unsigned long)PyArray_ITEMSIZE(metaarr)
-                            );
-
-    /* check that all elements of input list are strings */
-    for(Py_ssize_t i=0; i<nlines; i++) {
-        PyObject *line = PyList_GET_ITEM(lines, i);
-
-        if(!PyString_Check(line) || PyString_GET_SIZE(line)<0) {
-            return PyErr_Format(PyExc_TypeError, "Input list item is not string");
-        }
-    }
-
-    meta* curmeta = (meta*)PyArray_BYTES(metaarr);
-
-    GIL locker;
-
-    PB decoder;
-
-    Py_ssize_t i;
-    for(i=0; i<nlines; i++) {
-        PyObject *line = PyList_GET_ITEM(lines, i);
-        const char *buf = PyString_AS_STRING(line);
-        Py_ssize_t buflen = PyString_GET_SIZE(line);
-
-        try {
-            decoder.Clear();
-            if(!decoder.ParseFromArray((const void*)buf, buflen)) {
-                locker.lock();
-                PyErr_SetObject(decoderError, PyInt_FromLong(i));
-                return NULL;
+                // use supplied connection loss time if possible
+                // TODO, wrong time base
+                if(FV.name()=="cnxlostepsecs")
+                {
+                    // TODO: check for backwards time...
+                    std::istringstream m(FV.val());
+                    unsigned int I;
+                    m >> I;
+                    M->sec = I;
+                    M->nano = 0;
+                    if(!m.bad()) {
+                        havets = true;
+                        break;
+                    }
+                }
             }
-            if(decoder.val_size()>PyArray_DIM(valarr,1)) {
-                /* value array is no long enough.
-                 * inform caller of our progress in the input list and
-                 * how long the 2nd dim must be to continue
-                 */
-                locker.lock();
-                return Py_BuildValue("ni", i, (int)decoder.val_size());
+*/
+            if(!havets || M->sec>D.secondsintoyear()) {
+                M->sec = D.secondsintoyear();
+                M->nano = D.nano();
+                if(M->nano)
+                    M->nano--;
+                else {
+                    M->sec--;
+                    M->nano=999999999;
+                }
             }
+            M->severity = 3904;
 
-            char *curval=(char*)PyArray_GETPTR2(valarr, i, 0);
-
-            for(int j=0; j<decoder.val_size(); j++, curval+=store<E>::esize()) {
-                /*TODO: memcpy */
-                store<E>::decodeval(curval, decoder.val(j));
-            }
-
-            curmeta->severity = decoder.severity();
-            curmeta->status = decoder.status();
-            curmeta->sec = decoder.secondsintoyear();
-            curmeta->nano = decoder.nano();
-
-        } catch(...) {
-            locker.lock();
-            return PyErr_Format(PyExc_RuntimeError, "C++ exception");
+            j++;
+            M = (meta*)PyArray_GETPTR1(outmeta.get(), j);
+            val = (char*)PyArray_GETPTR2(outval.get(), j, 0);
         }
 
-        curmeta += 1;
+        vectop<E,PB,vect>::store(D, val);
+
+        if(cadismod==1 && extrasamp[i]) {
+            M->severity = 3904; // maximize severity
+        } else {
+            M->severity = D.severity();
+        }
+        M->status = D.status();
+        M->sec = D.secondsintoyear();
+        M->nano = D.nano();
+
     }
 
-    locker.lock();
-    return Py_BuildValue("nO", i, Py_None);
+    return Py_BuildValue("OO", outval.release(), outmeta.release());
 }
 
 }
@@ -343,32 +378,32 @@ static PyMethodDef PBDMethods[] = {
     {"unescape", PBD_unescape, METH_VARARGS,
      "Unescape a byte string"},
 
-    {"decode_scalar_string", PBD_decode_scalar<std::string, EPICS::ScalarString>, METH_VARARGS,
+    {"decode_scalar_string", PBD_decode_X<std::string, EPICS::ScalarString, false>, METH_VARARGS,
      "Decode protobuf stream into numpy array of strings"},
-    {"decode_scalar_byte", PBD_decode_scalar<char, EPICS::ScalarByte>, METH_VARARGS,
+    {"decode_scalar_byte", PBD_decode_X<char, EPICS::ScalarByte, false>, METH_VARARGS,
      "Decode protobuf stream into numpy array of int8"},
-    {"decode_scalar_short", PBD_decode_scalar<short, EPICS::ScalarShort>, METH_VARARGS,
+    {"decode_scalar_short", PBD_decode_X<short, EPICS::ScalarShort, false>, METH_VARARGS,
      "Decode protobuf stream into numpy array of int16"},
-    {"decode_scalar_int", PBD_decode_scalar<int32_t, EPICS::ScalarInt>, METH_VARARGS,
+    {"decode_scalar_int", PBD_decode_X<int32_t, EPICS::ScalarInt, false>, METH_VARARGS,
      "Decode protobuf stream into numpy array of int32"},
-    {"decode_scalar_enum", PBD_decode_scalar<int32_t, EPICS::ScalarEnum>, METH_VARARGS,
+    {"decode_scalar_enum", PBD_decode_X<int32_t, EPICS::ScalarEnum, false>, METH_VARARGS,
      "Decode protobuf stream into numpy array of int32"},
-    {"decode_scalar_float", PBD_decode_scalar<float, EPICS::ScalarFloat>, METH_VARARGS,
+    {"decode_scalar_float", PBD_decode_X<float, EPICS::ScalarFloat, false>, METH_VARARGS,
      "Decode protobuf stream into numpy array of float32"},
-    {"decode_scalar_double", PBD_decode_scalar<double, EPICS::ScalarDouble>, METH_VARARGS,
+    {"decode_scalar_double", PBD_decode_X<double, EPICS::ScalarDouble, false>, METH_VARARGS,
      "Decode protobuf stream into numpy array of float64"},
 
-    {"decode_vector_string", PBD_decode_vector<std::string, EPICS::VectorString>, METH_VARARGS,
+    {"decode_vector_string", PBD_decode_X<std::string, EPICS::VectorString, true>, METH_VARARGS,
      "Decode protobuf stream into numpy array"},
-    {"decode_vector_short", PBD_decode_vector<short, EPICS::VectorShort>, METH_VARARGS,
+    {"decode_vector_short", PBD_decode_X<short, EPICS::VectorShort, true>, METH_VARARGS,
      "Decode protobuf stream into numpy array"},
-    {"decode_vector_int", PBD_decode_vector<uint32_t, EPICS::VectorInt>, METH_VARARGS,
+    {"decode_vector_int", PBD_decode_X<int32_t, EPICS::VectorInt, true>, METH_VARARGS,
      "Decode protobuf stream into numpy array"},
-    {"decode_vector_enum", PBD_decode_vector<uint32_t, EPICS::VectorEnum>, METH_VARARGS,
+    {"decode_vector_enum", PBD_decode_X<int32_t, EPICS::VectorEnum, true>, METH_VARARGS,
      "Decode protobuf stream into numpy array"},
-    {"decode_vector_float", PBD_decode_vector<float, EPICS::VectorFloat>, METH_VARARGS,
+    {"decode_vector_float", PBD_decode_X<float, EPICS::VectorFloat, true>, METH_VARARGS,
      "Decode protobuf stream into numpy array"},
-    {"decode_vector_double", PBD_decode_vector<double, EPICS::VectorDouble>, METH_VARARGS,
+    {"decode_vector_double", PBD_decode_X<double, EPICS::VectorDouble, true>, METH_VARARGS,
      "Decode protobuf stream into numpy array"},
 
     {NULL}
@@ -401,7 +436,7 @@ char decoderErrorName[] = "carchive.backend.pbdecode.DecodeError";
 PyMODINIT_FUNC
 initpbdecode(void)
 {
-    Ref<PyObject> map(PyDict_New());
+    PyRef map(PyDict_New());
     PyObject *mod;
 
     if(!map.get())
@@ -427,6 +462,22 @@ initpbdecode(void)
             break;
         }
     }
+
+    // create dtype for struct meta
+    PyArray_Descr* tval = PyArray_DescrNewFromType(NPY_VOID);
+    assert(tval);
+    tval->elsize = sizeof(meta);
+    dtype_meta = tval;
+    Py_INCREF(tval); // keep one extra ref for the C global variable
+    PyModule_AddObject(mod, "metatype", (PyObject*)tval);
+
+    // create dtype for char[40]
+    tval = PyArray_DescrNewFromType(NPY_STRING);
+    assert(tval);
+    tval->elsize = 40;
+    dtype_val_str = tval;
+    Py_INCREF(tval);
+    PyModule_AddObject(mod, "strtype", (PyObject*)tval);
 
     PyModule_AddObject(mod, "decoders", map.release());
 

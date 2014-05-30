@@ -59,9 +59,10 @@ class PBReceiver(protocol.Protocol):
     # responce can be processed at once.
     _rx_buf_size = 2**20
 
-    def __init__(self, cb, cbArgs=(), cbKWs={}, nreport=1000, count=None, name=None):
+    def __init__(self, cb, cbArgs=(), cbKWs={}, nreport=1000,
+                 count=None, name=None, cadiscon=0):
         self._S, self.defer = StringIO(), defer.Deferred()
-        self.name, self.nreport = name, nreport
+        self.name, self.nreport, self.cadiscon = name, nreport, cadiscon
 
         self._B = StringIO() # partial line buffer
 
@@ -113,7 +114,6 @@ class PBReceiver(protocol.Protocol):
     # Internal methods
 
     def process(self, lines):
-        lines = map(unescape, lines)
         # find the index of blank lines which preceed new headers
         # These are assumed to be relatively rare (so 'splits' is short)
         #
@@ -139,7 +139,7 @@ class PBReceiver(protocol.Protocol):
             if not self.header:
                 # first message in the stream
                 H = PayloadInfo()
-                H.ParseFromString(P[0])
+                H.ParseFromString(unescape(P[0]))
                 try:
                     if H.year<0:
                         H.year = 1 # -1 when no samples available
@@ -163,23 +163,11 @@ class PBReceiver(protocol.Protocol):
                 P = P[:cnt]
                 Nsamp = len(P)
 
-            decode = decoders[H.type]
-            V = np.ndarray((Nsamp,1), dtype=_dtypes[H.type])
-            M = np.ndarray((Nsamp,), dtype=dbr_time)
-
-            I = 0
-            while I<Nsamp:
-                try:
-                    Ix, L = decode(P[I:], V[I:], M[I:])
-                except DecodeError as e:
-                    raise DecodeError("Failed to decode %s of %s: %s"%(e.args,dP,repr(P[e.args[0]])))
-                assert Ix>0 or I==0
-                I += Ix
-                assert L is None or I<len(M)
-                if L is not None:
-                    # Must extend 2nd dim
-                    # V.resize pads with zeros
-                    V.resize((V.shape[0], L))
+            try:
+                V, M = decoders[H.type](P, self.cadiscon)
+            except DecodeError as e:
+                raise ValueError("Failed to decode: "+repr(e.args[0]))
+            M = np.rec.array(M, dtype=dbr_time)
 
             M['sec'] += self._year
 
@@ -306,7 +294,7 @@ class Appliance(object):
                  T0=None, Tend=None,
                  count=None, chunkSize=None,
                  archs=None, breakDown=None,
-                 enumAsInt=False):
+                 enumAsInt=False, cadiscon=0):
 
         Q = {
             'pv':pv,
@@ -323,7 +311,7 @@ class Appliance(object):
             raise RuntimeError("%d: %s"%(R.code,url))
 
         P = PBReceiver(callback, cbArgs, cbKWs, name=pv,
-                       nreport=chunkSize, count=count)
+                       nreport=chunkSize, count=count, cadiscon=cadiscon)
     
         R.deliverBody(P)
         C = yield P.defer

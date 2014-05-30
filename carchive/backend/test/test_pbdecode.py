@@ -3,6 +3,7 @@
 from unittest import TestCase
 
 import numpy
+from numpy.testing import assert_equal
 
 from ...dtype import dbr_time
 from .. import pbdecode
@@ -79,12 +80,12 @@ class TestDecodeScalar(TestCase):
                     S.nano = 0x1234+i
                     raw.append(S.SerializeToString())
 
-                V = numpy.ndarray((len(vals),1), dtype=_dtypes[decode])
-                M = numpy.ndarray((len(vals),), dtype=dbr_time)
+                V, M = pbdecode.decoders[decode](raw, 1)
+                M = numpy.rec.array(M, dtype=dbr_time)
 
-                I,L = pbdecode.decoders[decode](raw, V, M)
-                self.assertTrue(L is None)
-                self.assertEqual(I, len(vals))
+                self.assertEqual(V.shape[0], len(vals))
+                self.assertEqual(V.shape[1], 1)
+                self.assertEqual(M.shape[0], len(vals))
 
                 for i,eV in enumerate(vals):
                     self.assertEqual(V[i], eV)
@@ -110,10 +111,8 @@ class TestDecodeScalar(TestCase):
 
         raw[1] = S.SerializeToString()
 
-        V = numpy.ndarray((2,1), dtype=numpy.int8)
-        M = numpy.ndarray((2,), dtype=dbr_time)
-
-        pbdecode.decode_scalar_byte(raw, V, M)
+        V, M = pbdecode.decode_scalar_byte(raw, 1)
+        M = numpy.rec.array(M, dtype=dbr_time)
 
         self.assertEqual(V[0], ord('a'))
         self.assertEqual(tuple(M[0]), (0, 0, 1024, 0x1234))
@@ -128,36 +127,54 @@ class TestDecodeScalar(TestCase):
 
         raw = S.SerializeToString()
 
-        V = numpy.ndarray((2,), dtype=numpy.int8)
-        M = numpy.ndarray((2,), dtype=dbr_time)
-
-        # wrong number of list elements
-        self.assertRaises(ValueError, pbdecode.decode_scalar_byte, [''], V, M)
-
-        # wrong number of meta elements
-        self.assertRaises(ValueError, pbdecode.decode_scalar_byte, ['',''], V, M[:1])
-
-        # wrong number of value elements
-        self.assertRaises(ValueError, pbdecode.decode_scalar_byte, ['',''], V[:1], M)
-
-        # wrong value dtype
-        self.assertRaises(ValueError, pbdecode.decode_scalar_byte, ['',''],
-                          numpy.ndarray((2,), dtype=numpy.int16), M)
+        # wrong type
+        self.assertRaises(TypeError, pbdecode.decode_scalar_byte, [1], 1)
+        self.assertRaises(TypeError, pbdecode.decode_scalar_byte, [raw,4], 1)
 
         # decode empty string
-        self.assertRaises(pbdecode.DecodeError, pbdecode.decode_scalar_byte, ['',''], V, M)
+        self.assertRaises(pbdecode.DecodeError, pbdecode.decode_scalar_byte, ['',''], 1)
 
         # decode partial string
-        self.assertRaises(pbdecode.DecodeError, pbdecode.decode_scalar_byte, [raw[:5],''], V, M)
+        self.assertRaises(pbdecode.DecodeError, pbdecode.decode_scalar_byte, [raw[:5],''], 1)
 
         # decode partial string in second item
-        self.assertRaises(pbdecode.DecodeError, pbdecode.decode_scalar_byte, [raw,raw[:5]], V, M)
+        self.assertRaises(pbdecode.DecodeError, pbdecode.decode_scalar_byte, [raw,raw[:5]], 1)
 
         try:
-            pbdecode.decode_scalar_byte([raw,raw[:5]], V, M)
+            pbdecode.decode_scalar_byte([raw,raw[:5]], 1)
             self.assertTrue(False, "Should not get here")
         except pbdecode.DecodeError as e:
-            self.assertEqual(e.args, (1,))
+            self.assertEqual(e.args, (raw[:5],))
+
+    def test_disconn(self):
+        S = _fields[6]()
+        S.val = 1.0
+        S.severity = 1
+        S.secondsintoyear = 1024
+        S.nano = 0x1234
+
+        raw = [S.SerializeToString()]
+        
+        S.Clear()
+        S.val = 2.0
+        S.severity = 2
+        S.secondsintoyear = 1025
+        S.nano = 0x1234
+        S.fieldvalues.add(name='cnxlostepsecs',val='5678')
+
+        raw.append(S.SerializeToString())
+
+        V, M = pbdecode.decoders[6](raw, 1)
+        M = numpy.rec.array(M, dtype=dbr_time)
+
+        assert_equal(M['severity'], [1, 3904])
+
+        V, M = pbdecode.decoders[6](raw, 0)
+        M = numpy.rec.array(M, dtype=dbr_time)
+
+        assert_equal(M['severity'], [1, 3904, 2])
+        assert_equal(M['sec'], [1024, 1025, 1025])
+        assert_equal(M['ns'], [4660, 4659, 4660])
 
 class TestDecodeVector(TestCase):
     _vals = [
@@ -187,19 +204,12 @@ class TestDecodeVector(TestCase):
                     S.nano = 0x1234+i
                     raw.append(S.SerializeToString())
 
-                V = numpy.ndarray((len(vals),1), dtype=_dtypes[decode])
-                M = numpy.ndarray((len(vals),), dtype=dbr_time)
+                V, M = pbdecode.decoders[decode](raw, 1)
+                M = numpy.rec.array(M, dtype=dbr_time)
 
-                I=0
-                while I<len(M):
-                    Ix,L = pbdecode.decoders[decode](raw[I:], V[I:], M[I:])
-                    I+=Ix
-                    assert L is None or I<len(M)
-                    if L is not None:
-                        assert L>V.shape[1]
-                        V.resize((V.shape[0], L))
-                    else:
-                        assert I==len(M)
+                self.assertEqual(V.shape[0], len(vals))
+                self.assertEqual(V.shape[1], 3)
+                self.assertEqual(M.shape[0], len(vals))
 
                 for i,eV in enumerate(vals):
                     self.assertTrue(numpy.all(V[i,:len(eV)]==numpy.asarray(eV, dtype=_dtypes[decode])))
@@ -208,62 +218,6 @@ class TestDecodeVector(TestCase):
             except:
                 print 'Error in test_decode for',name
                 raise
-
-    def test_double(self):
-        S = _fields[13]()
-        S.val.extend([1.1, 2.2, 3.3])
-        S.secondsintoyear = 1024
-        S.nano = 0x1234
-
-        raw = [S.SerializeToString()]
-
-        V = numpy.ndarray((1,1), dtype=numpy.float64)
-        M = numpy.ndarray((1,), dtype=dbr_time)
-
-        I, L = pbdecode.decode_vector_double(raw, V, M)
-
-        self.assertEqual(I, 0)
-        self.assertEqual(L, 3)
-
-        V = numpy.ndarray((1,3), dtype=numpy.float64)
-        M = numpy.ndarray((1,), dtype=dbr_time)
-
-        I, L = pbdecode.decode_vector_double(raw, V, M)
-
-        self.assertEqual(I, 1)
-        self.assertIs(L, None)
-        self.assertEqual(list(V[0,:]), [1.1, 2.2, 3.3])
-
-        S.Clear()
-        S.val.extend([0.1, 1.1, 2.2, 3.3])
-        S.secondsintoyear = 1025
-        S.nano = 0x1235
-
-        raw.append(S.SerializeToString())
-
-        V = numpy.ndarray((2,1), dtype=numpy.float64)
-        M = numpy.ndarray((2,), dtype=dbr_time)
-
-        I, L = pbdecode.decode_vector_double(raw, V, M)
-
-        self.assertEqual(I, 0)
-        self.assertEqual(L, 3)
-
-        V.resize((V.shape[0], L), refcheck=True)
-
-        I, L = pbdecode.decode_vector_double(raw, V, M)
-
-        self.assertEqual(I, 1)
-        self.assertEqual(L, 4)
-
-        V.resize((V.shape[0], L), refcheck=True)
-
-        I, L = pbdecode.decode_vector_double(raw, V, M)
-
-        self.assertEqual(I, 2)
-        self.assertIs(L, None)
-        self.assertEqual(list(V[0,:]), [1.1, 2.2, 3.3, 0.0])
-        self.assertEqual(list(V[1,:]), [0.1, 1.1, 2.2, 3.3])
 
 if __name__=='__main__':
     import unittest

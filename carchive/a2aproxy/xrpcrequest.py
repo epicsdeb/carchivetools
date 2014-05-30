@@ -320,7 +320,8 @@ class ValuesRequest(XMLRPCRequest):
             D = self.applinfo.fetch(pv, start=self._start, end=self._end,
                                     count=self._count_limit,
                                     cb=self.processSlot, cbArgs=(i,),
-                                    consumer=self._mpa)
+                                    consumer=self._mpa,
+                                    cadiscon=1)
             Ds.append(D)
 
         return defer.DeferredList(Ds, fireOnOneErrback=True, consumeErrors=True)

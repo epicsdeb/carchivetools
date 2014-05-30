@@ -60,7 +60,7 @@ class ApplInfo(object):
     @defer.inlineCallbacks
     def fetch(self, pv, start=None, end=None, count=None,
               cb=None, cbArgs=(), cbKWs={},
-              consumer=None):
+              consumer=None, cadiscon=0):
         I = yield self.getInfo()
 
 
@@ -83,7 +83,8 @@ class ApplInfo(object):
         if consumer:
             consumer.addProducer(R._transport)
 
-        P = PBReceiver(cb, name=pv, count=count, cbArgs=cbArgs, cbKWs=cbKWs)
+        P = PBReceiver(cb, name=pv, count=count, cbArgs=cbArgs, cbKWs=cbKWs,
+                       cadiscon=cadiscon)
         R.deliverBody(P)
         yield P.defer
 
