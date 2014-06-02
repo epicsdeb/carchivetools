@@ -236,7 +236,6 @@ def getArchive(conf):
 
     defer.returnValue(Appliance(A, D, conf))
 
-
 class Appliance(object):
     def __init__(self, agent, info, conf):
         self._agent, self._info, self._conf = agent, info, conf
@@ -248,11 +247,16 @@ class Appliance(object):
         return 'all'
 
     
-    _severity = {0:'', 1:'MINOR', 2:'Major', 3:'Invalid'}
+    _severity = {0:'', 1:'MINOR', 2:'Major', 3:'Invalid',
+                 3904:'Disconnect', 3872:'Archive_Off', 3848:'Archive_Disable'}
 
     @classmethod
     def severity(cls, i):
-        return cls._severity.get(i, '<unknown>')
+        try:
+            return cls._severity[i]
+        except KeyError:
+            return '<%s>'%i
+
     @classmethod
     def status(cls, i):
         if i==0:
