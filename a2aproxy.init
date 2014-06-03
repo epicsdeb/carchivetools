@@ -1,0 +1,98 @@
+#! /bin/sh
+#
+### BEGIN INIT INFO
+# Provides:          a2aproxy
+# Required-Start:    $remote_fs $local_fs $network $syslog $time
+# Required-Stop:     $remote_fs $local_fs $network $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Channel Archiver to Archiver Appliance proxy
+# Description:       Translate Channel Archiver XMLRPC requests to Archiver Appliance HTTP/PB
+### END INIT INFO
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+DAEMON=/usr/bin/twistd
+DNAME=twistd
+NAME=a2aproxy
+DESC="Channel Archiver to Archiver Appliance proxy"
+
+# defaults
+RUN=no
+RUN_AS_USER=a2aproxy
+
+PID_FILE="/var/run/$NAME.pid"
+
+# Include admin settings if available
+if [ -f /etc/default/ioclogserver2 ] ; then
+    . /etc/default/ioclogserver2
+fi
+
+DAEMON_OPTS="--logfile=/var/log/epics/a2aproxy.log --pidfile=$PID_FILE --uid=$RUN_AS_USER --gid=$RUN_AS_USER"
+DAEMON_OPTS="$DAEMON_OPTS ioclogserver $DAEMON_ARGS"
+
+SSD_OPTS="-q --pidfile $PID_FILE"
+SSD_OPTS="$SSD_OPTS --user $RUN_AS_USER --name $DNAME"
+SSD_OPTS="$SSD_OPTS --startas $DAEMON"
+
+set -e
+
+. /lib/lsb/init-functions
+
+serv_start() {
+	start-stop-daemon --start $SSD_OPTS -- $DAEMON_OPTS
+}
+
+serv_stop() {
+	start-stop-daemon --stop $SSD_OPTS
+}
+
+serv_status() {
+	#Debian >= 7...
+	#start-stop-daemon --status $SSD_OPTS
+	#Debian <= 6 (and others)
+	status_of_proc -p "$PID_FILE" "" "$NAME"
+}
+
+serv_restart() {
+	serv_stop && sleep 1 && serv_start
+}
+
+case "$1" in
+  start)
+	echo -n "Starting $DESC: "
+	serv_start
+	RET=$?
+	echo "$NAME."
+	;;
+  stop)
+	echo -n "Stopping $DESC: "
+	serv_stop
+	RET=$?
+	echo "$NAME."
+	;;
+  force-reload)
+	# check whether $DAEMON is running. If so, restart
+	echo -n "Reloading $DESC: "
+	serv_status && serv_restart
+	RET=$?
+	echo "$NAME."
+	;;
+  restart)
+	echo -n "Restarting $DESC: "
+	serv_restart
+	RET=$?
+	echo "$NAME."
+	;;
+  status)
+	serv_status
+	RET=$?
+	;;
+  *)
+	N=/etc/init.d/$NAME
+	echo "Usage: $N {start|stop|restart|force-reload}" >&2
+	exit 1
+	;;
+esac
+
+exit ${RET:=42}
+
