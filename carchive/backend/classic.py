@@ -384,6 +384,27 @@ class Archive(object):
         # Plan queries
         # Find a set of non-overlapping regions
         for F, L, K in breakDown:
+            # some mis-match of definitions
+            # the search results give the times
+            # of the first and last samples
+            # inclusive.
+            #  time range [F, L]
+            # However, values() query end time
+            # is exclusive
+            #  time range [F, L)
+            # We step the end time forward by 1 micro-second
+            # to ensure that the last sample can be returned.
+            # Note: it seems that Channel Archiver uses
+            # micro-sec resolution times for comparisons...
+            _log.debug("Before: %s", L)
+            LS, LN = L
+            LN += 1000
+            if LN>1000000000:
+                LS += 1
+                LN = 0
+            L = LS, LN
+            _log.debug("After: %s", L)
+
             if L <= Tcur:
                 continue # Too early, keep going
             elif F >= Tend:
