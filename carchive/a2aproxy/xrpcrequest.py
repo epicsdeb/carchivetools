@@ -305,9 +305,11 @@ class ValuesRequest(XMLRPCRequest):
         self._count += len(M)
 
     _pv_template = [
-        ('mean_%d(%s)', 0),
-        ('min_%d(%s)', 1),
-        ('max_%d(%s)', 2),
+        ('meanSample_%d(%s)', 0),
+        ('minSample_%d(%s)', 1),
+        ('maxSample_%d(%s)', 2),
+        ('firstSample_%d(%s)', 3),
+        ('lastSample_%d(%s)', 4),
     ]
 
     def fetchBinned(self):
@@ -360,19 +362,44 @@ class ValuesRequest(XMLRPCRequest):
         meta = MS[0]
         vmin = VS[1]
         vmax = VS[2]
+        vfst = VS[3]
+        vlst = VS[4]
 
         for i in range(N):
-            SM = meta[i]
+            starttime = float(MS[3][i]['sec'])+MS[3][i]['ns']*1e-9
+            endtime   = float(MS[4][i]['sec'])+MS[4][i]['ns']*1e-9
+            midsec, midns = divmod(starttime/2. + endtime/2., 1.0)
+            midsec, midns = int(midsec), int(midns*1e9)
+            print int(starttime), midsec, int(endtime)
+            print '  ',meta[i]['sec']
+
+            SM = MS[3][i]
             self.request.write(_sample_head%{'stat':SM['status'],
                                              'sevr':SM['severity'],
                                              'secs':SM['sec'],
                                              'nano':SM['ns']}
+                               +_sample_start)
+            self.request.write(''.join(map(E, vfst[i,:])))
+            self.request.write(_sample_foot)
+
+            SM = meta[i]
+            self.request.write(_sample_head%{'stat':SM['status'],
+                                             'sevr':SM['severity'],
+                                             'secs':midsec,
+                                             'nano':0}
                                +_sample_minmax%{'min':vmin[i,0],
                                                 'max':vmax[i,0]}
                                +_sample_start)
-
             self.request.write(''.join(map(E, val[i,:])))
+            self.request.write(_sample_foot)
 
+            SM = MS[4][i]
+            self.request.write(_sample_head%{'stat':SM['status'],
+                                             'sevr':SM['severity'],
+                                             'secs':SM['sec'],
+                                             'nano':SM['ns']}
+                               +_sample_start)
+            self.request.write(''.join(map(E, vlst[i,:])))
             self.request.write(_sample_foot)
 
         self._count += N
