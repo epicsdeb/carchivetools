@@ -311,8 +311,9 @@ class Appliance(object):
 
         R = yield self._agent.request('GET', url)
 
-        if R.code==404:
-            raise RuntimeError("%d: %s"%(R.code,url))
+        if R.code!=200:
+            _log.error("%s for %s", R.code, pv)
+            defer.returnValue(0)
 
         P = PBReceiver(callback, cbArgs, cbKWs, name=pv,
                        nreport=chunkSize, count=count, cadiscon=cadiscon)

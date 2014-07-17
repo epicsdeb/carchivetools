@@ -370,8 +370,6 @@ class ValuesRequest(XMLRPCRequest):
             endtime   = float(MS[4][i]['sec'])+MS[4][i]['ns']*1e-9
             midsec, midns = divmod(starttime/2. + endtime/2., 1.0)
             midsec, midns = int(midsec), int(midns*1e9)
-            print int(starttime), midsec, int(endtime)
-            print '  ',meta[i]['sec']
 
             SM = MS[3][i]
             self.request.write(_sample_head%{'stat':SM['status'],
