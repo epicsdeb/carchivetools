@@ -6,17 +6,21 @@ Build-Depends: debhelper (>= 7.0.50~),
                python-all-dev,
                python-numpy,
                python-twisted-core, python-twisted-web,
+               protobuf-compiler, libprotobuf-dev,
+               python-protobuf,
 XS-Python-Version: >= 2.6
 Standards-Version: 3.8.0
 Homepage: https://github.com/epicsdeb/carchivetools
 Vcs-Git: https://github.com/epicsdeb/carchivetools
 
 Package: carchivetools
-Architecture: all
+Architecture: any
 Depends: ${shlibs:Depends}, ${python:Depends},
          python-numpy,
          python-twisted-core, python-twisted-web,
+         python-protobuf,
 XB-Python-Version: ${python:Versions}
-Description: CLI utilities for queries the Channel Archiver
+Description: CLI utilities to query EPICS data archiver systems
  Tools to query and extract data from the EPICS
- Channel Archiver's XMLRPC data server.
+ Channel Archiver's XMLRPC data server, and the
+ Archiver Appliance's HTTP server.
