@@ -177,7 +177,7 @@ class PBReceiver(protocol.Protocol):
                 _log.warn("%s discarding 0 length array %s %s", self.name, V, M)
             else:
                 #_log.debug("pushing %s samples: %s", V.shape, self.name)
-                self._CB(V, M, *self._CB_args, **self._CB_kws)
+                yield defer.maybeDeferred(self._CB, V, M, *self._CB_args, **self._CB_kws)
 
             if self._count_limit and self._count>=self._count_limit:
                 _log.info("%s count limit reached", self.name)
