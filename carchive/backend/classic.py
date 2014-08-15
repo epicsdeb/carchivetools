@@ -349,7 +349,7 @@ class Archive(object):
 
             Tcur = (int(metadata[-1]['sec']), int(metadata[-1]['ns']+1))
 
-            callback(values, metadata, *cbArgs, **cbKWs)
+            yield defer.maybeDeferred(callback, values, metadata, *cbArgs, **cbKWs)
 
         defer.returnValue(N)
 
