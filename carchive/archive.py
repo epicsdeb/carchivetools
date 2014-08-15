@@ -106,6 +106,8 @@ class ReactorRunner(object):
                 E.set()
         self.reactor.callFromThread(wrapper)
         E.wait()
+        if isinstance(result[0], failure.Failure):
+            result[0].raiseException()
         R = [None]*len(result[0])
         for i,(ok,res) in enumerate(result[0]):
             if dothrow and not ok:

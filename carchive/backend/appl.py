@@ -3,7 +3,7 @@
 import logging
 _log = logging.getLogger("carchive.appl")
 
-import json, time, calendar, datetime
+import json, time, calendar, datetime, math
 
 from urllib import urlencode
 
@@ -16,7 +16,7 @@ from twisted.internet import defer, protocol, reactor
 from twisted.web.client import Agent, ResponseDone
 from twisted.web._newclient import ResponseFailed
 
-from ..date import isoString
+from ..date import isoString, makeTime
 from ..dtype import dbr_time
 from .EPICSEvent_pb2 import PayloadInfo
 
@@ -98,13 +98,13 @@ class PBReceiver(protocol.Protocol):
             self.defer.callback(self._count)
 
         elif reason.check(ResponseDone):
-            _log.debug("%s samples received for %s", self._count, self.name)
             try:
                 if self._B.tell()>0:
                     self.dataReceived('', flush=True)
             except:
                 self.defer.errback()
             else:
+                _log.debug("%s samples received for %s", self._count, self.name)
                 self.defer.callback(self._count)
 
         else:
@@ -284,10 +284,10 @@ class Appliance(object):
         R = yield fetchJSON(self._agent, url)
 
         if not breakDown:
-            meta = 0, time.time()
+            meta = makeTime(0), makeTime(time.time())
             R = dict(map(lambda  pv:(pv,meta), R))
         else:
-            meta = 0, time.time(), 'all'
+            meta = makeTime(0), makeTime(time.time()), 'all'
             R = dict(map(lambda  pv:(pv,[meta]), R))
 
         defer.returnValue(R)
@@ -322,3 +322,135 @@ class Appliance(object):
         C = yield P.defer
 
         defer.returnValue(C)
+
+    _binops = [
+        ('firstSample_%d(%s)', 0),
+        ('minSample_%d(%s)', 1),
+        ('maxSample_%d(%s)', 2),
+        ('lastSample_%d(%s)', 3),
+    ]
+
+    @defer.inlineCallbacks
+    def fetchplot(self, pv, callback,
+                 cbArgs=(), cbKWs={},
+                 T0=None, Tend=None,
+                 count=None,
+                 **kws):
+        kws['T0'] = T0
+        kws['Tend'] = Tend
+
+        delta = (Tend-T0).total_seconds()
+        if delta<=0.0 or count<=0:
+            raise ValueError("invalid time range or sample count")
+
+        N = math.ceil(delta/count) # average sample period
+
+        if N<1:
+            _log.info("Time range too short for plot bin, switching to raw")
+            D = self.fetchraw(pv, callback, cbArgs, cbKWs, **kws)
+            defer.returnValue(D)
+
+        pieces = [None]*len(self._binops)
+        def storeN(values, metas, i):
+            if values.shape[1]!=1:
+                raise ValueError("fetchplot not defined for waveforms")
+            values = values[:,0]
+            if pieces[i]:
+                values = np.concatenate((pieces[i][0], values), axis=0)
+                metas  = np.concatenate((pieces[i][1], metas), axis=0)
+            pieces[i] = values, metas
+
+        Ds = [None]*len(pieces)
+        for pat, i in self._binops:
+            Ds[i] = self.fetchraw(pat%(N,pv), storeN, cbArgs=(i,), cbKWs={}, **kws)
+        
+        yield defer.gatherResults(Ds, consumeErrors=True)
+
+        if any(map(lambda x:x is None, pieces)):
+            defer.returnValue(0) # no data
+
+        F, I, A, L = pieces
+        print 'LLL',[len(P[1]) for P in pieces]
+        for xx in pieces:
+            print xx[0]
+            print xx[1]
+
+        if len(F[1])==len(I[1])+1:
+            # the first bin doesn't include min/max
+            I = np.concatenate((F[0][:1], I[0])), np.concatenate((F[1][:1], I[1]))
+            A = np.concatenate((F[0][:1], A[0])), np.concatenate((F[1][:1], A[1]))
+
+        assert len(F[1])==len(I[1])
+        assert len(F[1])==len(A[1])
+        assert len(F[1])==len(L[1])
+
+        # find bins with one or two samples
+        fsa = F[1]==I[1] # first sample is max
+        fsi = F[1]==A[1] # first sample is min
+
+        one = fsa&fsi # first sample is max and min (and last)
+        two = fsa^fsi # first sample is max or min, but not both
+        many= ~(one|two)
+
+        # the number of output samples for each bin
+        mapping = np.ndarray((len(one),), dtype=np.int8)
+        mapping[one] = 1
+        mapping[two] = 2
+        mapping[many]= 4
+        
+        # index of the first output sample of each bin
+        idx = np.ndarray((len(one),), dtype=np.int32)
+        idx[0]=0
+        idx[1:] = mapping[:-1].cumsum()
+
+        nsamp = mapping.sum() # total num. of output samples
+        
+        assert idx[-1]+mapping[-1]==nsamp
+
+        values = np.ndarray((nsamp,), dtype=F[0].dtype)
+        metas  = np.ndarray((nsamp,), dtype=F[1].dtype)
+        
+        # bins with one sample simply pass through that sample
+        if np.any(one):
+            values[idx[one]] = F[0][one]
+            metas[idx[one]] = F[1][one]
+
+        # bins w/ two samples are just as easy
+        if np.any(two):
+            values[idx[two]] = I[0][two]
+            metas[idx[two]] = I[1][two]
+            values[idx[two]+1] = A[0][two]
+            metas[idx[two]+1] = A[1][two]
+
+        # bins with more than two samples are more complex
+
+        # Start by copying through
+        if np.any(many):
+            print 'Q',values[idx[many]]
+            values[idx[many]]   = F[0][many]
+            metas[idx[many]]    = F[1][many]
+            values[idx[many]+1] = I[0][many]
+            metas[idx[many]+1]  = I[1][many]
+            values[idx[many]+3] = L[0][many]
+            metas[idx[many]+3]  = L[1][many]
+            values[idx[many]+2] = A[0][many]
+            metas[idx[many]+2]  = A[1][many]
+            
+            # place min/max samples at times 1/3 and 2/3 between first and last
+    
+            T0 = F[1]['sec'][many]+1e-9*F[1]['ns'][many]
+            T1 = L[1]['sec'][many]+1e-9*L[1]['ns'][many]
+            dT = (T1-T0)/3.0
+    
+            TI = T0 + dT
+            TA = TI + dT
+    
+            metas['sec'][idx[many]+1] = np.asarray(TI, dtype=np.uint32)
+            metas['sec'][idx[many]+2] = np.asarray(TA, dtype=np.uint32)
+    
+            metas['ns'][idx[many]+1] = np.asarray((TI*1e9)%1e9, dtype=np.uint32)
+            metas['ns'][idx[many]+2] = np.asarray((TA*1e9)%1e9, dtype=np.uint32)
+
+        callback(values, metas, *cbArgs, **cbKWs)
+
+        defer.returnValue(nsamp)
