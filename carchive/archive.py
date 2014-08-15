@@ -16,6 +16,12 @@ except ImportError:
     appl=None
 
 def getArchive(conf):
+    """Returns a twisted.defer.Deferred which will
+    complete with an object implementing IArchive.
+    
+    The argument 'conf' must be a dict()-like object.
+    This can be constructed with archiver._conf.loadConfig()
+    """
     if conf['urltype']=='classic' and classic:
         return classic.getArchive(conf)
     elif conf['urltype']=='appl' and appl:
@@ -101,3 +107,90 @@ class ReactorRunner(object):
             R[i] = res
         return R
         
+try:
+    from zope.interface import Interface
+except ImportError:
+    pass
+else:
+    class IArchive(Interface):
+        def archives(pattern):
+            """Return a list of archive sections matching
+            the given wildcard pattern.
+            """
+
+        def lookupArchive(key):
+            "Lookup the string name of an archive from its ID number"
+
+        def severity(i):
+            "Fetch the name string for the given alarm severity"
+
+        def status(stat):
+            "Fetch the name string for the given alarm status"
+
+        def search(pattern=None,
+                   archs=None, breakDown=False):
+            """Lookup PV names matching a pattern.
+
+            The only required argument is 'pattern'.
+
+            If 'archs' is provided, it must be a list of archive section
+            names or ID numbers.  If not provided, all archive sections are
+            searched (may be slow).
+
+            This function returns a twisted.defer.Deferred which will
+            complete with a result depending on the following.
+
+            If breakDown is False (the default) then the result is
+            {'pvname':(firstTime, lastTime)}
+
+            If breakDown is True then the result is
+            {'pvname':[(firstTime, lastTime, archKey)]}
+            """
+
+        def fetchraw(pv, callback,
+                     cbArgs=(), cbKWs={},
+                     T0=None, Tend=None,
+                     count=None, chunkSize=None,
+                     archs=None,
+                     enumAsInt=False):
+            """Fetch raw data for a single PV.
+            Data is delivered to the "callback" callable.
+            
+            Data covering the interval (T0, Tend] is requested.
+            
+            If 'count' is provided, then no more than 'count' samples will be
+            delivered in totol.
+            
+            'chunkSize' may be provided as a hint for the number of samples
+            buffered before the callback is invoked.
+            
+            'archs' has the same meaning as with search().
+
+            This function returns a twisted.defer.Deferred which will
+            complete with an integer which is the total number of samples
+            processed.
+            """
+
+        def fetchplot(pv, callback,
+                     cbArgs=(), cbKWs={},
+                     T0=None, Tend=None,
+                     count=None, chunkSize=None,
+                     archs=None,
+                     enumAsInt=False):
+           """Fetch plot binned data.
+            Data is delivered to the "callback" callable.
+            
+            Data covering the interval (T0, Tend] is requested.
+            
+            'count' must be provided.  However, the number of points returned
+            may be more or less.
+            
+            'chunkSize' may be provided as a hint for the number of samples
+            buffered before the callback is invoked.
+            
+            'archs' has the same meaning as with search().
+
+            This function returns a twisted.defer.Deferred which will
+            complete with an integer which is the total number of samples
+            processed.
+           """
