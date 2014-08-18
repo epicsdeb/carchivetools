@@ -273,7 +273,8 @@ PyObject* PBD_decode_X(PyObject *unused, PyObject *args)
                 const ::EPICS::FieldValue& FV = D.fieldvalues(j);
 
                 if(FV.name()=="cnxregainedepsecs" ||
-                   FV.name()=="cnxlostepsecs")
+                   FV.name()=="cnxlostepsecs" ||
+                   FV.name()=="connectionChange")
                 {
                     extrasamp[i] = true;
                     nextrasamp++;
