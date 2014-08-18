@@ -7,7 +7,7 @@ import re
 import logging
 _log = logging.getLogger("carchive.classic")
 
-import time
+import time, math
 from xmlrpclib import Fault
 
 from fnmatch import fnmatch
@@ -468,3 +468,80 @@ class Archive(object):
                       callback, cbArgs, cbKWs, chunkSize, enumAsInt)
 
         return D
+
+    @defer.inlineCallbacks
+    def fetchplot(self, pv, callback,
+                 cbArgs=(), cbKWs={},
+                 T0=None, Tend=None,
+                 count=None, chunkSize=None,
+                 archs=None, breakDown=None,
+                 enumAsInt=False):
+        """Fetch raw data for the given PV.
+
+        Results are passed to the given callback as they arrive.
+        """
+
+        delta = (Tend-T0).total_seconds()
+        if delta<=0.0 or count<=0:
+            raise ValueError("invalid time range or sample count")
+
+        rate = count/delta # average rate in samples per second
+
+        if rate>=1.0:
+            _log.info("Time range too short for plot bin, switching to raw")
+            D = self.fetchraw(pv, callback, cbArgs, cbKWs, T0, Tend,
+                                 None, count, archs, breakDown,
+                                 enumAsInt)
+            defer.returnValue(D)
+
+        if breakDown is None:
+            breakDown = yield self.search(exact=pv, archs=archs,
+                                          breakDown=True, rawTime=True)
+
+        breakDown = breakDown[pv]
+
+        if len(breakDown)==0:
+            _log.error("PV not archived")
+            defer.returnValue(0)
+
+        Tcur, Tend = timeTuple(T0), timeTuple(Tend)
+
+        _log.debug("Time range: %s -> %s", Tcur, Tend)
+        _log.debug("Planning with: %s", map(lambda (a,b,c):(a,b,self.__rarchs[c]), breakDown))
+
+        N = 0
+        # Plan queries
+        # Find a set of non-overlapping regions
+        for F, L, K in breakDown:
+            LS, LN = L
+            LN += 1000
+            if LN>1000000000:
+                LS += 1
+                LN = 0
+            L = LS, LN
+
+            if L <= Tcur:
+                continue # Too early, keep going
+            elif F >= Tend:
+                break # No more data in range
+
+            # range to request from this archive
+            Rstart = max(Tcur, F)
+            Rend   = min(Tend, L)
+
+            Rcount = int(math.ceil((Rend[0]-Rstart[0])*rate))
+
+            _log.debug("Query %s %s -> %s for %s (%d)", self.__rarchs[K], Rstart, Rend, pv, Rcount)
+
+            D = self._fetchdata(K, pv, callback,
+                                cbArgs=cbArgs, cbKWs=cbKWs,
+                                T0=Rstart, Tend=Rend,
+                                count=Rcount,
+                                chunkSize=chunkSize,
+                                enumAsInt=enumAsInt,
+                                how=3)
+
+            Nc = yield D
+            N += Nc
+
+        defer.returnValue(N)
