@@ -33,7 +33,7 @@ par.add_option('-S','--search', action="store_true", default=False,
 par.add_option('-G','--get', action="store_true", default=False,
                help='Retrieve data for given channels')
 par.add_option('-E','--export', metavar='TYPE', default=None,
-               help="Retrieve data and write to file in the given format (eg. hdf5)")
+               help="Retrieve data and write to file in the given format (eg. hdf5, PB raw)")
 
 # Query options
 par.add_option('-s','--start', metavar='TIME',
@@ -72,6 +72,10 @@ par.add_option('-d','--debug', action='store_true', default=False,
                help='Show archiver queries')
 par.add_option('-C','--conf', metavar='KEY', default='DEFAULT',
                help='Key for the server configuration')
+
+# PB archive options
+par.add_option('--export-all', action='store_true', help='Archive all PV (PB archive only).')
+par.add_option('--export-pattern', action='append', help='Archive PVs matching this regex (PB archive only). Can appear multiple times.')
 
 opt, args = par.parse_args()
 
@@ -113,6 +117,8 @@ elif opt.get:
     act='get'
 elif opt.export=='hdf5':
     act='h5export'
+elif opt.export=='pbraw':
+    act='pbrawexport'
 
 @defer.inlineCallbacks
 def haveArchive(act, opt, args, conf):
