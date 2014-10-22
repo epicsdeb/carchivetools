@@ -178,6 +178,11 @@ def makeTime(intime, now=None):
     elif isinstance(now, datetime.datetime):
         tzinfo=now.tzinfo
 
+    if intime == 'min':
+        return datetime.datetime.min
+    if intime == 'max':
+        return datetime.datetime.max
+
     try:
         intime = float(intime)
     except (TypeError, ValueError):
