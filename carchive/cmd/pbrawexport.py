@@ -3,6 +3,7 @@
 from __future__ import print_function
 from twisted.internet import defer
 from carchive.date import makeTimeInterval, makeTime
+from carchive.pb import EPICSEvent_pb2
 
 class Printer(object):
     def __init__(self, opt):
