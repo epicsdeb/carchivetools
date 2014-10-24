@@ -5,8 +5,40 @@ import re
 import os
 from twisted.internet import defer
 from carchive.date import makeTimeInterval, makeTime
-from carchive.pb import EPICSEvent_pb2
+from carchive.pb import EPICSEvent_pb2 as pbt
 from carchive.pb import granularity, filepath, escape
+
+class PbExportError(Exception):
+    pass
+
+class Exporter(object):
+    def __init__ (self, pv_name, out_stream):
+        self._pv_name = pv_name
+        self._out_stream = out_stream
+        self._dtype = None
+        self._is_waveform = None
+    
+    def __call__ (self, data, meta):
+        # Get data type of chunk.
+        dtype = data.dtype
+        is_waveform = data.shape[1] != 1
+        
+        if self._dtype is None:
+            print('first chunk')
+            # Remember data type of first chunk.
+            self._dtype = dtype
+            self._is_waveform = is_waveform
+        else:
+            print('next chunk')
+            # Check data type.
+            if dtype != self._dtype or is_waveform != self._is_waveform:
+                raise PbExportError('Unexpected data type!')
+        
+        # Iterate samples in chunk.
+        for (i, m) in enumerate(meta):
+            # Get value - make it not an array if we have a waveform.
+            value = data[i] if is_waveform else data[i][0]
+
 
 @defer.inlineCallbacks
 def cmd(archive=None, opt=None, args=None, conf=None, **kws):
@@ -17,18 +49,15 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
     
     # Get out dir.
     if opt.export_out_dir is None:
-        print('Output directory not specified!')
-        defer.returnValue(1)
+        raise PbExportError('Output directory not specified!')
     out_dir = opt.export_out_dir
     
     # Get granularity.
     if opt.export_granularity is None:
-        print('Export granularity not specified!')
-        defer.returnValue(1)
+        raise PbExportError('Export granularity not specified!')
     gran = granularity.get_granularity(opt.export_granularity)
     if gran is None:
-        print('Export granularity is not understood!')
-        defer.returnValue(1)
+        raise PbExportError('Export granularity is not understood!')
     
     # Collect PV name delimiters.
     delimiters = ([] if opt.export_no_default_delimiters else [':', '-']) + \
@@ -59,8 +88,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
     
     # Check we have any PVs.
     if len(pvs)==0:
-        print('Have no PV names to archive!')
-        defer.returnValue(1)
+        raise PbExportError('Have no PV names to archive!')
     
     # Resolve time interval.
     T0, Tend = makeTimeInterval(opt.start, opt.end)
@@ -85,7 +113,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
             segment_end_time = next_segment.start_time()
             
             # Stop if we've already covered the desired time interval.
-            if segment_start_time >= Tend:
+            if segment_start_time > Tend:
                 break
             
             # Don't query outside the desired interval...
@@ -98,24 +126,17 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
             print('[ {} - {} ) --> {}'.format(query_start_time, query_end_time, out_file_path))
             
             # Make sure the file doesn't already exist. There's a race but whatever.
-            if os.path.isfile(out_file_path):
-                print('Output file already exists!')
-                defer.returnValue(1)
+            #if os.path.isfile(out_file_path):
+            #    raise PbExportError('Output file already exists!')
             
             # Open the file for writing.
             with open(out_file_path, 'wb') as file_handle:
-                
-                # This will be called for every chunk of samples.
-                def data_cb(data, meta):
-                    print('chunk')
-                    is_waveform = data.shape[1] != 1
-                    for (i, m) in enumerate(meta):
-                        value = data[i] if is_waveform else data[i][0]
-                        #print('{}'.format(value))
+                # Create exporter.
+                exporter = Exporter(pv, file_handle)
                 
                 # Ask for samples for this interval.
-                # TBD check if archive.fetchraw interprets T0/Tend as [T0, Tend) as is the assumption here.
-                segment_data = yield archive.fetchraw(pv, data_cb, archs=archs, cbArgs=(), T0=query_start_time, Tend=query_end_time, chunkSize=opt.chunk, enumAsInt=opt.enumAsInt)
+                # This function interprets the interval as half-open (].
+                segment_data = yield archive.fetchraw(pv, exporter, archs=archs, cbArgs=(), T0=query_start_time, Tend=query_end_time, chunkSize=opt.chunk, enumAsInt=opt.enumAsInt)
                 
                 # Process these samples.
                 sample_count = yield segment_data
