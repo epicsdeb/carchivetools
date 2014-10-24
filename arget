@@ -74,8 +74,12 @@ par.add_option('-C','--conf', metavar='KEY', default='DEFAULT',
                help='Key for the server configuration')
 
 # PB archive options
-par.add_option('--export-all', action='store_true', help='Archive all PV (PB archive only).')
-par.add_option('--export-pattern', action='append', help='Archive PVs matching this regex (PB archive only). Can appear multiple times.')
+par.add_option('--export-all', action='store_true', help='(PB archive only) Archive all PVs.')
+par.add_option('--export-pattern', action='append', help='(PB archive only) Archive PVs matching this regex. Can appear multiple times.')
+par.add_option('--export-no-default-delimiters', action='store_true', help='(PB archive only) Don\'t use default export delimiters.')
+par.add_option('--export-delimiter', action='append', help='(PB archive only) Add extra PV name delimiter.')
+par.add_option('--export-granularity', help='(PB archive only) Time granularity for splitting data into files (5min, 15min, 30min, 1day, 1month, 1year).')
+par.add_option('--export-out-dir', help='(PB archive only) Output directory.')
 
 opt, args = par.parse_args()
 
