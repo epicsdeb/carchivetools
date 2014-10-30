@@ -10,6 +10,6 @@ _ESCAPE_MAP = {
     '\x0D': '\x1B\x03',
 }
 
-def escape_data(data):
+def escape_line(data):
     return ''.join(_ESCAPE_MAP[c] if c in _ESCAPE_MAP else c for c in data)
 

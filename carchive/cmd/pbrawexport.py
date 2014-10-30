@@ -3,41 +3,14 @@
 from __future__ import print_function
 import re
 import os
+import datetime
+import math
 from twisted.internet import defer
 from carchive.date import makeTimeInterval, makeTime
-from carchive.pb import EPICSEvent_pb2 as pbt
-from carchive.pb import granularity, filepath, escape
+from carchive.pb import granularity, filepath, exporter
 
 class PbExportError(Exception):
     pass
-
-class Exporter(object):
-    def __init__ (self, pv_name, out_stream):
-        self._pv_name = pv_name
-        self._out_stream = out_stream
-        self._dtype = None
-        self._is_waveform = None
-    
-    def __call__ (self, data, meta):
-        # Get data type of chunk.
-        dtype = data.dtype
-        is_waveform = data.shape[1] != 1
-        
-        if self._dtype is None:
-            print('first chunk')
-            # Remember data type of first chunk.
-            self._dtype = dtype
-            self._is_waveform = is_waveform
-        else:
-            print('next chunk')
-            # Check data type.
-            if dtype != self._dtype or is_waveform != self._is_waveform:
-                raise PbExportError('Unexpected data type!')
-        
-        # Iterate samples in chunk.
-        for (i, m) in enumerate(meta):
-            # Get value - make it not an array if we have a waveform.
-            value = data[i] if is_waveform else data[i][0]
 
 
 @defer.inlineCallbacks
@@ -76,7 +49,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
     # Query PVs for patterns.
     for pattern in patterns:
         print('Querying pattern: {}'.format(pattern))
-        search_result = yield archive.search(pattern=pattern, archs=archs, breakDown=opt.verbose>1)
+        search_result = yield archive.search(pattern=pattern, archs=archs)
         print('--> {} PVs.'.format(len(search_result)))
         pvs.update(search_result)
 
@@ -132,11 +105,11 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
             # Open the file for writing.
             with open(out_file_path, 'wb') as file_handle:
                 # Create exporter.
-                exporter = Exporter(pv, file_handle)
+                the_exporter = exporter.Exporter(pv, segment_start_time.year, file_handle)
                 
                 # Ask for samples for this interval.
                 # This function interprets the interval as half-open (].
-                segment_data = yield archive.fetchraw(pv, exporter, archs=archs, cbArgs=(), T0=query_start_time, Tend=query_end_time, chunkSize=opt.chunk, enumAsInt=opt.enumAsInt)
+                segment_data = yield archive.fetchraw(pv, the_exporter, archs=archs, cbArgs=(), T0=query_start_time, Tend=query_end_time, chunkSize=opt.chunk, enumAsInt=opt.enumAsInt)
                 
                 # Process these samples.
                 sample_count = yield segment_data
