@@ -1,17 +1,13 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
-import re
 import os
-import datetime
-import math
 from twisted.internet import defer
-from carchive.date import makeTimeInterval, makeTime
+from carchive.date import makeTimeInterval
 from carchive.pb import granularity, filepath, exporter
 
 class PbExportError(Exception):
     pass
-
 
 @defer.inlineCallbacks
 def cmd(archive=None, opt=None, args=None, conf=None, **kws):
@@ -109,7 +105,11 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
                 
                 # Ask for samples for this interval.
                 # This function interprets the interval as half-open (].
-                segment_data = yield archive.fetchraw(pv, the_exporter, archs=archs, cbArgs=(), T0=query_start_time, Tend=query_end_time, chunkSize=opt.chunk, enumAsInt=opt.enumAsInt)
+                segment_data = yield archive.fetchraw(
+                    pv, the_exporter, archs=archs, cbArgs=(),
+                    T0=query_start_time, Tend=query_end_time, chunkSize=opt.chunk,
+                    enumAsInt=True, provideExtraMeta=True
+                )
                 
                 # Process these samples.
                 sample_count = yield segment_data
