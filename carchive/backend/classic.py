@@ -230,7 +230,7 @@ class Archive(object):
                    cbArgs=(), cbKWs={},
                    T0=None, Tend=None,
                    count=None, chunkSize=None,
-                   how=0, enumAsInt=False):
+                   how=0, enumAsInt=False, provideExtraMeta=False):
         if count is None and chunkSize is None:
             raise TypeError("If count is None then chunkSize must be given")
         if chunkSize is None:
@@ -296,7 +296,8 @@ class Archive(object):
             else:
                 states = []
 
-            vtype = data[0]['type']
+            orig_type = data[0]['type']
+            vtype = orig_type
             if vtype==1 and enumAsInt:
                 vtype = 2
 
@@ -348,8 +349,12 @@ class Archive(object):
                 break
 
             Tcur = (int(metadata[-1]['sec']), int(metadata[-1]['ns']+1))
-
-            yield defer.maybeDeferred(callback, values, metadata, *cbArgs, **cbKWs)
+            
+            if provideExtraMeta:
+                extraMeta = {'orig_type':orig_type, 'states':states}
+                yield defer.maybeDeferred(callback, values, metadata, *cbArgs, extraMeta=extraMeta, **cbKWs)
+            else:
+                yield defer.maybeDeferred(callback, values, metadata, *cbArgs, **cbKWs)
 
         defer.returnValue(N)
 
@@ -359,7 +364,7 @@ class Archive(object):
                  T0=None, Tend=None,
                  count=None, chunkSize=None,
                  archs=None, breakDown=None,
-                 enumAsInt=False):
+                 enumAsInt=False, provideExtraMeta=False):
         """Fetch raw data for the given PV.
 
         Results are passed to the given callback as they arrive.
@@ -437,13 +442,13 @@ class Archive(object):
                                 Ctot=0, Climit=count,
                                 callback=callback, cbArgs=cbArgs,
                                 cbKWs=cbKWs, chunkSize=chunkSize,
-                                enumAsInt=enumAsInt)
+                                enumAsInt=enumAsInt, provideExtraMeta=provideExtraMeta)
 
         defer.returnValue(N)
 
     def _nextraw(self, partcount, pv, plan, Ctot, Climit,
                  callback, cbArgs, cbKWs, chunkSize,
-                 enumAsInt):
+                 enumAsInt, provideExtraMeta=False):
         sofar = partcount + Ctot
         if len(plan)==0:
             _log.debug("Plan complete: %s", pv)
@@ -462,7 +467,8 @@ class Archive(object):
                             T0=T0, Tend=Tend,
                             count=count,
                             chunkSize=chunkSize,
-                            enumAsInt=enumAsInt)
+                            enumAsInt=enumAsInt,
+                            provideExtraMeta=provideExtraMeta)
 
         D.addCallback(self._nextraw, pv, plan, sofar, Climit,
                       callback, cbArgs, cbKWs, chunkSize, enumAsInt)
