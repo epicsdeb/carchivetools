@@ -197,7 +197,7 @@ def makeTime(intime, now=None):
         S+=datetime.timedelta(microseconds=NS/1000)
         return S
 
-    if not isinstance(intime, str):
+    if not isinstance(intime, (str,unicode)):
         raise ValueError('Input must be a tuple, number, or string.  Not %s'%type(intime))
 
     intime=intime.strip().lower()
