@@ -173,12 +173,12 @@ def arget(names, match = WILDCARD, mode = RAW,
         def fn(pv, cb):
             return arch.fetchraw(pv, cb, T0=start, Tend=end,
                                  count=count, chunkSize=chunkSize,
-                                 enumAsInt=enumAsInt)
+                                 enumAsInt=enumAsInt, archs=archs)
     elif mode==PLOTBIN:
         def fn(pv, cb):
             return arch.fetchplot(pv, cb, T0=start, Tend=end,
                                  count=count, chunkSize=chunkSize,
-                                 enumAsInt=enumAsInt)
+                                 enumAsInt=enumAsInt, archs=archs)
     else:
         raise ValueError("Unknown plotting mode %d"%mode)
 
