@@ -103,17 +103,20 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
                 # Create exporter.
                 the_exporter = exporter.Exporter(pv, segment_start_time.year, file_handle)
                 
-                # Ask for samples for this interval.
-                # This function interprets the interval as half-open (].
-                segment_data = yield archive.fetchraw(
-                    pv, the_exporter, archs=archs, cbArgs=(),
-                    T0=query_start_time, Tend=query_end_time, chunkSize=opt.chunk,
-                    enumAsInt=True, provideExtraMeta=True
-                )
+                try:
+                    # Ask for samples for this interval.
+                    # This function interprets the interval as half-open (].
+                    segment_data = yield archive.fetchraw(
+                        pv, the_exporter, archs=archs, cbArgs=(),
+                        T0=query_start_time, Tend=query_end_time, chunkSize=opt.chunk,
+                        enumAsInt=True, provideExtraMeta=True
+                    )
+                except exporter.SkipPvError:
+                    break
                 
-                # Process these samples.
+                # Whatever this does.
                 sample_count = yield segment_data
-            
+                
             # Continue with the next segment.
             segment = next_segment
     

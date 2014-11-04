@@ -5,6 +5,9 @@ from carchive.pb import escape as pb_escape
 from carchive.pb import timestamp as pb_timestamp
 from carchive.pb import dtypes as pb_dtypes
 
+class SkipPvError(Exception):
+    pass
+
 class Exporter(object):
     def __init__(self, pv_name, year, out_stream):
         self._pv_name = pv_name
@@ -16,7 +19,7 @@ class Exporter(object):
     def __call__(self, data, meta_vec, extraMeta):
         # Get data type of chunk.
         orig_type = extraMeta['orig_type']
-        is_waveform = data.shape[1] != 1
+        is_waveform = extraMeta['reported_arr_size'] != 1
         
         if self._orig_type is None:
             # Remember data type of first chunk.
@@ -29,6 +32,10 @@ class Exporter(object):
             if self._type_desc is pb_dtypes.EnumTypeDesc:
                 print('WARNING: {}: Enum labels will not be stored.'.format(self._pv_name))
             
+            if self._waveform_size_bad(data, extraMeta):
+                print('WARNING: {}: Inconsistent waveform size, not archiving this PV.'.format(self._pv_name))
+                raise SkipPvError()
+            
             # Write header.
             self._write_header()
             
@@ -36,6 +43,10 @@ class Exporter(object):
             # Check data type, it should be the same as received with the first sample.
             if orig_type != self._orig_type or is_waveform != self._is_waveform:
                 raise TypeError('Unexpected data type!')
+            
+            if self._waveform_size_bad(data, extraMeta):
+                print('WARNING: {}: Inconsistent waveform size, not archiving this PV anymore (we did manage to archive something).'.format(self._pv_name))
+                raise SkipPvError()
         
         # Iterate samples in chunk.
         for (i, meta) in enumerate(meta_vec):
@@ -82,3 +93,6 @@ class Exporter(object):
         
         # Write it.
         self._write_line(sample_pb.SerializeToString())
+    
+    def _waveform_size_bad(self, data, extraMeta):
+        return self._is_waveform and data.shape[1] != extraMeta['reported_arr_size']
