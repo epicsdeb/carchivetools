@@ -157,7 +157,7 @@ class Archive(object):
         if exact is None and pattern is None:
             raise TypeError("Must provide 'exact' or 'pattern'")
         if exact is not None:
-            pattern = re.escape(exact)
+            pattern = '^%s$'%re.escape(exact)
         else:
             # Test compile to catch basic syntax errors
             re.compile(pattern)
@@ -181,6 +181,7 @@ class Archive(object):
                 except KeyError:
                     raise KeyError("Invalid Archive key '%s'"%a)
 
+        _log.debug('Searching for %s in %s', pattern, archs)
         Ds = [None]*len(archs)
         
         for i,a in enumerate(archs):
