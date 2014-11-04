@@ -79,7 +79,7 @@ def arsearch(names, match = WILDCARD,
         names = [names]
 
     if match==EXACT:
-        names = map(re.escape, names)
+        names = ['^'+re.escape(N)+'$' for N in names]
     elif match==WILDCARD:
         names = map(util.wild2re, names)
 
@@ -161,6 +161,8 @@ def arget(names, match = WILDCARD, mode = RAW,
     scalar = False
     if isinstance(names, (str, unicode)):
         scalar, names = True, [names]
+    if scalar:
+      assert len(names)==1, str(names)
 
     if mode==PLOTBIN and count is None:
         raise ValueError("PLOTBIN requires sample count")
@@ -206,6 +208,7 @@ def arget(names, match = WILDCARD, mode = RAW,
 
     if scalar:
         assert len(ret)==1
+        assert len(names)==1
         return ret[names.pop()]
 
     return ret
