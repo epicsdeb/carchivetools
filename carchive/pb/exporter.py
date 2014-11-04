@@ -26,6 +26,9 @@ class Exporter(object):
             
             print('Data type: {}, is_waveform={}'.format(self._type_desc.__name__, self._is_waveform))
             
+            if self._type_desc is pb_dtypes.EnumTypeDesc:
+                print('WARNING: {}: Enum labels will not be stored.'.format(self._pv_name))
+            
             # Write header.
             self._write_header()
             
