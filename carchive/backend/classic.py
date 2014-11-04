@@ -325,7 +325,8 @@ class Archive(object):
                 maxelem = max(maxelem, len(E['value']))
                 metadata[i] = (E['sevr'], E['stat'], E['secs'], E['nano'])
 
-            assert maxcount==maxelem, "Value shape inconsistent. %d %d"%(maxcount,maxelem)
+            if not provideExtraMeta:
+                assert maxcount==maxelem, "Value shape inconsistent. %d %d"%(maxcount,maxelem)
 
             values = np.ndarray((len(XML), maxelem), dtype=dtype)
             
@@ -351,7 +352,7 @@ class Archive(object):
             Tcur = (int(metadata[-1]['sec']), int(metadata[-1]['ns']+1))
             
             if provideExtraMeta:
-                extraMeta = {'orig_type':orig_type, 'states':states}
+                extraMeta = {'orig_type':orig_type, 'states':states, 'reported_arr_size':maxcount}
                 yield defer.maybeDeferred(callback, values, metadata, *cbArgs, extraMeta=extraMeta, **cbKWs)
             else:
                 yield defer.maybeDeferred(callback, values, metadata, *cbArgs, **cbKWs)
