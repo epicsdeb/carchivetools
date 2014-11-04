@@ -29,7 +29,7 @@ class Exporter(object):
             
             print('Data type: {}, is_waveform={}'.format(self._type_desc.__name__, self._is_waveform))
             
-            if self._type_desc is pb_dtypes.EnumTypeDesc:
+            if extraMeta['the_meta']['type'] == 0:
                 print('WARNING: {}: Enum labels will not be stored.'.format(self._pv_name))
             
             if self._waveform_size_bad(data, extraMeta):

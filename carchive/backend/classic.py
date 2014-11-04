@@ -291,6 +291,7 @@ class Archive(object):
             if count and N>=count:
                 last = True
 
+            the_meta = data[0]['meta']
             if data[0]['meta']['type']==0:
                 states = data[0]['meta']['states']
             else:
@@ -352,7 +353,7 @@ class Archive(object):
             Tcur = (int(metadata[-1]['sec']), int(metadata[-1]['ns']+1))
             
             if provideExtraMeta:
-                extraMeta = {'orig_type':orig_type, 'states':states, 'reported_arr_size':maxcount}
+                extraMeta = {'orig_type':orig_type, 'the_meta':the_meta, 'reported_arr_size':maxcount}
                 yield defer.maybeDeferred(callback, values, metadata, *cbArgs, extraMeta=extraMeta, **cbKWs)
             else:
                 yield defer.maybeDeferred(callback, values, metadata, *cbArgs, **cbKWs)
