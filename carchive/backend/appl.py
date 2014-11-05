@@ -44,7 +44,7 @@ _dtypes = dict([(k,np.dtype(v)) for k,v in _dtypes.iteritems()])
 _is_vect = set([7,8,9,10,11,12,13,14])
 
 class PBReceiver(protocol.Protocol):
-    """Receive an incrementaionally decode a stream of protobuf.
+    """Receive and incrementaionally decode a stream of protobuf.
 
     nreport is number of samples to accumulate before callback.
     Callback will be invoked when either nreport samples are
@@ -370,20 +370,22 @@ class Appliance(object):
         if any(map(lambda x:x is None, pieces)):
             defer.returnValue(0) # no data
 
+        # First, mInimum, mAximum, Last
+        # each is a pair of (values, metas)
         F, I, A, L = pieces
-        print 'LLL',[len(P[1]) for P in pieces]
-        for xx in pieces:
-            print xx[0]
-            print xx[1]
 
         if len(F[1])==len(I[1])+1:
-            # the first bin doesn't include min/max
-            I = np.concatenate((F[0][:1], I[0])), np.concatenate((F[1][:1], I[1]))
-            A = np.concatenate((F[0][:1], A[0])), np.concatenate((F[1][:1], A[1]))
+            F = F[0][1:], F[1][1:]
+            L = L[0][1:], L[1][1:]
 
-        assert len(F[1])==len(I[1])
-        assert len(F[1])==len(A[1])
-        assert len(F[1])==len(L[1])
+#        print 'LLL',[len(P[1]) for P in pieces]
+#        for xx in pieces:
+#            print 'V',xx[0]
+#            print 'M',xx[1]
+
+        assert F[1].shape==I[1].shape
+        assert F[1].shape==A[1].shape
+        assert F[1].shape==L[1].shape
 
         # find bins with one or two samples
         fsa = F[1]==I[1] # first sample is max
@@ -394,7 +396,7 @@ class Appliance(object):
         many= ~(one|two)
 
         # the number of output samples for each bin
-        mapping = np.ndarray((len(one),), dtype=np.int8)
+        mapping = np.ndarray((len(one),1), dtype=np.int8)
         mapping[one] = 1
         mapping[two] = 2
         mapping[many]= 4
@@ -408,34 +410,34 @@ class Appliance(object):
         
         assert idx[-1]+mapping[-1]==nsamp
 
-        values = np.ndarray((nsamp,), dtype=F[0].dtype)
+        values = np.ndarray((nsamp,1), dtype=F[0].dtype)
         metas  = np.ndarray((nsamp,), dtype=F[1].dtype)
         
         # bins with one sample simply pass through that sample
         if np.any(one):
-            values[idx[one]] = F[0][one]
-            metas[idx[one]] = F[1][one]
+            values[idx[one],0] = F[0][one]
+            metas[idx[one]]    = F[1][one]
 
         # bins w/ two samples are just as easy
         if np.any(two):
-            values[idx[two]] = I[0][two]
-            metas[idx[two]] = I[1][two]
-            values[idx[two]+1] = A[0][two]
-            metas[idx[two]+1] = A[1][two]
+            values[idx[two],0]  = I[0][two]
+            metas[idx[two]]     = I[1][two]
+            values[idx[two]+1,0]= A[0][two]
+            metas[idx[two]+1]   = A[1][two]
 
         # bins with more than two samples are more complex
 
         # Start by copying through
         if np.any(many):
             print 'Q',values[idx[many]]
-            values[idx[many]]   = F[0][many]
-            metas[idx[many]]    = F[1][many]
-            values[idx[many]+1] = I[0][many]
-            metas[idx[many]+1]  = I[1][many]
-            values[idx[many]+3] = L[0][many]
-            metas[idx[many]+3]  = L[1][many]
-            values[idx[many]+2] = A[0][many]
-            metas[idx[many]+2]  = A[1][many]
+            values[idx[many],0]  = F[0][many]
+            metas[idx[many]]     = F[1][many]
+            values[idx[many]+1,0]= I[0][many]
+            metas[idx[many]+1]   = I[1][many]
+            values[idx[many]+3,0]= L[0][many]
+            metas[idx[many]+3]   = L[1][many]
+            values[idx[many]+2,0]= A[0][many]
+            metas[idx[many]+2]   = A[1][many]
             
             # place min/max samples at times 1/3 and 2/3 between first and last
     
