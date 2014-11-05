@@ -15,6 +15,9 @@ class Exporter(object):
         self._out_stream = out_stream
         self._orig_type = None
         self._is_waveform = None
+        self._last_meta = {}
+        self._last_meta_day = -1
+        self._meta_dirty = True
     
     def __call__(self, data, meta_vec, extraMeta):
         # Get data type of chunk.
@@ -47,6 +50,12 @@ class Exporter(object):
             if self._waveform_size_bad(data, extraMeta):
                 print('WARNING: {}: Inconsistent waveform size, not archiving this PV anymore (we did manage to archive something).'.format(self._pv_name))
                 raise SkipPvError()
+        
+        # Deal with the metadata.
+        new_meta = dict((META_MAP[meta_name], meta_val) for (meta_name, meta_val) in extraMeta['the_meta'].iteritems() if meta_name in META_MAP)
+        if new_meta != self._last_meta:
+            self._last_meta = new_meta
+            self._meta_dirty = True
         
         # Iterate samples in chunk.
         for (i, meta) in enumerate(meta_vec):
@@ -91,8 +100,48 @@ class Exporter(object):
         sample_pb.severity = sevr
         sample_pb.status = stat
         
+        # Force metadata on new day (unless there are no samples for a day...).
+        sample_day = into_year_sec // 86400
+        if sample_day != self._last_meta_day:
+            self._meta_dirty = True
+        
+        # Flush metadata.
+        if self._meta_dirty:
+            self._meta_dirty = False
+            self._last_meta_day = sample_day
+            for meta_name in sorted(self._last_meta):
+                try:
+                    val = convert_meta(self._last_meta[meta_name])
+                except TypeError as e:
+                    print('WARNING: Could not encode metadata field {}={}: {}'.format(meta_name, repr(self._last_meta[meta_name]), e))
+                else:
+                    sample_pb.fieldvalues.extend([pbt.FieldValue(name=meta_name, val=val)])
+            print('Attaching metadata: {}'.format(', '.join('{}={}'.format(x.name, x.val) for x in sample_pb.fieldvalues)))
+        
         # Write it.
         self._write_line(sample_pb.SerializeToString())
     
     def _waveform_size_bad(self, data, extraMeta):
         return self._is_waveform and data.shape[1] != extraMeta['reported_arr_size']
+
+META_MAP = {
+    'units': 'EGU',
+    'prec': 'PREC',
+    'alarm_low': 'LOLO',
+    'alarm_high': 'HIHI',
+    'warn_low': 'LOW',
+    'warn_high': 'HIGH',
+    'disp_low': 'LOPR',
+    'disp_high': 'HOPR',
+}
+
+META_CONVERSION = {
+    str: lambda x: x,
+    int: lambda x: str(x),
+    float: lambda x: '{:.17E}'.format(x) # TBD: We may want to reproduce Java's toString(double)
+}
+
+def convert_meta(x):
+    if type(x) not in META_CONVERSION:
+        raise TypeError('Unsupported metadata type')
+    return META_CONVERSION[type(x)](x)
