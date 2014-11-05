@@ -41,6 +41,12 @@ class Printer(object):
 
 @defer.inlineCallbacks
 def cmd(archive=None, opt=None, args=None, conf=None, **kws):
+    if opt.how=='raw':
+        op = archive.fetchraw
+    elif opt.how=='plot':
+        op = archive.fetchplot
+    else:
+        raise ValueError('Unknown plot type %s'%opt.how)
 
     printData = Printer(opt)
 
@@ -61,11 +67,11 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
 
     for pv in args:
         print pv
-        D = yield archive.fetchraw(pv, printData, archs=archs,
-                                   cbArgs=(archive,),
-                                   T0=T0, Tend=Tend,
-                                   count=count, chunkSize=opt.chunk,
-                                   enumAsInt=opt.enumAsInt)
+        D = yield op(pv, printData, archs=archs,
+                     cbArgs=(archive,),
+                     T0=T0, Tend=Tend,
+                     count=count, chunkSize=opt.chunk,
+                     enumAsInt=opt.enumAsInt)
 
         C = yield D
         print 'Found %s points'%C

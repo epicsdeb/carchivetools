@@ -47,7 +47,7 @@ par.add_option('-l','--chunk', metavar='NUM', default=1000, type="int",
 par.add_option('-a','--archive', metavar='NAME', action='append', default=[],
                help='Archive name.  Wildcards allowed.  Can be given more than once')
 par.add_option('-H','--how', metavar='NAME', default='raw',
-               help="Query method (eg. raw)")
+               help="Query method (eg. raw or plot)")
 
 par.add_option('-M','--merge', metavar='NAME', default='simple',
                help='How to attempt to combine data for one channel received in '
