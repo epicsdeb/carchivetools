@@ -5,13 +5,14 @@ _log = logging.getLogger(__name__)
 
 from xmlrpclib import loads, dumps, Fault
 
+from twisted.internet import defer
 from twisted.web.resource import Resource
 from twisted.web.server import NOT_DONE_YET
 from twisted.python.failure import Failure
 
-import applinfo
-
 from .xrpcrequest import NamesRequest, ValuesRequest
+
+from ..backend.appl import getArchive
 
 _info = {
     'ver':0,
@@ -59,6 +60,18 @@ class DataServer(Resource):
     isLeaf=True
     NamesRequest=NamesRequest
     ValuesRequest=ValuesRequest
+    applinfo=None
+
+    def fetchInfo(self):
+        if self.applinfo is not None:
+            return defer.succeed(self.applinfo)
+        D = getArchive({'url':self.infourl})
+        @D.addCallback
+        def storeInfo(I):
+            self.applinfo = I
+            return I
+        return D
+
     def render_GET(self, req):
         return "Nothing to see here.  Make an XMLRPC request"
 
@@ -84,14 +97,24 @@ class DataServer(Resource):
                 return _info_rep
             elif meth=='archiver.archives':
                 return _archives_rep
-            elif meth=='archiver.names':
+
+            Dinfo = self.fetchInfo()
+
+            if meth=='archiver.names':
                 _log.debug("%s: archiver.names %s",
                            req.getClientIP(), args)
-                D = self.NamesRequest(req, args, applinfo=self.applinfo)
+                @Dinfo.addCallback
+                def startNames(info):
+                    R = self.NamesRequest(req, args, applinfo=info)
+                    return R.defer
+
             elif meth=='archiver.values':
                 _log.debug("%s: archiver.values %s",
                            req.getClientIP(), args)
-                D = self.ValuesRequest(req, args, applinfo=self.applinfo)
+                @Dinfo.addCallback
+                def startValues(info):
+                    R = self.ValuesRequest(req, args, applinfo=info)
+                    return R.defer
             else:
                 _log.error("%s: Request for unknown method %s",
                            req.getClientIP(), meth)
@@ -101,17 +124,17 @@ class DataServer(Resource):
             _log.exception("Failure starting response: %s", req)
             cleanupRequest(None, req)
         else:
-            D.defer.addBoth(cleanupRequest, req)
+            Dinfo.addBoth(cleanupRequest, req)
 
         return NOT_DONE_YET
 
 def buildResource(infourl=None):
-    I = applinfo.ApplInfo(infourl)
+    C = DataServer()
+    C.infourl = infourl
+
     root= Resource()
     cgibin = Resource()
     root.putChild('cgi-bin', cgibin)
-    C = DataServer()
-    C.applinfo = I
     cgibin.putChild('ArchiveDataServer.cgi', C)
     return root
 

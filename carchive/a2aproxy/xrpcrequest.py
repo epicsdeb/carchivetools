@@ -7,13 +7,10 @@ import time
 
 from xmlrpclib import dumps, Fault, escape
 
-import numpy as np
-
 from twisted.internet import defer
 
-from ..date import isoString,makeTime
+from ..date import makeTime
 from ..backend.appl import _dtypes
-from ..util import MultiProducerAdapter
 
 class XMLRPCRequest(object):
     def __init__(self, httprequest, args):
@@ -74,7 +71,7 @@ class NamesRequest(XMLRPCRequest):
             if not pattern.endswith('$'):
                 pattern=pattern+'.*'
 
-        self.defer = S = applinfo.search(pattern)
+        self.defer = S = applinfo.search(pattern=pattern)
 
         S.addCallback(self.results)
         S.addErrback(self.error)
@@ -88,7 +85,7 @@ class NamesRequest(XMLRPCRequest):
             'end_sec':now, 'end_nano':0
         }
         rep = []
-        for name in R:
+        for name in R.iterkeys():
             D = {'name':name}
             D.update(static)
             rep.append(D)
@@ -187,8 +184,8 @@ class ValuesRequest(XMLRPCRequest):
         self.applinfo = applinfo
 
         self._names = self.args[1]
-        self._start = isoString(makeTime((self.args[2],self.args[3])))
-        self._end = isoString(makeTime((self.args[4],self.args[5])))
+        self._start = makeTime((self.args[2],self.args[3]))
+        self._end = makeTime((self.args[4],self.args[5]))
         self._count_limit = self.args[6]
         self._how = self.args[7]
 
@@ -212,41 +209,16 @@ class ValuesRequest(XMLRPCRequest):
             self.defer = defer.succeed(None)
             return
 
-
-        if self._how==3:
-            # establish bin edge times rounded to the nearest second
-            bin0 = self.args[2]
-            binN = self.args[4]
-            self._bin_size, rem = divmod(binN-bin0, self._count_limit)
-            if self._bin_size<=1:
-                # bin time resolution is 1 sec.
-                # pretend this is a raw request
-                self._how = 0
-                self._count_limit *= 4
-                _log.info("Request bin size too small, returning raw data")
-
-            self._count_limit = None # disable count limit for binning
-
         self._cur_pv, self._first_val = None, True
         self._count = 0
 
-#        realwrite = self.request.write
-#        def wrapwrite(V):
-#            print '>>',V
-#            realwrite(V)
-#        self.request.write = wrapwrite
-
         #TODO: throttle reply
         self.request.write(_values_start)
-
-        self._mpa = MultiProducerAdapter()
-        self.request.registerProducer(self._mpa, True)
 
         self.defer = self.getPV(None)
 
 
     def getPV(self, V):
-        self._mpa.clear()
         if not self._first_val:
             # emit footer for completed PV
             self.request.write(_values_foot)
@@ -273,9 +245,12 @@ class ValuesRequest(XMLRPCRequest):
         return D
 
     def fetchRaw(self):
-        return self.applinfo.fetch(self._cur_pv, start=self._start, end=self._end,
-                                   count=self._count_limit, cb=self.processRaw,
-                                   consumer=self._mpa)
+        return self.applinfo.fetchraw(self._cur_pv, T0=self._start, Tend=self._end,
+                                   count=self._count_limit, callback=self.processRaw)
+
+    def fetchBinned(self):
+        return self.applinfo.fetchplot(self._cur_pv, T0=self._start, Tend=self._end,
+                                   count=self._count_limit, callback=self.processRaw)
 
     def processRaw(self, V, M):
         if len(M)==0:
@@ -311,93 +286,3 @@ class ValuesRequest(XMLRPCRequest):
         ('firstSample_%d(%s)', 3),
         ('lastSample_%d(%s)', 4),
     ]
-
-    def fetchBinned(self):
-        self._val_slots = [[]]*len(self._pv_template)
-        self._meta_slots = [[]]*len(self._pv_template)
-
-        Ds = []
-        for templ, i in self._pv_template:
-            pv = templ%(self._bin_size, self._cur_pv)
-            D = self.applinfo.fetch(pv, start=self._start, end=self._end,
-                                    count=self._count_limit,
-                                    cb=self.processSlot, cbArgs=(i,),
-                                    consumer=self._mpa,
-                                    cadiscon=1)
-            Ds.append(D)
-
-        return defer.DeferredList(Ds, fireOnOneErrback=True, consumeErrors=True)
-
-    def processSlot(self, V, M, i):
-        print 'processSlot',i
-        if len(M)==0:
-            return
-        V = V[:,:1] # plot binning of array truncates to scalar
-        oV, oM = self._val_slots[i], self._meta_slots[i]
-        if len(oM):
-            V, M = np.concatenate((oV,V), axis=0), np.concatenate((oM,M), axis=0)
-        self._val_slots[i], self._meta_slots[i] = V, M
-        self.processBinned()
-
-    def processBinned(self):
-        VS, MS = self._val_slots, self._meta_slots
-
-        N = min(map(len, MS))
-        if N==0:
-            return
-        M = len(MS)
-
-
-        if self._first_val:
-            # first callback for this PV, emit header
-            self.request.write(_values_head%{'name':self._cur_pv,
-                                             'type':_d2x[VS[0].dtype],
-                                             'count':VS[0].shape[1]})
-        self._first_val = False
-
-
-        E = _encoder[_d2x[VS[0].dtype]]
-
-        val  = VS[0]
-        meta = MS[0]
-        vmin = VS[1]
-        vmax = VS[2]
-        vfst = VS[3]
-        vlst = VS[4]
-
-        for i in range(N):
-            starttime = float(MS[3][i]['sec'])+MS[3][i]['ns']*1e-9
-            endtime   = float(MS[4][i]['sec'])+MS[4][i]['ns']*1e-9
-            midsec, midns = divmod(starttime/2. + endtime/2., 1.0)
-            midsec, midns = int(midsec), int(midns*1e9)
-
-            SM = MS[3][i]
-            self.request.write(_sample_head%{'stat':SM['status'],
-                                             'sevr':SM['severity'],
-                                             'secs':SM['sec'],
-                                             'nano':SM['ns']}
-                               +_sample_start)
-            self.request.write(''.join(map(E, vfst[i,:])))
-            self.request.write(_sample_foot)
-
-            SM = meta[i]
-            self.request.write(_sample_head%{'stat':SM['status'],
-                                             'sevr':SM['severity'],
-                                             'secs':midsec,
-                                             'nano':0}
-                               +_sample_minmax%{'min':vmin[i,0],
-                                                'max':vmax[i,0]}
-                               +_sample_start)
-            self.request.write(''.join(map(E, val[i,:])))
-            self.request.write(_sample_foot)
-
-            SM = MS[4][i]
-            self.request.write(_sample_head%{'stat':SM['status'],
-                                             'sevr':SM['severity'],
-                                             'secs':SM['sec'],
-                                             'nano':SM['ns']}
-                               +_sample_start)
-            self.request.write(''.join(map(E, vlst[i,:])))
-            self.request.write(_sample_foot)
-
-        self._count += N

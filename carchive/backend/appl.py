@@ -3,7 +3,7 @@
 import logging
 _log = logging.getLogger("carchive.appl")
 
-import json, time, calendar, datetime, math
+import json, time, calendar, datetime, math, re
 
 from urllib import urlencode
 
@@ -272,7 +272,7 @@ class Appliance(object):
         # ArchiveDataServer looks for partial matches
         # Archive Appliance matches the entire line (implicit ^...$)
         if not pattern:
-            pattern='.*'
+            pattern=re.escape(exact)
         else:
             if not pattern.startswith('^'):
                 pattern='.*'+pattern
@@ -342,7 +342,7 @@ class Appliance(object):
 
         delta = (Tend-T0).total_seconds()
         if delta<=0.0 or count<=0:
-            raise ValueError("invalid time range or sample count")
+            raise ValueError("invalid time range or sample count (%s <= 0 or %s <= 0"%(delta,count))
 
         N = math.ceil(delta/count) # average sample period
 
