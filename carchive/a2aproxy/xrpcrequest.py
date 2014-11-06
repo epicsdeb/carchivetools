@@ -226,7 +226,7 @@ class ValuesRequest(XMLRPCRequest):
 
         if len(self._names)==0:
             _log.debug("Complete %s after %s samples", self._cur_pv, self._count)
-            self.request.unregisterProducer()
+            #self.request.unregisterProducer()
             self.request.write(_values_end)
             self.request.finish()
             return

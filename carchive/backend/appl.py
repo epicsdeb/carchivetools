@@ -329,6 +329,7 @@ class Appliance(object):
         ('minSample_%d(%s)', 1),
         ('maxSample_%d(%s)', 2),
         ('lastSample_%d(%s)', 3),
+        ('countSample_%d(%s)', 4),
     ]
 
     @defer.inlineCallbacks
@@ -370,35 +371,56 @@ class Appliance(object):
         if any(map(lambda x:x is None, pieces)):
             defer.returnValue(0) # no data
 
-        # First, mInimum, mAximum, Last
+        # First, mInimum, mAximum, Last, Num
         # each is a pair of (values, metas)
-        F, I, A, L = pieces
+        Fst, mIn, mAx, Lst, Num = pieces
 
-        if len(F[1])==len(I[1])+1:
-            F = F[0][1:], F[1][1:]
-            L = L[0][1:], L[1][1:]
+        #print 'LLL',[len(P[1]) for P in pieces]
+        if len(Fst[1])==len(Num[1])+1 or len(Lst[1])==len(Num[1])+1:
+            # missing at least min/max for first bin
+            # may be missing first or last as well
+            ext = None
+            if len(Fst[1])==len(Num[1])+1:
+                ext=Fst[0][0:1], Fst[1][0:1]
+            if len(Lst[1])==len(Num[1])+1:
+                ext=Lst[0][0:1], Lst[1][0:1]
 
-#        print 'LLL',[len(P[1]) for P in pieces]
+            assert ext is not None
+            Text = ext[1]['sec']
+            if Text%N:
+                Text = Text - Text%N
+
+            conc = np.concatenate
+
+            Sext = np.asarray([(0,0,Text,0)], dtype=Num[1].dtype)
+            Num = conc(([1], Num[0])), conc((Sext, Num[1]))
+            #print 'QQ',ext, mIn
+            mIn = conc((ext[0], mIn[0])), conc((ext[1], mIn[1]))
+            mAx = conc((ext[0], mAx[0])), conc((ext[1], mAx[1]))
+            Num[1]['sec'] = mIn[1]['sec'] = mAx[1]['sec'] = Text
+            Num[1]['ns'] = mIn[1]['ns'] = mAx[1]['ns'] = 0
+
+            if len(Fst[1])<len(Num[1]):
+                Fst = conc((ext[0], Fst[0])), conc((ext[1], Fst[1]))
+            if len(Lst[1])<len(Num[1]):
+                Lst = conc((ext[0], Lst[0])), conc((ext[1], Lst[1]))
+
+            pieces = Fst, mIn, mAx, Lst, Num
+
+        #print 'LLL',[len(P[1]) for P in pieces]
 #        for xx in pieces:
 #            print 'V',xx[0]
 #            print 'M',xx[1]
 
-        assert F[1].shape==I[1].shape
-        assert F[1].shape==A[1].shape
-        assert F[1].shape==L[1].shape
+        pieceLen = np.asarray([len(P[1]) for P in pieces])
+        assert pieceLen.max()==pieceLen.min(), pieceLen
 
-        # find bins with one or two samples
-        fsa = F[1]==I[1] # first sample is max
-        fsi = F[1]==A[1] # first sample is min
-
-        one = fsa&fsi # first sample is max and min (and last)
-        two = fsa^fsi # first sample is max or min, but not both
+        one = Num[0]==1
+        two = Num[0]==2
         many= ~(one|two)
 
         # the number of output samples for each bin
-        mapping = np.ndarray((len(one),1), dtype=np.int8)
-        mapping[one] = 1
-        mapping[two] = 2
+        mapping = Num[0].copy()
         mapping[many]= 4
         
         # index of the first output sample of each bin
@@ -410,39 +432,39 @@ class Appliance(object):
         
         assert idx[-1]+mapping[-1]==nsamp
 
-        values = np.ndarray((nsamp,1), dtype=F[0].dtype)
-        metas  = np.ndarray((nsamp,), dtype=F[1].dtype)
+        values = np.ndarray((nsamp,1), dtype=Fst[0].dtype)
+        metas  = np.ndarray((nsamp,), dtype=Fst[1].dtype)
         
         # bins with one sample simply pass through that sample
         if np.any(one):
-            values[idx[one],0] = F[0][one]
-            metas[idx[one]]    = F[1][one]
+            values[idx[one],0] = Fst[0][one]
+            metas[idx[one]]    = Fst[1][one]
 
         # bins w/ two samples are just as easy
         if np.any(two):
-            values[idx[two],0]  = I[0][two]
-            metas[idx[two]]     = I[1][two]
-            values[idx[two]+1,0]= A[0][two]
-            metas[idx[two]+1]   = A[1][two]
+            values[idx[two],0]  = mIn[0][two]
+            metas[idx[two]]     = mIn[1][two]
+            values[idx[two]+1,0]= mAx[0][two]
+            metas[idx[two]+1]   = mAx[1][two]
 
         # bins with more than two samples are more complex
 
         # Start by copying through
         if np.any(many):
-            print 'Q',values[idx[many]]
-            values[idx[many],0]  = F[0][many]
-            metas[idx[many]]     = F[1][many]
-            values[idx[many]+1,0]= I[0][many]
-            metas[idx[many]+1]   = I[1][many]
-            values[idx[many]+3,0]= L[0][many]
-            metas[idx[many]+3]   = L[1][many]
-            values[idx[many]+2,0]= A[0][many]
-            metas[idx[many]+2]   = A[1][many]
+            #print 'Q',values[idx[many]]
+            values[idx[many],0]  = Fst[0][many]
+            metas[idx[many]]     = Fst[1][many]
+            values[idx[many]+1,0]= mIn[0][many]
+            metas[idx[many]+1]   = mIn[1][many]
+            values[idx[many]+3,0]= Lst[0][many]
+            metas[idx[many]+3]   = Lst[1][many]
+            values[idx[many]+2,0]= mAx[0][many]
+            metas[idx[many]+2]   = mAx[1][many]
             
             # place min/max samples at times 1/3 and 2/3 between first and last
     
-            T0 = F[1]['sec'][many]+1e-9*F[1]['ns'][many]
-            T1 = L[1]['sec'][many]+1e-9*L[1]['ns'][many]
+            T0 = Fst[1]['sec'][many]+1e-9*Fst[1]['ns'][many]
+            T1 = Lst[1]['sec'][many]+1e-9*Lst[1]['ns'][many]
             dT = (T1-T0)/3.0
     
             TI = T0 + dT
