@@ -220,6 +220,9 @@ class ValuesRequest(XMLRPCRequest):
 
     def getPV(self, V):
         if not self._first_val:
+            if self._count==0:
+                import numpy
+                self.processRaw(numpy.zeros((0,0)), [])
             # emit footer for completed PV
             self.request.write(_values_foot)
         self._first_val = True
@@ -253,9 +256,6 @@ class ValuesRequest(XMLRPCRequest):
                                    count=self._count_limit, callback=self.processRaw)
 
     def processRaw(self, V, M):
-        if len(M)==0:
-            return
-
         if self._first_val:
             # first callback for this PV, emit header
             self.request.write(_values_head%{'name':self._cur_pv,
