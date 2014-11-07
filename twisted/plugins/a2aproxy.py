@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+_log = logging.getLogger(__name__)
 
 from zope.interface import implements
 
@@ -9,7 +10,6 @@ from twisted.plugin import IPlugin
 from twisted.application import service
 
 from twisted.application.internet import TCPServer
-from twisted.web.server import Site
 
 try:
     from twisted.manhole.telnet import ShellFactory
@@ -17,6 +17,7 @@ except ImportError:
     ShellFactory = None
 
 from carchive.a2aproxy.resource import buildResource
+from carchive.util import LimitedSite, LimitedTCPServer
 
 class Log2Twisted(logging.StreamHandler):
     """Print logging module stream to the twisted log
@@ -60,9 +61,9 @@ class Maker(object):
 
         serv = service.MultiService()
 
-        fact = Site(buildResource(opts['appl']))
+        fact = LimitedSite(buildResource(opts['appl']))
 
-        serv.addService(TCPServer(opts['port'], fact, interface=opts['ip']))
+        serv.addService(LimitedTCPServer(opts['port'], fact, interface=opts['ip']))
 
         if ShellFactory and opts['manhole']:
             print 'Opening Manhole'
