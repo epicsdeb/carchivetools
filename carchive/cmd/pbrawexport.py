@@ -87,7 +87,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
                     enumAsInt=True, provideExtraMeta=True
                 )
             except exporter.SkipPvError as e:
-                print('-- PV NOT SUCCESSFUL: {}: {}'.format(pv, e))
+                print('-- PV ERROR: {}: {}'.format(pv, e))
                 failed_pvs.append((pv, e))
                 break
     

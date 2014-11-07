@@ -122,7 +122,7 @@ class Exporter(object):
         try:
             self._appender.write_sample(sample_serialized, the_datetime, into_year_sec, into_year_nsec, self._pb_type, self._pb_class)
         except pb_appender.AppenderError as e:
-            raise SkipPvError('Not completely archived: {}'.format(e))
+            raise SkipPvError(e)
     
     def _waveform_size_bad(self, data, extraMeta):
         return self._is_waveform and data.shape[1] != extraMeta['reported_arr_size']

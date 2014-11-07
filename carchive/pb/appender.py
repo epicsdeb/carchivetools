@@ -1,9 +1,8 @@
 from __future__ import print_function
-import os
-import google.protobuf as protobuf
 from carchive.pb import EPICSEvent_pb2 as pbt
 from carchive.pb import escape as pb_escape
 from carchive.pb import filepath as pb_filepath
+from carchive.pb import verify as pb_verify
 
 class AppenderError(Exception):
     pass
@@ -51,18 +50,17 @@ class Appender(object):
             # Seek to the beginning.
             self._cur_file.seek(0, 0)
             
-            # Prepare line iterator.
-            line_iterator = pb_escape.iter_lines(self._cur_file)
+            # We fail if we found samples newer than this one in the file.
+            upper_ts_bound = (into_year_sec, into_year_nsec)
             
-            # Check if we have a header.
+            # Verify any existing contents of the file.
             try:
-                header_data = line_iterator.next()
-            except pb_escape.IterationError as e:
-                self._file_error('Reading header: {}'.format(e))
-            except StopIteration:
-                header_data = None
+                pb_verify.verify_stream(self._cur_file, pb_type, self._pv_name, the_datetime.year, pb_class, upper_ts_bound)
+                
+            except pb_verify.VerificationError as e:
+                raise AppenderError('Verification failed: {}: {}'.format(self._cur_path, e))
             
-            if header_data is None:
+            except pb_verify.EmptyFileError:
                 # Build header.
                 header_pb = pbt.PayloadInfo()
                 header_pb.type = pb_type
@@ -71,44 +69,7 @@ class Appender(object):
                 
                 # Write header. Note that since there was no header we are still at the start of the file.
                 self._cur_file.write(pb_escape.escape_line(header_pb.SerializeToString()))
-            
-            else:
-                # Parse header.
-                header_pb = pbt.PayloadInfo()
-                try:
-                    header_pb.ParseFromString(header_data)
-                except protobuf.message.DecodeError as e:
-                    self._file_error('Failed to decode header: {}'.format(e))
-                
-                # Sanity checks.
-                if header_pb.type != pb_type:
-                    self._file_error('Type mispatch in header')
-                if header_pb.pvname != self._pv_name:
-                    self._file_error('PV name mispatch in header')
-                if header_pb.year != the_datetime.year:
-                    self._file_error('Year mispatch in header')
-                
-                # Iterate the file to the end, checking for problems.
-                try:
-                    for sample_data in line_iterator:
-                        print('EXISTING SAMPLE')
-                        
-                        # Parse sample.
-                        sample_pb = pb_class()
-                        try:
-                            sample_pb.ParseFromString(sample_data)
-                        except protobuf.message.DecodeError as e:
-                            self._file_error('Failed to decode sample: {}'.format(e))
-                        
-                        # Sanity check timestamp.
-                        if (sample_pb.secondsintoyear, sample_pb.nano) > (into_year_sec, into_year_nsec):
-                            self._file_error('Found sample newer than the sample we want to write')
-                        
-                except pb_escape.IterationError as e:
-                    self._file_error('Reading samples: {}'.format(e))
         
         # Finally write the sample.
         self._cur_file.write(pb_escape.escape_line(sample_serialized))
-    
-    def _file_error(self, e):
-        raise AppenderError('File {}: {}'.format(self._cur_path, e))
+ 
