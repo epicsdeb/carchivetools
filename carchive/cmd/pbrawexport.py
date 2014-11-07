@@ -63,16 +63,18 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
     if len(pvs)==0:
         raise PbExportError('Have no PV names to archive!')
     
-    # Resolve time interval.
-    start_dt, end_dt = makeTimeInterval(opt.start, opt.end)
+    # Check UTC/local time interpretation.
+    if opt.utc_time and opt.local_time:
+        raise PbExportError('Both --utc-time and --local-time were given!')
+    if not (opt.utc_time or opt.local_time):
+        raise PbExportError('Neither --utc-time nor --local-time was given! Not assuming anything!')
+    use_local = bool(opt.local_time)
     
-    # Convert the interval to old archiver time format.
-    # There is some error here.
-    start_ca_t = pb_timestamp.dt_to_carchive(start_dt)
-    end_ca_t = pb_timestamp.dt_to_carchive(end_dt)
+    # Parse start/end times.
+    start_ca_t = parse_time(opt.start, 'start', use_local)
+    end_ca_t = parse_time(opt.end, 'end', use_local)
     
     # Print some info.
-    print('-- Requested time range: {} -> {}'.format(start_dt, end_dt))
     print('-- Requested time range after conversion: {} -> {}'.format(start_ca_t, end_ca_t))
     print('-- Will archive these PVs: {}'.format(' '.join(pvs)))
     
@@ -122,3 +124,25 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
             print('{}: {}'.format(pv, e))
     
     defer.returnValue(0)
+
+TIME_FORMATS = [
+    "%Y-%m-%d %H:%M:%S.%f",
+    "%Y-%m-%d %H:%M:%S",
+    "%Y-%m-%d %H:%M",
+    "%Y-%m-%d",
+]
+
+def parse_time(time_str, role, use_local):
+    if time_str is None:
+        return {'start': (-2**31, 0), 'end':(2**31-1, 999999999)}[role]
+    for fmt in TIME_FORMATS:
+        try:
+            dt = datetime.datetime.strptime(time_str, fmt)
+            break
+        except ValueError:
+            continue
+    else:
+        raise ValueError('The {} time argument is not understood. Supported formats are: {}'.format(role, TIME_FORMATS))
+    if use_local:
+        raise ValueError('Local time not yet supported!')
+    return pb_timestamp.dt_to_carchive(dt)

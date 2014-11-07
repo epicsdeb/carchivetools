@@ -80,6 +80,8 @@ par.add_option('--export-no-default-delimiters', action='store_true', help='(PB 
 par.add_option('--export-delimiter', action='append', help='(PB archive only) Add extra PV name delimiter.')
 par.add_option('--export-granularity', help='(PB archive only) Time granularity for splitting data into files (5min, 15min, 30min, 1day, 1month, 1year).')
 par.add_option('--export-out-dir', help='(PB archive only) Output directory.')
+par.add_option('--utc-time', action='store_true', help='(PB archive only) Times are in UTC time.')
+par.add_option('--local-time', action='store_true', help='(PB archive only) Times are in local time.')
 
 opt, args = par.parse_args()
 
