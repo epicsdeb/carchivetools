@@ -366,7 +366,7 @@ class Archive(object):
                  T0=None, Tend=None,
                  count=None, chunkSize=None,
                  archs=None, breakDown=None,
-                 enumAsInt=False, provideExtraMeta=False):
+                 enumAsInt=False, provideExtraMeta=False, rawTimes=False):
         """Fetch raw data for the given PV.
 
         Results are passed to the given callback as they arrive.
@@ -381,7 +381,10 @@ class Archive(object):
             _log.error("PV not archived")
             defer.returnValue(0)
 
-        Tcur, Tend = timeTuple(T0), timeTuple(Tend)
+        if rawTimes:
+            Tcur, Tend = T0, Tend
+        else:
+            Tcur, Tend = timeTuple(T0), timeTuple(Tend)
 
         _log.debug("Time range: %s -> %s", Tcur, Tend)
         _log.debug("Planning with: %s", map(lambda (a,b,c):(a,b,self.__rarchs[c]), breakDown))
