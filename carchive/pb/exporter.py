@@ -120,7 +120,7 @@ class Exporter(object):
         
         # Write it via the appender.
         try:
-            self._appender.write_sample(sample_serialized, the_datetime, into_year_sec, into_year_nsec, self._pb_type, self._pb_class)
+            self._appender.write_sample(sample_serialized, the_datetime, into_year_sec, into_year_nsec, self._pb_type)
         except pb_appender.AppenderError as e:
             raise SkipPvError(e)
     

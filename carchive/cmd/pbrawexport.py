@@ -4,7 +4,9 @@ from __future__ import print_function
 import os
 from twisted.internet import defer
 from carchive.date import makeTimeInterval
-from carchive.pb import granularity, filepath, exporter
+from carchive.pb import granularity as pb_granularity
+from carchive.pb import exporter as pb_exporter
+from carchive.pb import last as pb_last
 
 class PbExportError(Exception):
     pass
@@ -24,7 +26,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
     # Get granularity.
     if opt.export_granularity is None:
         raise PbExportError('Export granularity not specified!')
-    gran = granularity.get_granularity(opt.export_granularity)
+    gran = pb_granularity.get_granularity(opt.export_granularity)
     if gran is None:
         raise PbExportError('Export granularity is not understood!')
     
@@ -73,9 +75,15 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
     for pv in pvs:
         print('-- Archiving PV: {}'.format(pv))
         
+        # Find the last sample timestamp for this PV.
+        last_timestamp = pb_last.find_last_sample_timestamp(pv, out_dir, gran, delimiters)
+        
+        print('LAST TS: {}'.format(last_timestamp))
+        
+        # TBD bound query
+        
         # Create exporter instance.
-        with exporter.Exporter(pv, gran, out_dir, delimiters) as the_exporter:
-            # TBD bound range by last sample
+        with pb_exporter.Exporter(pv, gran, out_dir, delimiters) as the_exporter:
             pv_start_t = T0
             pv_end_t = Tend
             
@@ -86,7 +94,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
                     T0=pv_start_t, Tend=pv_end_t, chunkSize=opt.chunk,
                     enumAsInt=True, provideExtraMeta=True
                 )
-            except exporter.SkipPvError as e:
+            except pb_exporter.SkipPvError as e:
                 print('-- PV ERROR: {}: {}'.format(pv, e))
                 failed_pvs.append((pv, e))
                 break

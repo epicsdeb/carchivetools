@@ -34,6 +34,9 @@ class YearSegment(object):
 class YearGranularity(object):
     def get_segment_for_time(self, time):
         return YearSegment(time.year)
+    
+    def suffix_count(self):
+        return 1
 
 class MonthSegment(object):
     def __init__(self, year_seg, month):
@@ -58,6 +61,9 @@ class MonthSegment(object):
 class MonthGranularity(object):
     def get_segment_for_time(self, time):
         return MonthSegment(YearGranularity().get_segment_for_time(time), time.month)
+    
+    def suffix_count(self):
+        return YearGranularity().suffix_count() + 1
 
 class DaySegment(object):
     def __init__(self, month_seg, day):
@@ -81,6 +87,9 @@ class DaySegment(object):
 class DayGranularity(object):
     def get_segment_for_time(self, time):
         return DaySegment(MonthGranularity().get_segment_for_time(time), time.day)
+    
+    def suffix_count(self):
+        return MonthGranularity().suffix_count() + 1
 
 class HourSegment(object):
     def __init__(self, day_seg, hour):
@@ -104,6 +113,9 @@ class HourSegment(object):
 class HourGranularity(object):
     def get_segment_for_time(self, time):
         return HourSegment(DayGranularity().get_segment_for_time(time), time.hour)
+    
+    def suffix_count(self):
+        return DayGranularity().suffix_count() + 1
 
 class MinuteSegment(object):
     def __init__(self, minutes_step, hour_seg, minute):
@@ -131,3 +143,6 @@ class MinuteGranularity(object):
     
     def get_segment_for_time(self, time):
         return MinuteSegment(self.minutes_step, HourGranularity().get_segment_for_time(time), time.minute)
+    
+    def suffix_count(self):
+        return HourGranularity().suffix_count() + 1

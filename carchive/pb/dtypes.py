@@ -61,3 +61,14 @@ def get_type_description(orig_type):
         if orig_type == type_desc.ORIG_TYPE:
             return type_desc
     raise TypeError('Got unsupported data type.')
+
+class UnknownPbTypeError(Exception):
+    pass
+
+def get_pb_class_for_type(pb_type):
+    for type_desc in ALL_TYPE_DESCRIPTIONS:
+        if type_desc.PB_TYPE[0] == pb_type:
+            return type_desc.PB_CLASS[0]
+        if type_desc.PB_TYPE[1] == pb_type:
+            return type_desc.PB_CLASS[1]
+    raise UnknownPbTypeError('Unknown PB type')

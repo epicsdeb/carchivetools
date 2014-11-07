@@ -25,7 +25,7 @@ class Appender(object):
         if self._cur_file is not None:
             self._cur_file.close()
     
-    def write_sample(self, sample_serialized, the_datetime, into_year_sec, into_year_nsec, pb_type, pb_class):
+    def write_sample(self, sample_serialized, the_datetime, into_year_sec, into_year_nsec, pb_type):
         # If this sample does not belong to the currently opened file, close the file.
         if self._cur_file is not None and not (the_datetime >= self._cur_start and the_datetime < self._cur_end):
             self._cur_file.close()
@@ -55,7 +55,7 @@ class Appender(object):
             
             # Verify any existing contents of the file.
             try:
-                pb_verify.verify_stream(self._cur_file, pb_type, self._pv_name, the_datetime.year, pb_class, upper_ts_bound)
+                pb_verify.verify_stream(self._cur_file, pb_type, self._pv_name, the_datetime.year, upper_ts_bound)
                 
             except pb_verify.VerificationError as e:
                 raise AppenderError('Verification failed: {}: {}'.format(self._cur_path, e))
