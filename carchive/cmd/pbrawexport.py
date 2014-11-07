@@ -63,63 +63,39 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
     T0, Tend = makeTimeInterval(opt.start, opt.end)
     
     # Print some info.
-    print('Time range: {} -> {}'.format(T0, Tend))
-    print('PVs: {}'.format(' '.join(pvs)))
+    print('-- Requested time range: {} -> {}'.format(T0, Tend))
+    print('-- Will archive these PVs: {}'.format(' '.join(pvs)))
+    
+    # Remembering PVs which we had problems with.
+    failed_pvs = []
     
     # Archive PVs one by one.
     for pv in pvs:
-        print('PV: {}'.format(pv))
+        print('-- Archiving PV: {}'.format(pv))
         
-        # Get the segment where the start time falls.
-        segment = gran.get_segment_for_time(T0)
-        
-        while True:
-            # Calculate the next segment.
-            next_segment = segment.next_segment()
+        # Create exporter instance.
+        with exporter.Exporter(pv, gran, out_dir, delimiters) as the_exporter:
+            # TBD bound range by last sample
+            pv_start_t = T0
+            pv_end_t = Tend
             
-            # Get the time interval for this segment.
-            segment_start_time = segment.start_time()
-            segment_end_time = next_segment.start_time()
-            
-            # Stop if we've already covered the desired time interval.
-            if segment_start_time > Tend:
+            try:
+                # Ask for samples.
+                segment_data = yield archive.fetchraw(
+                    pv, the_exporter, archs=archs, cbArgs=(),
+                    T0=pv_start_t, Tend=pv_end_t, chunkSize=opt.chunk,
+                    enumAsInt=True, provideExtraMeta=True
+                )
+            except exporter.SkipPvError as e:
+                print('-- PV NOT SUCCESSFUL: {}: {}'.format(pv, e))
+                failed_pvs.append((pv, e))
                 break
-            
-            # Don't query outside the desired interval...
-            query_start_time = max(segment_start_time, T0)
-            query_end_time = min(segment_end_time, Tend)
-            
-            # Determine the path of the output file.
-            out_file_path = filepath.get_path_for_suffix(out_dir, delimiters, pv, segment.file_suffix())
-            
-            print('[ {} - {} ) --> {}'.format(query_start_time, query_end_time, out_file_path))
-            
-            # Make sure the file doesn't already exist. There's a race but whatever.
-            #if os.path.isfile(out_file_path):
-            #    raise PbExportError('Output file already exists!')
-            
-            # Open the file for writing.
-            with open(out_file_path, 'wb') as file_handle:
-                # Create exporter.
-                the_exporter = exporter.Exporter(pv, segment_start_time.year, file_handle)
-                
-                try:
-                    # Ask for samples for this interval.
-                    # This function interprets the interval as half-open (].
-                    segment_data = yield archive.fetchraw(
-                        pv, the_exporter, archs=archs, cbArgs=(),
-                        T0=query_start_time, Tend=query_end_time, chunkSize=opt.chunk,
-                        enumAsInt=True, provideExtraMeta=True
-                    )
-                except exporter.SkipPvError:
-                    break
-                
-                # Whatever this does.
-                sample_count = yield segment_data
-                
-            # Continue with the next segment.
-            segment = next_segment
     
-    print('All done.')
+    print('-- ALL DONE')
+    
+    if len(failed_pvs) > 0:
+        print('ERROR summary:')
+        for (pv, e) in failed_pvs:
+            print('{}: {}'.format(pv, e))
     
     defer.returnValue(0)

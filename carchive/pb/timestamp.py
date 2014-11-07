@@ -2,7 +2,7 @@ import datetime
 import math
 
 def carchive_to_aapb(input_sec, input_nsec):
-    '''Converts a Channel Archiver timestamp to an Archiver Appliance PB timestamp.
+    '''Converts a Channel Archiver timestamp to a datetime and an Archiver Appliance PB timestamp.
     
     Channel Archiver: (secs, nano) - time since 1970 UTC
     Archiver Appliance PB: (year, seconds, nano) - time since year UTC
@@ -21,4 +21,4 @@ def carchive_to_aapb(input_sec, input_nsec):
     into_year_sec = int(i)
     into_year_nsec = min(999999999, int(1e9 * f)) # TBD loss of precision
     
-    return (input_dt.year, into_year_sec, into_year_nsec)
+    return (input_dt, into_year_sec, into_year_nsec)

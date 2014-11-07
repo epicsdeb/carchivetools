@@ -1,57 +1,73 @@
 from __future__ import print_function
 import numpy as np
 from carchive.pb import EPICSEvent_pb2 as pbt
-from carchive.pb import escape as pb_escape
 from carchive.pb import timestamp as pb_timestamp
 from carchive.pb import dtypes as pb_dtypes
+from carchive.pb import appender as pb_appender
 
 class SkipPvError(Exception):
     pass
 
 class Exporter(object):
-    def __init__(self, pv_name, year, out_stream):
+    def __init__(self, pv_name, gran, out_dir, delimiters):
         self._pv_name = pv_name
-        self._year = year
-        self._out_stream = out_stream
         self._orig_type = None
         self._is_waveform = None
+        self._type_desc = None
+        self._pb_type = None
         self._last_meta = {}
         self._last_meta_day = -1
         self._meta_dirty = True
+        self._appender = pb_appender.Appender(pv_name, gran, out_dir, delimiters)
     
+    # with statement entry
+    def __enter__(self):
+        return self
+    
+    # with statement exit - clean up
+    def __exit__(self, tyype, value, traceback):
+        self._appender.close()
+    
+    # called by fetchraw for every chunk of samples receeived.
     def __call__(self, data, meta_vec, extraMeta):
         # Get data type of chunk.
         orig_type = extraMeta['orig_type']
         is_waveform = extraMeta['reported_arr_size'] != 1
         
+        # Got first chunk?
         if self._orig_type is None:
             # Remember data type of first chunk.
             self._orig_type = orig_type
             self._is_waveform = is_waveform
+            
+            # Find a type description class with type-specific code.
             self._type_desc = pb_dtypes.get_type_description(orig_type)
+            
+            # Remember the PB type code and class.
+            self._pb_type = self._type_desc.PB_TYPE[self._is_waveform]
+            self._pb_class = self._type_desc.PB_CLASS[self._is_waveform]
             
             print('Data type: {}, is_waveform={}'.format(self._type_desc.__name__, self._is_waveform))
             
+            # We do get enum labels but we cannot store them anywhere :(
             if extraMeta['the_meta']['type'] == 0:
                 print('WARNING: {}: Enum labels will not be stored.'.format(self._pv_name))
             
+            # The old Channel Archiver cannot handle arrays of strings, so skip these broken PVs.
             if self._waveform_size_bad(data, extraMeta):
-                print('WARNING: {}: Inconsistent waveform size, not archiving this PV.'.format(self._pv_name))
-                raise SkipPvError()
-            
-            # Write header.
-            self._write_header()
+                raise SkipPvError('Inconsistent waveform size.')
             
         else:
             # Check data type, it should be the same as received with the first sample.
-            if orig_type != self._orig_type or is_waveform != self._is_waveform:
-                raise TypeError('Unexpected data type!')
+            if orig_type != self._orig_type:
+                raise TypeError('Inconsitent data type in subsequent chunk!')
+            if is_waveform != self._is_waveform:
+                raise TypeError('Inconsitent waveformness in subsequent chunk!')
             
             if self._waveform_size_bad(data, extraMeta):
-                print('WARNING: {}: Inconsistent waveform size, not archiving this PV anymore (we did manage to archive something).'.format(self._pv_name))
-                raise SkipPvError()
+                raise SkipPvError('Inconsistent waveform size (we did manage to archive something)')
         
-        # Deal with the metadata.
+        # If metadata has changed, we will attach it to the first sample in this chunk.
         new_meta = dict((META_MAP[meta_name], meta_val) for (meta_name, meta_val) in extraMeta['the_meta'].iteritems() if meta_name in META_MAP)
         if new_meta != self._last_meta:
             self._last_meta = new_meta
@@ -62,35 +78,17 @@ class Exporter(object):
             # Convert value to a standard format.
             value = list(data[i]) if is_waveform else data[i][0]
             
-            # Write the sample to the output stream.
-            self._write_sample(value, int(meta[0]), int(meta[1]), int(meta[2]), int(meta[3]))
+            # Process the sample.
+            self._process_sample(value, int(meta[0]), int(meta[1]), int(meta[2]), int(meta[3]))
     
-    def _write_line(self, data):
-        # Write to output stream, escsaped and with a newline.
-        self._out_stream.write(pb_escape.escape_line(data) + pb_escape.NEWLINE_CHAR)
-    
-    def _write_header(self):
-        # Build header structure.
-        header_pb = pbt.PayloadInfo()
-        header_pb.type = self._type_desc.PB_TYPE[self._is_waveform]
-        header_pb.pvname = self._pv_name
-        header_pb.year = self._year
-        
-        # Write it.
-        self._write_line(header_pb.SerializeToString())
-    
-    def _write_sample(self, value, sevr, stat, secs, nano):
+    def _process_sample(self, value, sevr, stat, secs, nano):
         print('sample VAL={} SEVR={} STAT={} SECS={} NANO={}'.format(value, sevr, stat, secs, nano))
         
         # Convert timestamp.
-        year, into_year_sec, into_year_nsec = pb_timestamp.carchive_to_aapb(secs, nano)
-        
-        # The year should be the the one we have in the header.
-        if year != self._year:
-            raise ValueError('Incorrect year received in sample!')
+        the_datetime, into_year_sec, into_year_nsec = pb_timestamp.carchive_to_aapb(secs, nano)
         
         # Build sample structure.
-        sample_pb = self._type_desc.PB_CLASS[self._is_waveform]()
+        sample_pb = self._pb_class()
         sample_pb.secondsintoyear = into_year_sec
         sample_pb.nano = into_year_nsec
         if self._is_waveform:
@@ -116,10 +114,15 @@ class Exporter(object):
                     print('WARNING: Could not encode metadata field {}={}: {}'.format(meta_name, repr(self._last_meta[meta_name]), e))
                 else:
                     sample_pb.fieldvalues.extend([pbt.FieldValue(name=meta_name, val=val)])
-            print('Attaching metadata: {}'.format(', '.join('{}={}'.format(x.name, x.val) for x in sample_pb.fieldvalues)))
         
-        # Write it.
-        self._write_line(sample_pb.SerializeToString())
+        # Serialize it.
+        sample_serialized = sample_pb.SerializeToString()
+        
+        # Write it via the appender.
+        try:
+            self._appender.write_sample(sample_serialized, the_datetime, into_year_sec, into_year_nsec, self._pb_type, self._pb_class)
+        except pb_appender.AppenderError as e:
+            raise SkipPvError('Not completely archived: {}'.format(e))
     
     def _waveform_size_bad(self, data, extraMeta):
         return self._is_waveform and data.shape[1] != extraMeta['reported_arr_size']
