@@ -9,16 +9,16 @@ class SkipPvError(Exception):
     pass
 
 class Exporter(object):
-    def __init__(self, pv_name, gran, out_dir, delimiters):
+    def __init__(self, pv_name, gran, out_dir, delimiters, ignore_ts_start):
         self._pv_name = pv_name
         self._orig_type = None
         self._is_waveform = None
         self._type_desc = None
         self._pb_type = None
         self._last_meta = {}
-        self._last_meta_day = -1
+        self._last_meta_day = None
         self._meta_dirty = True
-        self._appender = pb_appender.Appender(pv_name, gran, out_dir, delimiters)
+        self._appender = pb_appender.Appender(pv_name, gran, out_dir, delimiters, ignore_ts_start)
     
     # with statement entry
     def __enter__(self):
@@ -85,12 +85,10 @@ class Exporter(object):
         print('sample VAL={} SEVR={} STAT={} SECS={} NANO={}'.format(value, sevr, stat, secs, nano))
         
         # Convert timestamp.
-        the_datetime, into_year_sec, into_year_nsec = pb_timestamp.carchive_to_aapb(secs, nano)
+        the_datetime = pb_timestamp.carchive_to_dt(secs, nano)
         
-        # Build sample structure.
+        # Build sample structure. But leave the time to the appender.
         sample_pb = self._pb_class()
-        sample_pb.secondsintoyear = into_year_sec
-        sample_pb.nano = into_year_nsec
         if self._is_waveform:
             self._type_desc.encode_vector(value, sample_pb)
         else:
@@ -99,7 +97,7 @@ class Exporter(object):
         sample_pb.status = stat
         
         # Force metadata on new day (unless there are no samples for a day...).
-        sample_day = into_year_sec // 86400
+        sample_day = the_datetime.date()
         if sample_day != self._last_meta_day:
             self._meta_dirty = True
         
@@ -115,12 +113,9 @@ class Exporter(object):
                 else:
                     sample_pb.fieldvalues.extend([pbt.FieldValue(name=meta_name, val=val)])
         
-        # Serialize it.
-        sample_serialized = sample_pb.SerializeToString()
-        
         # Write it via the appender.
         try:
-            self._appender.write_sample(sample_serialized, the_datetime, into_year_sec, into_year_nsec, self._pb_type)
+            self._appender.write_sample(sample_pb, the_datetime, self._pb_type)
         except pb_appender.AppenderError as e:
             raise SkipPvError(e)
     

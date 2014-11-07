@@ -47,7 +47,9 @@ def find_last_sample_timestamp(pv_name, out_dir, gran, delimiters):
         # If any samples were found in this file, the last timestamp in the
         # file is what we're looking for. Else continue looking into the previous file.
         if results['last_timestamp'] is not None:
-            return results['last_timestamp']
+            year = results['year']
+            secondsintoyear, nano = results['last_timestamp']
+            return (year, secondsintoyear, nano)
     
     # No samples found in any file.
     return None

@@ -3,16 +3,18 @@ from carchive.pb import EPICSEvent_pb2 as pbt
 from carchive.pb import escape as pb_escape
 from carchive.pb import filepath as pb_filepath
 from carchive.pb import verify as pb_verify
+from carchive.pb import timestamp as pb_timestamp
 
 class AppenderError(Exception):
     pass
 
 class Appender(object):
-    def __init__(self, pv_name, gran, out_dir, delimiters):
+    def __init__(self, pv_name, gran, out_dir, delimiters, ignore_ts_start):
         self._pv_name = pv_name
         self._gran = gran
         self._out_dir = out_dir
         self._delimiters = delimiters
+        self._ignore_ts_start = ignore_ts_start
         
         # Start with no file open.
         self._cur_file = None
@@ -25,7 +27,23 @@ class Appender(object):
         if self._cur_file is not None:
             self._cur_file.close()
     
-    def write_sample(self, sample_serialized, the_datetime, into_year_sec, into_year_nsec, pb_type):
+    def write_sample(self, sample_pb, the_datetime, pb_type):
+        # Make timestamp.
+        into_year_sec, into_year_nsec = pb_timestamp.dt_to_pb(the_datetime)
+        
+        # Ignore sample if requested by the lower bound.
+        if self._ignore_ts_start is not None:
+            if (the_datetime.year, into_year_sec, into_year_nsec) <= self._ignore_ts_start:
+                print('ignoring sample')
+                return
+        
+        # Write timestamp to sample.
+        sample_pb.secondsintoyear = into_year_sec
+        sample_pb.nano = into_year_nsec
+        
+        # Serialize sample.
+        sample_serialized = sample_pb.SerializeToString()
+        
         # If this sample does not belong to the currently opened file, close the file.
         if self._cur_file is not None and not (the_datetime >= self._cur_start and the_datetime < self._cur_end):
             self._cur_file.close()
@@ -72,4 +90,3 @@ class Appender(object):
         
         # Finally write the sample.
         self._cur_file.write(pb_escape.escape_line(sample_serialized))
- 

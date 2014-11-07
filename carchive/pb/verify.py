@@ -65,5 +65,6 @@ def verify_stream(stream, pb_type=None, pv_name=None, year=None, upper_ts_bound=
         raise VerificationError('Reading samples: {}'.format(e))
     
     return {
-        'last_timestamp': last_timestamp
+        'last_timestamp': last_timestamp,
+        'year': header_pb.year,
     }
