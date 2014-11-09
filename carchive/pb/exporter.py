@@ -1,4 +1,5 @@
 from __future__ import print_function
+import math
 import numpy as np
 from carchive.pb import EPICSEvent_pb2 as pbt
 from carchive.pb import timestamp as pb_timestamp
@@ -133,10 +134,19 @@ META_MAP = {
     'disp_high': 'HOPR',
 }
 
+def meta_convert_float(x):
+    # For non-finite values, match the behavior of Java's toString(double).
+    # For finite values, use exponential notation.
+    if math.isnan(x):
+        return 'NaN'
+    if math.isinf(x):
+        return 'Infinity' if x > 0.0 else '-Infinity'
+    return '{:.17E}'.format(x)
+
 META_CONVERSION = {
     str: lambda x: x,
     int: lambda x: str(x),
-    float: lambda x: '{:.17E}'.format(x) # TBD: We may want to reproduce Java's toString(double)
+    float: lambda x: meta_convert_float(x)
 }
 
 def convert_meta(x):
