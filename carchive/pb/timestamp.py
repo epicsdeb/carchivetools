@@ -6,10 +6,11 @@ import math
         Python datetime: Gregorian calendar
         Channel Archiver: (secs, nano) - time since 1970 UTC
         Archiver Appliance PB: (year, seconds, nano) - time since year UTC
+    
+    Note: we don't have the CA-->PB conversion function here which is the most
+    important thing. That conversion is done without a helper function, in an
+    exact manner.
 '''
-
-def carchive_to_dt(input_sec, input_nsec):
-    return datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=input_sec, microseconds=input_nsec/1000.0)
 
 def dt_to_carchive(input_dt):
     delta = input_dt - datetime.datetime(1970, 1, 1)
@@ -20,12 +21,3 @@ def dt_to_carchive(input_dt):
 
 def pb_to_dt(year, secondsintoyear, nano):
     return datetime.datetime(year, 1, 1) + datetime.timedelta(seconds=secondsintoyear, microseconds=nano/1000.0)
-
-def dt_to_pb(input_dt):
-    year_dt = datetime.datetime(input_dt.year, 1, 1)
-    into_year_delta = input_dt - year_dt
-    into_year_sec_float = into_year_delta.total_seconds()
-    f, i = math.modf(into_year_sec_float)
-    into_year_sec = int(i)
-    into_year_nsec = min(999999999, int(1e9 * f)) # TBD loss of precision
-    return (into_year_sec, into_year_nsec)

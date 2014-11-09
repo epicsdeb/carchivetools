@@ -1,8 +1,7 @@
 from __future__ import print_function
 import math
-import numpy as np
+import datetime
 from carchive.pb import EPICSEvent_pb2 as pbt
-from carchive.pb import timestamp as pb_timestamp
 from carchive.pb import dtypes as pb_dtypes
 from carchive.pb import appender as pb_appender
 
@@ -85,8 +84,9 @@ class Exporter(object):
     def _process_sample(self, value, sevr, stat, secs, nano):
         print('sample VAL={} SEVR={} STAT={} SECS={} NANO={}'.format(value, sevr, stat, secs, nano))
         
-        # Convert timestamp.
-        the_datetime = pb_timestamp.carchive_to_dt(secs, nano)
+        # Build a datetime for the whole seconds.
+        # Track nanoseconds separately to avoid time conversion errors.
+        dt_seconds = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=secs)
         
         # Build sample structure. But leave the time to the appender.
         sample_pb = self._pb_class()
@@ -98,7 +98,7 @@ class Exporter(object):
         sample_pb.status = stat
         
         # Force metadata on new day (unless there are no samples for a day...).
-        sample_day = the_datetime.date()
+        sample_day = dt_seconds.date()
         if sample_day != self._last_meta_day:
             self._meta_dirty = True
         
@@ -116,7 +116,7 @@ class Exporter(object):
         
         # Write it via the appender.
         try:
-            self._appender.write_sample(sample_pb, the_datetime, self._pb_type)
+            self._appender.write_sample(sample_pb, dt_seconds, nano, self._pb_type)
         except pb_appender.AppenderError as e:
             raise SkipPvError(e)
     
