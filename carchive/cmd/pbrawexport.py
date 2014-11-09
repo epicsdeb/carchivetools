@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
-import os
 import datetime
 from twisted.internet import defer
-from carchive.date import makeTimeInterval
 from carchive.pb import granularity as pb_granularity
 from carchive.pb import exporter as pb_exporter
 from carchive.pb import last as pb_last
@@ -70,7 +68,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
         raise PbExportError('Neither --utc-time nor --local-time was given! Not assuming anything!')
     use_local = bool(opt.local_time)
     
-    # Parse start/end times.
+    # Parse start/end times. These give us the native format for the query.
     start_ca_t = parse_time(opt.start, 'start', use_local)
     end_ca_t = parse_time(opt.end, 'end', use_local)
     
@@ -133,8 +131,12 @@ TIME_FORMATS = [
 ]
 
 def parse_time(time_str, role, use_local):
+    # If there is no argument, assume unbounded.
+    # But we do need to use something in the query.
     if time_str is None:
         return {'start': (-2**31, 0), 'end':(2**31-1, 999999999)}[role]
+    
+    # Try parsing the time string as different supported formats.
     for fmt in TIME_FORMATS:
         try:
             dt = datetime.datetime.strptime(time_str, fmt)
@@ -143,6 +145,10 @@ def parse_time(time_str, role, use_local):
             continue
     else:
         raise ValueError('The {} time argument is not understood. Supported formats are: {}'.format(role, TIME_FORMATS))
+    
+    # We don't support local time specification, only UTC time.
     if use_local:
-        raise ValueError('Local time not yet supported!')
+        raise ValueError('Local time not yet supported! Must specify time in UTC.')
+    
+    # Convert to the format for the query.
     return pb_timestamp.dt_to_carchive(dt)
