@@ -9,8 +9,9 @@ class SkipPvError(Exception):
     pass
 
 class Exporter(object):
-    def __init__(self, pv_name, gran, out_dir, delimiters, ignore_ts_start):
+    def __init__(self, pv_name, gran, out_dir, delimiters, ignore_ts_start, pvlog):
         self._pv_name = pv_name
+        self._pvlog = pvlog
         self._orig_type = None
         self._is_waveform = None
         self._type_desc = None
@@ -18,7 +19,7 @@ class Exporter(object):
         self._last_meta = {}
         self._last_meta_day = None
         self._meta_dirty = True
-        self._appender = pb_appender.Appender(pv_name, gran, out_dir, delimiters, ignore_ts_start)
+        self._appender = pb_appender.Appender(pv_name, gran, out_dir, delimiters, ignore_ts_start, pvlog)
     
     # with statement entry
     def __enter__(self):
@@ -47,11 +48,11 @@ class Exporter(object):
             self._pb_type = self._type_desc.PB_TYPE[self._is_waveform]
             self._pb_class = self._type_desc.PB_CLASS[self._is_waveform]
             
-            print('Data type: {}, is_waveform={}'.format(self._type_desc.__name__, self._is_waveform))
+            self._pvlog.info('Data type: {} {}'.format(self._type_desc.NAME, ('Waveform' if self._is_waveform else 'Scalar')))
             
             # We do get enum labels but we cannot store them anywhere :(
             if extraMeta['the_meta']['type'] == 0:
-                print('WARNING: {}: Enum labels will not be stored.'.format(self._pv_name))
+                self._pvlog.warning('Enum labels will not be stored.')
             
             # The old Channel Archiver cannot handle arrays of strings, so skip these broken PVs.
             if self._waveform_size_bad(data, extraMeta):
@@ -60,9 +61,9 @@ class Exporter(object):
         else:
             # Check data type, it should be the same as received with the first sample.
             if orig_type != self._orig_type:
-                raise TypeError('Inconsitent data type in subsequent chunk!')
+                raise SkipPvError('Inconsitent data type in subsequent chunk!')
             if is_waveform != self._is_waveform:
-                raise TypeError('Inconsitent waveformness in subsequent chunk!')
+                raise SkipPvError('Inconsitent waveformness in subsequent chunk!')
             
             if self._waveform_size_bad(data, extraMeta):
                 raise SkipPvError('Inconsistent waveform size (we did manage to archive something)')
@@ -82,7 +83,7 @@ class Exporter(object):
             self._process_sample(value, int(meta[0]), int(meta[1]), int(meta[2]), int(meta[3]))
     
     def _process_sample(self, value, sevr, stat, secs, nano):
-        print('sample VAL={} SEVR={} STAT={} SECS={} NANO={}'.format(value, sevr, stat, secs, nano))
+        #print('sample VAL={} SEVR={} STAT={} SECS={} NANO={}'.format(value, sevr, stat, secs, nano))
         
         # Build a datetime for the whole seconds.
         # Track nanoseconds separately to avoid time conversion errors.
@@ -110,7 +111,7 @@ class Exporter(object):
                 try:
                     val = convert_meta(self._last_meta[meta_name])
                 except TypeError as e:
-                    print('WARNING: Could not encode metadata field {}={}: {}'.format(meta_name, repr(self._last_meta[meta_name]), e))
+                    self._pvlog.warning('Could not encode metadata field {}={}: {}'.format(meta_name, repr(self._last_meta[meta_name]), e))
                 else:
                     sample_pb.fieldvalues.extend([pbt.FieldValue(name=meta_name, val=val)])
         

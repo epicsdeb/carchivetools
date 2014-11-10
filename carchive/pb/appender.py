@@ -9,12 +9,13 @@ class AppenderError(Exception):
     pass
 
 class Appender(object):
-    def __init__(self, pv_name, gran, out_dir, delimiters, ignore_ts_start):
+    def __init__(self, pv_name, gran, out_dir, delimiters, ignore_ts_start, pvlog):
         self._pv_name = pv_name
         self._gran = gran
         self._out_dir = out_dir
         self._delimiters = delimiters
         self._ignore_ts_start = ignore_ts_start
+        self._pvlog = pvlog
         
         # Start with no file open.
         self._cur_file = None
@@ -36,7 +37,7 @@ class Appender(object):
         # Ignore sample if requested by the lower bound.
         if self._ignore_ts_start is not None:
             if (dt_seconds.year, into_year_sec, nanoseconds) <= self._ignore_ts_start:
-                print('ignoring sample')
+                self._pvlog.ignored_initial_sample()
                 return
         
         # Write timestamp to sample.
@@ -66,7 +67,7 @@ class Appender(object):
             # Determine the path of the file.
             self._cur_path = pb_filepath.get_path_for_suffix(self._out_dir, self._delimiters, self._pv_name, segment.file_suffix())
             
-            print('-- File: {}'.format(self._cur_path))
+            self._pvlog.info('File: {}'.format(self._cur_path))
             
             # Open file. This creates the file if it does not exist,
             # and the the cursor is set to the *end*.
@@ -97,3 +98,5 @@ class Appender(object):
         
         # Finally write the sample.
         self._cur_file.write(pb_escape.escape_line(sample_serialized))
+        
+        self._pvlog.archived_sample()

@@ -7,6 +7,7 @@ from carchive.pb import granularity as pb_granularity
 from carchive.pb import exporter as pb_exporter
 from carchive.pb import last as pb_last
 from carchive.pb import timestamp as pb_timestamp
+from carchive.pb import pvlog as pb_pvlog
 
 class PbExportError(Exception):
     pass
@@ -76,18 +77,22 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
     print('-- Requested time range after conversion: {} -> {}'.format(start_ca_t, end_ca_t))
     print('-- Will archive these PVs: {}'.format(' '.join(pvs)))
     
-    # Remembering PVs which we had problems with.
-    failed_pvs = []
+    # Keep PV-specific logs.
+    pv_logs = []
     
     # Archive PVs one by one.
     for pv in pvs:
         print('-- Archiving PV: {}'.format(pv))
         
+        # Create and remember a PvLog object.
+        pvlog = pb_pvlog.PvLog(pv)
+        pv_logs.append(pvlog)
+        
         # Find the last sample timestamp for this PV.
         # This is used as-is as a lower bound filter after the query.
         last_timestamp = pb_last.find_last_sample_timestamp(pv, out_dir, gran, delimiters)
         
-        print('Last timestamp: {}'.format(last_timestamp))
+        pvlog.info('Last timestamp: {}'.format(last_timestamp))
         
         # We don't want samples <=last_timestamp, we can't write those out.
         # Due to conversion errors, we limit the query conservatively, and filter out any
@@ -98,10 +103,10 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
         else:
             query_start_ca_t = start_ca_t
         
-        print('Query low limit: {}'.format(query_start_ca_t))
+        pvlog.info('Query low limit: {}'.format(query_start_ca_t))
         
         # Create exporter instance.
-        with pb_exporter.Exporter(pv, gran, out_dir, delimiters, last_timestamp) as the_exporter:
+        with pb_exporter.Exporter(pv, gran, out_dir, delimiters, last_timestamp, pvlog) as the_exporter:
             try:
                 # Ask for samples.
                 segment_data = yield archive.fetchraw(
@@ -111,15 +116,15 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
                 )
             except pb_exporter.SkipPvError as e:
                 print('-- PV ERROR: {}: {}'.format(pv, e))
-                failed_pvs.append((pv, e))
+                pvlog.error(str(e))
                 break
     
-    print('-- ALL DONE')
+    print('-- ALL DONE, REPORT FOLLOWS\n')
     
-    if len(failed_pvs) > 0:
-        print('ERROR summary:')
-        for (pv, e) in failed_pvs:
-            print('{}: {}'.format(pv, e))
+    # Print out logs.
+    for pvlog in pv_logs:
+        report = pvlog.build_report()
+        print(report, end='')
     
     defer.returnValue(0)
 

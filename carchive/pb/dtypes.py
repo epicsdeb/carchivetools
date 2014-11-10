@@ -6,6 +6,7 @@ class DoubleTypeDesc(object):
     ORIG_TYPE = 3
     PB_TYPE = (pbt.SCALAR_DOUBLE, pbt.WAVEFORM_DOUBLE)
     PB_CLASS = (pbt.ScalarDouble, pbt.VectorDouble)
+    NAME = 'Double'
     
     @staticmethod
     def encode_scalar(value, sample_pb):
@@ -19,6 +20,7 @@ class Int32TypeDesc(object):
     ORIG_TYPE = 2
     PB_TYPE = (pbt.SCALAR_INT, pbt.WAVEFORM_INT)
     PB_CLASS = (pbt.ScalarInt, pbt.VectorInt)
+    NAME = 'Int32'
     
     @staticmethod
     def encode_scalar(value, sample_pb):
@@ -32,6 +34,7 @@ class StringTypeDesc(object):
     ORIG_TYPE = 0
     PB_TYPE = (pbt.SCALAR_STRING, pbt.WAVEFORM_STRING)
     PB_CLASS = (pbt.ScalarString, pbt.VectorString)
+    NAME = 'String'
     
     @staticmethod
     def encode_scalar(value, sample_pb):
@@ -45,6 +48,7 @@ class EnumTypeDesc(object):
     ORIG_TYPE = 1
     PB_TYPE = (pbt.SCALAR_ENUM, pbt.WAVEFORM_ENUM)
     PB_CLASS = (pbt.ScalarEnum, pbt.VectorEnum)
+    NAME = 'Enum'
     
     @staticmethod
     def encode_scalar(value, sample_pb):
