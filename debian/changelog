@@ -1,4 +1,4 @@
-carchivetools (1.9) UNRELEASED; urgency=low
+carchivetools (1.9) unstable; urgency=low
 
   * Fix mis-match in time range definitions between search and retrieve
     calls to ensure that the last sample in an archive section can be
@@ -7,8 +7,9 @@ carchivetools (1.9) UNRELEASED; urgency=low
   * Add carchive.untwisted module
     Simple API callable from outside the twisted reactor thread.
   * handle dates as unicode string
+  * Document --time= argument in manpage
 
- -- Michael Davidsaver <mdavidsaver@bnl.gov>  Wed, 05 Nov 2014 11:14:37 -0500
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Fri, 14 Nov 2014 13:29:21 -0500
 
 carchivetools (1.8) unstable; urgency=low
 
