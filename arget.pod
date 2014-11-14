@@ -41,9 +41,9 @@ Show help message
 Select operation to perform.  Normally this is implicit in the executable name.
 I<arinfo> is a synonym for I<arget -I>.
 
-=item B<-u> I<URL>, B<--url>=I<URL>
+=item B<-C> I<CONFIG>, B<--conf>=I<CONF>
 
-Specify either a full URL (http://...) or a configuration file section name.
+Specify a configuration file section name.
 
 =item B<-a> I<NAME>, B<--archive>=I<NAME>
 
@@ -67,6 +67,10 @@ the current system time is used.  One of these must always be given or the query
 return no data.
 
 See the section TIMES for information on the formats recognised.
+
+=item B<-T> I<FMT>, B<--time>=I<FMT>
+
+Time format in text output.  Supported formats are 'string' or 'posix' (floating point).
 
 =item B<-c> I<NUM>, B<--count>=I<NUM>
 
