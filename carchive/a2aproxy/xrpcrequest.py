@@ -195,7 +195,7 @@ class ValuesRequest(XMLRPCRequest):
         elif self._count_limit<=0:
             self.returnError(407, "Invalid count=%s"%self._count_limit)
             return
-        elif self.args[2]>self.args[4]:
+        elif (self._end-self._start).total_seconds()<=0.0:
             # wierd query which Databrowser actually makes...
             _log.warn("Start time is after end time.  Returns zero samples")
             self.request.write(_values_start)
