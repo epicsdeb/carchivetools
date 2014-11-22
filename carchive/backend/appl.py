@@ -16,7 +16,7 @@ from twisted.internet import defer, protocol, reactor
 from twisted.web.client import Agent, ResponseDone
 from twisted.web._newclient import ResponseFailed
 
-from ..date import isoString, makeTime
+from ..date import isoString, makeTime, timeTuple
 from ..dtype import dbr_time
 from .EPICSEvent_pb2 import PayloadInfo
 
@@ -171,7 +171,9 @@ class PBReceiver(protocol.Protocol):
 
             M['sec'] += self._year
 
-            self._count += Nsamp
+            #TODO: recheck _count_limit here as len(M)>=Nsamp due to
+            #  disconnect events
+            self._count += len(M)
 
             if len(M)==0:
                 _log.warn("%s discarding 0 length array %s %s", self.name, V, M)
@@ -303,8 +305,8 @@ class Appliance(object):
 
         Q = {
             'pv':pv,
-            'from':isoString(T0),
-            'to':isoString(Tend),
+            'from':isoString(makeTime(T0)),
+            'to':isoString(makeTime(Tend)),
         }
 
         url=str('%s/data/getData.raw?%s'%(self._info['dataRetrievalURL'],urlencode(Q)))
@@ -338,19 +340,33 @@ class Appliance(object):
                  T0=None, Tend=None,
                  count=None,
                  **kws):
+        # Plot binned queries are rounded to the second and bin size
+        # such that the resulting interval is a strict
+        # super set of the requested interval
+
         kws['T0'] = T0
         kws['Tend'] = Tend
+        T0, Tend = timeTuple(makeTime(T0))[0], timeTuple(makeTime(Tend))[0]
 
-        delta = (Tend-T0).total_seconds()
-        if delta<=0.0 or count<=0:
-            raise ValueError("invalid time range or sample count (%s <= 0 or %s <= 0"%(delta,count))
+        if count<=0:
+            raise ValueError("invalid sample count (%s <= 0)"%(count,))
 
+        delta = Tend-T0
         N = math.ceil(delta/count) # average sample period
 
-        if N<1:
+        if N<=1 or delta<=0:
             _log.info("Time range too short for plot bin, switching to raw")
-            D = self.fetchraw(pv, callback, cbArgs, cbKWs, **kws)
+            D = yield self.fetchraw(pv, callback, cbArgs, cbKWs, **kws)
             defer.returnValue(D)
+
+        assert N>=1, (delta, count)
+        T0 -= T0%N
+        if Tend%N:
+            Tend += N-Tend%N
+
+        kws['T0'] = T0
+        kws['Tend'] = Tend
+        kws['cadiscon'] = 1
 
         pieces = [None]*len(self._binops)
         def storeN(values, metas, i):
@@ -375,49 +391,12 @@ class Appliance(object):
         # each is a pair of (values, metas)
         Fst, mIn, mAx, Lst, Num = pieces
 
-        #print 'LLL',[len(P[1]) for P in pieces]
-        if len(Fst[1])==len(Num[1])+1 or len(Lst[1])==len(Num[1])+1:
-            # missing at least min/max for first bin
-            # may be missing first or last as well
-            ext = None
-            if len(Fst[1])==len(Num[1])+1:
-                ext=Fst[0][0:1], Fst[1][0:1]
-            if len(Lst[1])==len(Num[1])+1:
-                ext=Lst[0][0:1], Lst[1][0:1]
-
-            assert ext is not None
-            Text = ext[1]['sec']
-            if Text%N:
-                Text = Text - Text%N
-
-            conc = np.concatenate
-
-            Sext = np.asarray([(0,0,Text,0)], dtype=Num[1].dtype)
-            Num = conc(([1], Num[0])), conc((Sext, Num[1]))
-            #print 'QQ',ext, mIn
-            mIn = conc((ext[0], mIn[0])), conc((ext[1], mIn[1]))
-            mAx = conc((ext[0], mAx[0])), conc((ext[1], mAx[1]))
-            Num[1]['sec'] = mIn[1]['sec'] = mAx[1]['sec'] = Text
-            Num[1]['ns'] = mIn[1]['ns'] = mAx[1]['ns'] = 0
-
-            if len(Fst[1])<len(Num[1]):
-                Fst = conc((ext[0], Fst[0])), conc((ext[1], Fst[1]))
-            if len(Lst[1])<len(Num[1]):
-                Lst = conc((ext[0], Lst[0])), conc((ext[1], Lst[1]))
-
-            pieces = Fst, mIn, mAx, Lst, Num
-
-        #print 'LLL',[len(P[1]) for P in pieces]
-#        for xx in pieces:
-#            print 'V',xx[0]
-#            print 'M',xx[1]
-
         pieceLen = np.asarray([len(P[1]) for P in pieces])
         assert pieceLen.max()==pieceLen.min(), pieceLen
 
         one = Num[0]==1
         two = Num[0]==2
-        many= ~(one|two)
+        many= Num[0]>2
 
         # the number of output samples for each bin
         mapping = Num[0].copy()
