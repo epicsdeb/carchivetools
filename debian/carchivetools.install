@@ -1,1 +1,10 @@
 carchive.conf.example /etc
+usr/lib/python*/dist-packages/carchive/*.py*
+usr/lib/python*/dist-packages/carchive/backend
+usr/lib/python*/dist-packages/carchive/cmd
+usr/lib/python*/dist-packages/carchivetools-*.egg-info
+usr/bin/arinfo
+usr/bin/argrep
+usr/bin/arget
+usr/bin/arsnap
+usr/bin/arplothdf5

@@ -106,7 +106,13 @@ Support Channel Archiver as well as Archiver Appliance.
     author = "Michael Davidsaver",
     author_email = "mdavidsaver@bnl.gov",
     license = "BSD",
-    packages = ['carchive', 'carchive.cmd', 'carchive.backend'],
+    packages = ['carchive',
+                'carchive.a2aproxy',
+                'carchive.a2aproxy.test',
+                'carchive.archmiddle',
+                'carchive.cmd',
+                'carchive.backend.test',
+               ],
     py_modules = ['twisted.plugins.a2aproxy', 'twisted.plugins.archmiddle'],
     scripts = ['arget','arplothdf5'],
     ext_modules=[Extension('carchive.backend.pbdecode',
@@ -130,5 +136,6 @@ Support Channel Archiver as well as Archiver Appliance.
     x_link_scripts = (
         ('arget', 'arinfo'),
         ('arget', 'argrep'),
+        ('arget', 'arsnap'),
     )
 )

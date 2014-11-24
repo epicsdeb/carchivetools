@@ -1,0 +1,2 @@
+# -C Location of config file
+DAEMON_ARGS="-C /etc/archmiddle.conf"

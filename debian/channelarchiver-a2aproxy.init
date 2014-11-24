@@ -1,4 +1,4 @@
-#! /bin/sh
+#!/bin/sh
 #
 ### BEGIN INIT INFO
 # Provides:          a2aproxy
@@ -19,16 +19,17 @@ DESC="Channel Archiver to Archiver Appliance proxy"
 # defaults
 RUN=no
 RUN_AS_USER=a2aproxy
+RUN_AS_GROUP=nogroup
 
 PID_FILE="/var/run/$NAME.pid"
 
 # Include admin settings if available
-if [ -f /etc/default/ioclogserver2 ] ; then
-    . /etc/default/ioclogserver2
+if [ -f /etc/default/channelarchiver-a2aproxy ] ; then
+ . /etc/default/channelarchiver-a2aproxy
 fi
 
-DAEMON_OPTS="--logfile=/var/log/epics/a2aproxy.log --pidfile=$PID_FILE --uid=$RUN_AS_USER --gid=$RUN_AS_USER"
-DAEMON_OPTS="$DAEMON_OPTS ioclogserver $DAEMON_ARGS"
+DAEMON_OPTS="--logfile=/var/log/a2aproxy/daemon.log --pidfile=$PID_FILE --uid=$RUN_AS_USER --gid=$RUN_AS_GROUP"
+DAEMON_OPTS="$DAEMON_OPTS a2aproxy $DAEMON_ARGS"
 
 SSD_OPTS="-q --pidfile $PID_FILE"
 SSD_OPTS="$SSD_OPTS --user $RUN_AS_USER --name $DNAME"
@@ -39,6 +40,7 @@ set -e
 . /lib/lsb/init-functions
 
 serv_start() {
+	[ -d /var/log/a2aproxy ] || install -d -o$RUN_AS_USER -g$RUN_AS_GROUP -m755 /var/log/a2aproxy
 	start-stop-daemon --start $SSD_OPTS -- $DAEMON_OPTS
 }
 
@@ -48,9 +50,9 @@ serv_stop() {
 
 serv_status() {
 	#Debian >= 7...
-	#start-stop-daemon --status $SSD_OPTS
+	start-stop-daemon --status $SSD_OPTS
 	#Debian <= 6 (and others)
-	status_of_proc -p "$PID_FILE" "" "$NAME"
+	#status_of_proc -p "$PID_FILE" "" "$NAME"
 }
 
 serv_restart() {
