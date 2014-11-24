@@ -64,7 +64,7 @@ class ResultPV(str):
     breakDown = None
 
 def arsearch(names, match = WILDCARD,
-             archs=None, conf=None,
+             archs='*', conf=None,
              breakDown=False):
     """Fetch a list of PV names matching the given pattern(s)
     
@@ -84,6 +84,8 @@ def arsearch(names, match = WILDCARD,
         names = ['^'+re.escape(N)+'$' for N in names]
     elif match==WILDCARD:
         names = map(util.wild2re, names)
+    
+    archs = _reactor[0].call(arch.archives, archs)
 
     res = _reactor[0].callAll([(arch.search, (), {'pattern':N,'archs':archs,'breakDown':breakDown}) for N in names])
 
@@ -121,7 +123,7 @@ def arget(names, match = WILDCARD, mode = RAW,
           start = None, end = None,
           count = None,
           callback = None, chunkSize = 100,
-          archs = None, conf=None,
+          archs = '*', conf=None,
           enumAsInt=False):
     """Fetch archive data.
     
@@ -171,6 +173,10 @@ def arget(names, match = WILDCARD, mode = RAW,
 
     start, end = date.makeTimeInterval(start, end)
 
+    arch = getArchive(conf)
+    
+    archs = _reactor[0].call(arch.archives, archs)
+
     if mode==RAW:
         def fn(pv, cb):
             return arch.fetchraw(pv, cb, T0=start, Tend=end,
@@ -183,8 +189,6 @@ def arget(names, match = WILDCARD, mode = RAW,
                                  enumAsInt=enumAsInt, archs=archs)
     elif mode!=SNAPSHOT:
         raise ValueError("Unknown plotting mode %d"%mode)
-
-    arch = getArchive(conf)
 
     names = arsearch(names, match=match, archs=archs, conf=conf)
 

@@ -76,6 +76,7 @@ class ReactorRunner(object):
         self.reactor.callFromThread(wrapper)
         E.wait()
         if isinstance(result[0], failure.Failure):
+            _log.error(result[0]) #TODO: not re-raising correctly...
             result[0].raiseException()
         else:
             return result[0]
