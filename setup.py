@@ -107,6 +107,7 @@ Support Channel Archiver as well as Archiver Appliance.
     author_email = "mdavidsaver@bnl.gov",
     license = "BSD",
     packages = ['carchive', 'carchive.cmd', 'carchive.backend'],
+    py_modules = ['twisted.plugins.a2aproxy', 'twisted.plugins.archmiddle'],
     scripts = ['arget','arplothdf5'],
     ext_modules=[Extension('carchive.backend.pbdecode',
                            ['carchive/backend/pbdecode.cpp',
