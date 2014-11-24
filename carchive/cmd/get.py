@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
-_log = logging.getLogger("argrep")
+_log = logging.getLogger("arget")
 
 from twisted.internet import defer
 
@@ -37,17 +37,19 @@ class Printer(object):
                 print self.timefmt((M['sec'],int(M['ns']))),
                 print archive.severity(M['severity']),
                 print archive.status(M['status']),
-                print data[i,:].tolist()
+                print ', '.join(map(str,data[i,:].tolist()))
 
 @defer.inlineCallbacks
-def cmd(archive=None, opt=None, args=None, conf=None, **kws):
+def cmd(archive=None, opt=None, args=None, conf=None, breakDown=None, **kws):
+    if opt.how=='raw':
+        op = archive.fetchraw
+    elif opt.how=='plot':
+        op = archive.fetchplot
+    else:
+        raise ValueError('Unknown plot type %s'%opt.how)
 
+    archs=opt.archive
     printData = Printer(opt)
-
-    archs=set()
-    for ar in opt.archive:
-        archs|=set(archive.archives(pattern=ar))
-    archs=list(archs)
 
     if len(args)==0:
         print 'Missing PV names'
@@ -61,11 +63,11 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
 
     for pv in args:
         print pv
-        D = yield archive.fetchraw(pv, printData, archs=archs,
-                                   cbArgs=(archive,),
-                                   T0=T0, Tend=Tend,
-                                   count=count, chunkSize=opt.chunk,
-                                   enumAsInt=opt.enumAsInt)
+        D = yield op(pv, printData, archs=archs,
+                     cbArgs=(archive,),
+                     T0=T0, Tend=Tend, breakDown=breakDown,
+                     count=count, chunkSize=opt.chunk,
+                     enumAsInt=opt.enumAsInt)
 
         C = yield D
         print 'Found %s points'%C

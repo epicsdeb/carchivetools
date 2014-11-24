@@ -1,0 +1,1 @@
+DAEMON_ARGS="-P 8888 -A http://capp01.cs.nsls2.local:17665/mgmt/bpl/getApplianceInfo -d"

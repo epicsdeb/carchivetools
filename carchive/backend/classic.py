@@ -125,10 +125,34 @@ class Archive(object):
             return str(stat)
 
     def archives(self, pattern):
-        return filter(lambda a:fnmatch(a, pattern), self.__archs.iterkeys())
+        if not isinstance(pattern, (str,unicode)):
+            return list(set(reduce(list.__add__, map(self.archives, pattern), [])))
+        else:
+            return filter(lambda a:fnmatch(a, pattern), self.__archs.iterkeys())
 
     def lookupArchive(self, arch):
         return self.__rarchs[arch]
+
+    def _archname2key(self, archs):
+        if archs is None:
+            archs = self.__archs.values()
+        else:
+            for i,a in enumerate(archs):
+                try:
+                    k = int(a)
+                    if k not in self.__archs.itervalues():
+                        raise KeyError("Invalid Archive key '%d'"%k)
+                    # do nothing
+                    continue
+                except ValueError:
+                    pass
+                
+                try:
+                    k = self.__archs[a]
+                    archs[i] = k
+                except KeyError:
+                    raise KeyError("Invalid Archive key '%s'"%a)
+        return archs
 
     @defer.inlineCallbacks
     def search(self, exact=None, pattern=None,
@@ -162,24 +186,7 @@ class Archive(object):
             # Test compile to catch basic syntax errors
             re.compile(pattern)
 
-        if archs is None:
-            archs = self.__archs.values()
-        else:
-            for i,a in enumerate(archs):
-                try:
-                    k = int(a)
-                    if k not in self.__archs.itervalues():
-                        raise KeyError("Invalid Archive key '%d'"%k)
-                    # do nothing
-                    continue
-                except ValueError:
-                    pass
-                
-                try:
-                    k = self.__archs[a]
-                    archs[i] = k
-                except KeyError:
-                    raise KeyError("Invalid Archive key '%s'"%a)
+        archs = self._archname2key(archs)
 
         _log.debug('Searching for %s in %s', pattern, archs)
         Ds = [None]*len(archs)
@@ -277,7 +284,7 @@ class Archive(object):
                 _log.fatal('Query fails')
                 raise
 
-            assert len(data)==1, "Server returned more than one PVs?"
+            assert len(data)==1, "Server returned more than one PVs? (%s)"%len(data)
 
             assert data[0]['name']==pv, "Server gives us some other PV?"
 
@@ -546,3 +553,66 @@ class Archive(object):
             N += Nc
 
         defer.returnValue(N)
+
+    @defer.inlineCallbacks
+    def fetchsnap(self, pvs, T=None,
+                  archs=None, chunkSize=100,
+                  enumAsInt=False):
+        """Fetch the value of all requested PVs at the given time
+        """
+        pvs = list(pvs)
+        archs = self._archname2key(archs)
+
+        # values() request time range is inclusive, so Tcur==Tlast is a no-op
+        sec,ns = Tcur = timeTuple(makeTime(T))
+        ns+=1000
+        if ns>1000000000:
+            ns-=1000000000
+            sec+=1
+        Tlast = sec, ns
+        del sec, ns
+
+        Npvs = len(pvs)
+        NGroups = 1+(Npvs/chunkSize)
+        assert NGroups>0
+        values, metas = np.zeros(Npvs, dtype=np.object), np.zeros(Npvs, dtype=dbr_time)
+
+        _log.debug('fetchsnap at %s %s pvs in %s groups from %s archs',
+                   Tcur, Npvs, NGroups, len(archs))
+
+        for igrp in range(NGroups):
+            Gpvs = pvs[igrp::NGroups]
+            if len(Gpvs)==0:
+                continue
+            Rval = values[igrp::NGroups]
+            Rmeta= metas[igrp::NGroups]
+
+            for arch in archs:
+                _log.debug('archiver.values(%s,%s,%s,%s,%d,%d)',
+                           self.__rarchs[arch],Gpvs,Tcur,Tlast,2,0)
+                D = self._proxy.callRemote('archiver.values',
+                                           arch, Gpvs,
+                                           Tcur[0], Tcur[1],
+                                           Tlast[0], Tlast[1],
+                                           2, 0).addErrback(_connerror)
+
+                D.addCallback(_optime, time.time())
+    
+                try:
+                    results = yield D
+                except:
+                    _log.fatal('Query fails')
+                    raise
+    
+                assert len(results)==len(Gpvs)
+                for idx, data in enumerate(results):
+                    assert data['name']==Gpvs[idx], 'Results arrived out of order'
+                    if len(data['values'])==0:
+                        continue # no data for this one...
+                    E = data['values'][-1]
+                    if Rval[idx] is not None and Rmeta[idx]['sec']>E['secs']:
+                        continue # too old
+                    Rval[idx] = E['value']
+                    Rmeta[idx] = (E['sevr'], E['stat'], E['secs'], E['nano'])
+
+        defer.returnValue((values, metas))
