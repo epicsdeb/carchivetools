@@ -28,13 +28,13 @@ par=OptionParser(
 # Select operation
 par.add_option('', '--helptime', action="store_true", default=False,
                help="Show help on date/time format")
-par.add_option('-I','--info', action="store_const", dest='act', const='info', default=act,
+par.add_option('--info', action="store_const", dest='act', const='info', default=act,
                help='Show archive server information')
-par.add_option('-S','--search', action="store_const", dest='act', const='grep',
+par.add_option('--search', action="store_const", dest='act', const='grep',
                help='Search for channels matching the given pattern(s)')
-par.add_option('-G','--get', action="store_const", dest='act', const='get',
+par.add_option('--get', action="store_const", dest='act', const='get',
                help='Retrieve data for given channels')
-par.add_option('-X','--snapshot', action="store_const", dest='act', const='snap',
+par.add_option('--snapshot', action="store_const", dest='act', const='snap',
                help='Retrieve data for given channels')
 par.add_option('-E','--export', metavar='TYPE', default=None,
                help="Retrieve data and write to file in the given format (eg. hdf5)")
