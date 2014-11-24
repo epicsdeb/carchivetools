@@ -15,6 +15,7 @@ __all__ = [
     'REGEXP',
     'RAW',
     'PLOTBIN',
+    'SNAPSHOT',
 ]
 
 # PV name pattern formats
@@ -25,6 +26,7 @@ REGEXP = 2
 # Data processing formats
 RAW = 10
 PLOTBIN = 11
+SNAPSHOT = 12
 
 _dft_conf = ['DEFAULT']
 _reactor = [None]
@@ -179,13 +181,19 @@ def arget(names, match = WILDCARD, mode = RAW,
             return arch.fetchplot(pv, cb, T0=start, Tend=end,
                                  count=count, chunkSize=chunkSize,
                                  enumAsInt=enumAsInt, archs=archs)
-    else:
+    elif mode!=SNAPSHOT:
         raise ValueError("Unknown plotting mode %d"%mode)
-
 
     arch = getArchive(conf)
 
     names = arsearch(names, match=match, archs=archs, conf=conf)
+
+    if mode==SNAPSHOT:
+        T = date.makeTime(start)
+        names = map(str, names) # strip ResultPV
+        V, M = _reactor[0].call(arch.fetchsnap, names, T=T,
+                                archs=archs, chunkSize=chunkSize)
+        return (names, V, M)
 
     if callback:
         args = [(fn, (str(name), _AddPV(name, callback)), {}) for name in names]

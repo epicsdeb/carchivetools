@@ -546,3 +546,66 @@ class Archive(object):
             N += Nc
 
         defer.returnValue(N)
+
+    @defer.inlineCallbacks
+    def fetchsnap(self, pvs, T=None,
+                  archs=None, chunkSize=100,
+                  enumAsInt=False):
+        """Fetch the value of all requested PVs at the given time
+        """
+        pvs = list(pvs)
+        if archs is None:
+            archs = self.__rarchs.keys()
+
+        # values() request time range is inclusive, so Tcur==Tlast is a no-op
+        sec,ns = Tcur = timeTuple(makeTime(T))
+        ns+=1
+        if ns>1000000:
+            ns-=1000000
+            sec+=1
+        Tlast = sec, ns
+        del sec, ns
+
+        Npvs = len(pvs)
+        NGroups = 1+(Npvs/chunkSize)
+        assert NGroups>0
+        values, metas = np.zeros(Npvs, dtype=np.object), np.zeros(Npvs, dtype=dbr_time)
+
+        _log.debug('fetchsnap at %s %s pvs in %s groups from %s archs',
+                   Tcur, Npvs, NGroups, len(archs))
+
+        for igrp in range(NGroups):
+            Gpvs = pvs[igrp::NGroups]
+            if len(Gpvs)==0:
+                continue
+            Rval = values[igrp::NGroups]
+            Rmeta= metas[igrp::NGroups]
+
+            for arch in archs:
+                _log.debug('archiver.values(%s,%s,%s,%s,%d,%d)',
+                           self.__rarchs[arch],Gpvs,Tcur,Tlast,2,0)
+                D = self._proxy.callRemote('archiver.values',
+                                           arch, Gpvs,
+                                           Tcur[0], Tcur[1],
+                                           Tlast[0], Tlast[1],
+                                           2, 0).addErrback(_connerror)
+
+                D.addCallback(_optime, time.time())
+    
+                try:
+                    results = yield D
+                except:
+                    _log.fatal('Query fails')
+                    raise
+    
+                assert len(results)==len(Gpvs)
+                for idx, data in enumerate(results):
+                    assert data['name']==Gpvs[idx], 'Results arrived out of order'
+                    if len(data['values'])==0:
+                        continue # no data for this one...
+                    _log.debug('Q %s %s', data['name'], len(data['values']))
+                    E = data['values'][-1]
+                    Rval[idx] = E['value']
+                    Rmeta[idx] = (E['sevr'], E['stat'], E['secs'], E['nano'])
+
+        defer.returnValue((values, metas))
