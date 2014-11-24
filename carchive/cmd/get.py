@@ -40,7 +40,7 @@ class Printer(object):
                 print ', '.join(map(str,data[i,:].tolist()))
 
 @defer.inlineCallbacks
-def cmd(archive=None, opt=None, args=None, conf=None, **kws):
+def cmd(archive=None, opt=None, args=None, conf=None, breakDown=None, **kws):
     if opt.how=='raw':
         op = archive.fetchraw
     elif opt.how=='plot':
@@ -48,12 +48,8 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
     else:
         raise ValueError('Unknown plot type %s'%opt.how)
 
+    archs=opt.archive
     printData = Printer(opt)
-
-    archs=set()
-    for ar in opt.archive:
-        archs|=set(archive.archives(pattern=ar))
-    archs=list(archs)
 
     if len(args)==0:
         print 'Missing PV names'
@@ -69,7 +65,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
         print pv
         D = yield op(pv, printData, archs=archs,
                      cbArgs=(archive,),
-                     T0=T0, Tend=Tend,
+                     T0=T0, Tend=Tend, breakDown=breakDown,
                      count=count, chunkSize=opt.chunk,
                      enumAsInt=opt.enumAsInt)
 

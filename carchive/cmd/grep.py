@@ -12,10 +12,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
 
     _log.debug('Searching for: %s',args)
 
-    archs=set()
-    for ar in opt.archive:
-        archs|=set(archive.archives(pattern=ar))
-    archs=list(archs)
+    archs=opt.archive
     _log.info('Looking in: %s',', '.join(archs))
 
     res = {}

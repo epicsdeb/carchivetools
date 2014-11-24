@@ -26,7 +26,7 @@ par=OptionParser(
     )
 
 # Select operation
-par.add_option('', '--helptime', action="store_true", default=False,
+par.add_option('--helptime', action="store_true", default=False,
                help="Show help on date/time format")
 par.add_option('--info', action="store_const", dest='act', const='info', default=act,
                help='Show archive server information')
@@ -38,6 +38,13 @@ par.add_option('--snapshot', action="store_const", dest='act', const='snap',
                help='Retrieve data for given channels')
 par.add_option('-E','--export', metavar='TYPE', default=None,
                help="Retrieve data and write to file in the given format (eg. hdf5)")
+
+par.add_option('--exact', action='store_const', dest='match', const='exact',
+               default='exact')
+par.add_option('-W','--wildcard', action='store_const', dest='match',
+               const='wild')
+par.add_option('-R','--regexp', action='store_const', dest='match',
+               const='regexp')
 
 # Query options
 par.add_option('-s','--start', metavar='TIME',
@@ -133,13 +140,30 @@ def haveArchive(act, opt, args, conf):
             defer.returnValue(None)
         else:
             raise
-    
-    try:
-        done = mod.cmd(action=act, archive=serv,
-                       opt=opt, args=args,
-                       conf=conf)
 
-        yield done
+    if opt.match=='wild':
+        from carchive.util import wild2re
+        args = map(wild2re, args)
+        opt.match='regexp'
+
+    opt.archive=serv.archives(pattern=opt.archive)
+
+    breakDown = None
+    if opt.match=='regexp':
+        breakDown={}
+        for arg in args:
+            result = yield serv.search(pattern=arg, archs=opt.archive,
+                                       breakDown=True, rawTime=True)
+            breakDown.update(result)
+        args = breakDown.keys()
+        if len(args)==0:
+            print 'Provided pattern(s) did not match any PV'
+            defer.returnValue(None)
+
+    try:
+        yield mod.cmd(action=act, archive=serv,
+                      opt=opt, args=args,
+                      conf=conf, breakDown=breakDown)
     except HandledError:
         pass
     except:

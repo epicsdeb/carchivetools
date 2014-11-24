@@ -565,9 +565,9 @@ class Archive(object):
 
         # values() request time range is inclusive, so Tcur==Tlast is a no-op
         sec,ns = Tcur = timeTuple(makeTime(T))
-        ns+=1
-        if ns>1000000:
-            ns-=1000000
+        ns+=1000
+        if ns>1000000000:
+            ns-=1000000000
             sec+=1
         Tlast = sec, ns
         del sec, ns

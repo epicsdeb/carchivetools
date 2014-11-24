@@ -19,8 +19,6 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
     else:
         raise ValueError("Invalid time format %s"%opt.timefmt)
 
-    archs=archive.archives(pattern=opt.archive)
-
     if len(args)==0:
         print 'Missing PV names'
         defer.returnValue(0)
@@ -29,6 +27,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
 
     _log.debug("Time: %s", T)
 
+    archs=opt.archive
 
     vals, metas = yield archive.fetchsnap(args, archs=archs,
                      T=T, chunkSize=opt.chunk,
