@@ -6,17 +6,23 @@ arget, argrep, arinfo - CLI tools to query Channel Archiver
 
 arinfo [common options]
 
-argrep [common options] <regex pattern>
+argrep [common options] [-R] <regex patterns...>
 
-arget [common options] [get options] <pv names...>
+argrep [common options] -W <wildcard patterns...>
 
-arget [common options] -E hdf5 [get options] <hdf file[:path]> <pv names...>
+argrep [common options] --exact <pv names...>
+
+arget [common options] [get options] [-W,-R,--exact] <patterns...>
+
+arget [common options] -E hdf5 [get options] [-W,-R,--exact] <hdf file[:path]> <patterns...>
+
+arsnap [common options] [get options] [-W,-R,--exact] <patterns...>
 
 =head1 DESCRIPTION
 
 These utilities will attempt to contact a Channel Archiver Data Server
-using the HTTP protocol.  The server configuration is determined by
-a configuration file and the B<-u> argument.
+or an Archiver Appliance.  The server configuration is determined by
+a configuration file and the B<-C> argument.
 
 I<arinfo> serves the purpose of listing which archive sections will
 by queries by default, or with a given set of B<-a> options.
@@ -24,7 +30,9 @@ by queries by default, or with a given set of B<-a> options.
 I<argrep> serves to find which PVs in the given archive sections
 match the given regular expression.
 
-I<arget> retrieves data and can either write it to the screen, or an HDF5 file.
+I<arget> retrieves data for a time range and can either write it to the screen, or an HDF5 file.
+
+I<arsnap> retrieves data for a single time and prints it to screen.
 
 =head1 OPTIONS
 
@@ -36,7 +44,7 @@ I<arget> retrieves data and can either write it to the screen, or an HDF5 file.
 
 Show help message
 
-=item B<-I>, B<-S>, B<-G>
+=item B<--info>, B<--search>, B<--get>
 
 Select operation to perform.  Normally this is implicit in the executable name.
 I<arinfo> is a synonym for I<arget -I>.

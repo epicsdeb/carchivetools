@@ -1,13 +1,14 @@
 [DEFAULT]
 
-# Specify on of (possibly) several server configurations
-#defaultarchive=myarchiver
-
 # Retrieval URL is required
 # (default)
 #url = http://%(host)s/cgi-bin/ArchiveDataServer.cgi
 # or for an Archiver Appliance
 #url = http://%(host)s/mgmt/bpl/getApplianceInfo
+
+# Configure server type
+#urltype = classic
+#urltype = appl
 
 # Gives the default hostname used if no specific configuration is requested
 #host=hostname:port
@@ -30,4 +31,5 @@
 # A subsection is specified by
 #  $ arget -C myarchiver ...
 
-#host=myarchiver.some.host.local:8888
+#urltype = appl
+#host=http://hostname:17665/mgmt/bpl/getApplianceInfo

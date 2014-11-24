@@ -66,7 +66,6 @@ def loadConfig(N):
           'host':'%%(host)s',
           'defaultarchs':'*',
           'defaultcount':'0',
-          'defaultarchive':'DEFAULT',
           'maxrequests':'10',
           'maxquery':'30',
         }
