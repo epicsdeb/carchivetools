@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import sys, os.path, logging
+import sys, os.path, logging, re
 from optparse import OptionParser
 
 from twisted.internet import reactor, defer
@@ -39,8 +39,7 @@ par.add_option('--snapshot', action="store_const", dest='act', const='snap',
 par.add_option('-E','--export', metavar='TYPE', default=None,
                help="Retrieve data and write to file in the given format (eg. hdf5)")
 
-par.add_option('--exact', action='store_const', dest='match', const='exact',
-               default='exact')
+par.add_option('--exact', action='store_const', dest='match', const='exact')
 par.add_option('-W','--wildcard', action='store_const', dest='match',
                const='wild')
 par.add_option('-R','--regexp', action='store_const', dest='match',
@@ -120,6 +119,9 @@ act = opt.act
 if opt.export=='hdf5':
     act='h5export'
 
+if act=='grep' and not opt.match:
+    opt.match='regexp'
+
 @defer.inlineCallbacks
 def haveArchive(act, opt, args, conf):
 
@@ -153,6 +155,17 @@ def haveArchive(act, opt, args, conf):
         breakDown={}
         for arg in args:
             result = yield serv.search(pattern=arg, archs=opt.archive,
+                                       breakDown=True, rawTime=True)
+            breakDown.update(result)
+        args = breakDown.keys()
+        if len(args)==0:
+            print 'Provided pattern(s) did not match any PV'
+            defer.returnValue(None)
+
+    else:
+        breakDown={}
+        for arg in args:
+            result = yield serv.search(exact=arg, archs=opt.archive,
                                        breakDown=True, rawTime=True)
             breakDown.update(result)
         args = breakDown.keys()
