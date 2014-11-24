@@ -458,3 +458,9 @@ class Appliance(object):
         callback(values, metas, *cbArgs, **cbKWs)
 
         defer.returnValue(nsamp)
+
+    def fetchsnap(self, pvs, T=None,
+                  archs=None, chunkSize=100,
+                  enumAsInt=False):
+
+        raise NotImplementedError("fetchsnap operation not implemented")
