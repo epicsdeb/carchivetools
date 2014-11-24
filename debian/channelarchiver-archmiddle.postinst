@@ -5,10 +5,6 @@ configure)
     adduser --system --home /var/log/archmiddle --ingroup nogroup \
       --no-create-home --disabled-password archmiddle > /dev/null 2>&1
   fi
-  if [ -x /etc/init.d/channelarchiver-archmiddle ]
-  then
-    update-rc.d channelarchiver-archmiddle defaults 99
-  fi
   ;;
 abort-upgrade|abort-remove|abort-deconfigure)
   ;;

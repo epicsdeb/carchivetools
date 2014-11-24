@@ -3,7 +3,7 @@ Section: python
 Priority: optional
 Maintainer: Michael Davidsaver <mdavidsaver@bnl.gov>
 Build-Depends: debhelper (>= 7.0.50~),
-               python-all-dev,
+               python-all-dev, python-support (>= 0.90),
                python-numpy,
                python-twisted-core, python-twisted-web,
                protobuf-compiler, libprotobuf-dev,
@@ -14,12 +14,12 @@ Homepage: https://github.com/epicsdeb/carchivetools
 Vcs-Git: https://github.com/epicsdeb/carchivetools
 
 Package: carchivetools
-Architecture: all
+Architecture: any
 Depends: ${shlibs:Depends}, ${python:Depends},
          python-numpy,
          python-twisted-core, python-twisted-web,
          python-protobuf,
-         ${misc:Depends},
+         python-support (>= 0.90), ${misc:Depends},
 XB-Python-Version: ${python:Versions}
 Description: CLI utilities to query EPICS data archiver systems
  Tools to query and extract data from the EPICS
@@ -29,21 +29,23 @@ Description: CLI utilities to query EPICS data archiver systems
 Package: channelarchiver-a2aproxy
 Architecture: any
 Depends: carchivetools (>= ${source:Version}), carchivetools (<< ${source:Version}.1~),
-         ${misc:Depends},
+         python-support (>= 0.90), ${misc:Depends},
+         adduser,
 Suggests: channelarchiver-dataserver
 XB-Python-Version: ${python:Versions}
 Description: Proxies requests from a Channel Archiver Client to an Archiver Appliance
  Acts as a server for Channel Archiver Dataserver requests and as a client
- to an Archiver Appliance server.
- Allows legacy Channel Archiver client appliactions to transparently use Archiver
- Appliance.
+ to an Archiver Appliance server. Allows legacy Channel Archiver client
+ appliactions to transparently use Archiver Appliance.
 
 Package: channelarchiver-archmiddle
 Architecture: any
 Depends: carchivetools (>= ${source:Version}), carchivetools (<< ${source:Version}.1~),
-         ${misc:Depends},
+         python-support (>= 0.90), ${misc:Depends},
+         adduser,
 Suggests: channelarchiver-dataserver
 XB-Python-Version: ${python:Versions}
 Description: Proxy which hides some of the complexity of configuring a Archiver Client
- Transforms a single client query to several parallel server queries on different keys
- and combines the results.  Useful when an overall index is not available.
+ Transforms a single client query to several parallel server queries on
+ different keys and combines the results.  Useful when an overall index is
+ not available.

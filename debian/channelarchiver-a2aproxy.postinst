@@ -5,10 +5,6 @@ configure)
     adduser --system --home /var/log/a2aproxy --ingroup nogroup \
       --no-create-home --disabled-password a2aproxy > /dev/null 2>&1
   fi
-  if [ -x /etc/init.d/channelarchiver-a2aproxy ]
-  then
-    update-rc.d channelarchiver-a2aproxy defaults 99
-  fi
   ;;
 abort-upgrade|abort-remove|abort-deconfigure)
   ;;

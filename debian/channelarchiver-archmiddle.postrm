@@ -15,8 +15,6 @@ purge)
                 userdel archmiddle || echo "WARNING: problem removing user archmiddle"
         fi
 
-        update-rc.d channelarchiver-archmiddle remove >/dev/null
-
         ;;
 remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
         ;;

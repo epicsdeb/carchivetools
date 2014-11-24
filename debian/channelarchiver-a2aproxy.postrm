@@ -15,8 +15,6 @@ purge)
                 userdel a2aproxy || echo "WARNING: problem removing user a2aproxy"
         fi
 
-        update-rc.d channelarchiver-a2aproxy remove >/dev/null
-
         ;;
 remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
         ;;

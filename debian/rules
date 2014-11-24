@@ -23,3 +23,10 @@ override_dh_install:
 	cp debian/carchivetools/etc/carchive.conf.example debian/carchivetools/etc/carchive.conf
 	cp debian/channelarchiver-archmiddle/etc/archmiddle.conf debian/channelarchiver-archmiddle/etc/archmiddle.conf.example
 
+override_dh_pysupport:
+	dh_pysupport
+	dh_numpy
+
+override_dh_installinit:
+	# this service isn't critical, don't abort install because it won't start
+	dh_installinit --error-handler=true
