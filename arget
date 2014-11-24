@@ -15,6 +15,8 @@ elif pname.startswith('argrep'):
     act='grep'
 elif pname.startswith('arget'):
     act='get'
+elif pname.startswith('arsnap'):
+    act='snap'
 elif pname.startswith('arh5export'):
     act='h5export'
 
@@ -26,11 +28,13 @@ par=OptionParser(
 # Select operation
 par.add_option('', '--helptime', action="store_true", default=False,
                help="Show help on date/time format")
-par.add_option('-I','--info', action="store_true", default=False,
+par.add_option('-I','--info', action="store_const", dest='act', const='info', default=act,
                help='Show archive server information')
-par.add_option('-S','--search', action="store_true", default=False,
+par.add_option('-S','--search', action="store_const", dest='act', const='grep',
                help='Search for channels matching the given pattern(s)')
-par.add_option('-G','--get', action="store_true", default=False,
+par.add_option('-G','--get', action="store_const", dest='act', const='get',
+               help='Retrieve data for given channels')
+par.add_option('-X','--snapshot', action="store_const", dest='act', const='snap',
                help='Retrieve data for given channels')
 par.add_option('-E','--export', metavar='TYPE', default=None,
                help="Retrieve data and write to file in the given format (eg. hdf5)")
@@ -105,13 +109,8 @@ conf = loadConfig(opt.conf)
 if len(opt.archive)==0:
     opt.archive = conf.get('defaultarchs','*').split()
 
-if opt.info:
-    act='info'
-elif opt.search:
-    act='grep'
-elif opt.get:
-    act='get'
-elif opt.export=='hdf5':
+act = opt.act
+if opt.export=='hdf5':
     act='h5export'
 
 @defer.inlineCallbacks

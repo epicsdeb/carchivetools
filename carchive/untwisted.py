@@ -193,7 +193,7 @@ def arget(names, match = WILDCARD, mode = RAW,
     names = arsearch(names, match=match, archs=archs, conf=conf)
 
     if mode==SNAPSHOT:
-        T = date.makeTime(start)
+        T = date.makeTimeInterval(start, None)[0]
         names = map(str, names) # strip ResultPV
         V, M = _reactor[0].call(arch.fetchsnap, names, T=T,
                                 archs=archs, chunkSize=chunkSize)

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
-_log = logging.getLogger("argrep")
+_log = logging.getLogger("arget")
 
 from twisted.internet import defer
 
