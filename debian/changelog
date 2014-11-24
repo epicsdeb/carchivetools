@@ -1,3 +1,13 @@
+carchivetools (2.0) UNRELEASED; urgency=low
+
+  * Support Archiver Appliance backend
+  * a2a proxy (Archiver to Appliance) protocol translater
+  * archmiddle a Channel Archiver proxy to simplify client configuration
+  * add plot binning query
+  * add snapshot query (Channel Archiver only)
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Mon, 24 Nov 2014 16:52:15 -0500
+
 carchivetools (1.9) unstable; urgency=low
 
   * Fix mis-match in time range definitions between search and retrieve
