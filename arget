@@ -162,7 +162,7 @@ def haveArchive(act, opt, args, conf):
             print 'Provided pattern(s) did not match any PV'
             defer.returnValue(None)
 
-    else:
+    elif len(args)>0:
         breakDown={}
         for arg in args:
             result = yield serv.search(exact=arg, archs=opt.archive,
