@@ -1,0 +1,3 @@
+archmiddle.conf /etc
+usr/lib/python*/dist-packages/carchive/archmiddle
+usr/lib/python*/dist-packages/twisted/plugins/archmiddle.py

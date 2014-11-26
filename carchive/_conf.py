@@ -12,6 +12,10 @@ class ConfigDict(object):
     def __iter__(self):
         return iter(self._P.options(self._S))
 
+    def iteritems(self):
+        for K in self._P.options(self._S):
+            yield (K, self[K])
+
     def __contains__(self, k):
         return self._P.has_option(self._S, k)
 
@@ -62,7 +66,6 @@ def loadConfig(N):
           'host':'%%(host)s',
           'defaultarchs':'*',
           'defaultcount':'0',
-          'defaultarchive':'DEFAULT',
           'maxrequests':'10',
           'maxquery':'30',
         }

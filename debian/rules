@@ -4,7 +4,7 @@
 export DH_VERBOSE=1
 
 %:
-	dh $@
+	dh -Spython_distutils $@
 binary: binary-arch binary-indep
 binary-arch binary-indep: install
 install: build
@@ -19,5 +19,14 @@ override_dh_auto_clean:
 	rm -f arget.1 arplothdf5.1
 
 override_dh_install:
-	dh_install
+	dh_install --fail-missing
 	cp debian/carchivetools/etc/carchive.conf.example debian/carchivetools/etc/carchive.conf
+	cp debian/channelarchiver-archmiddle/etc/archmiddle.conf debian/channelarchiver-archmiddle/etc/archmiddle.conf.example
+
+override_dh_pysupport:
+	dh_pysupport
+	dh_numpy
+
+override_dh_installinit:
+	# this service isn't critical, don't abort install because it won't start
+	dh_installinit --error-handler=true

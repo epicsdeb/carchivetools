@@ -1,3 +1,26 @@
+carchivetools (2.0) UNRELEASED; urgency=low
+
+  * Support Archiver Appliance backend
+  * a2a proxy (Archiver to Appliance) protocol translater
+  * archmiddle a Channel Archiver proxy to simplify client configuration
+  * add plot binning query
+  * add snapshot query (Channel Archiver only)
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Mon, 24 Nov 2014 16:52:15 -0500
+
+carchivetools (1.9) unstable; urgency=low
+
+  * Fix mis-match in time range definitions between search and retrieve
+    calls to ensure that the last sample in an archive section can be
+    retrieved.
+  * document Archive inferface
+  * Add carchive.untwisted module
+    Simple API callable from outside the twisted reactor thread.
+  * handle dates as unicode string
+  * Document --time= argument in manpage
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Fri, 14 Nov 2014 13:29:21 -0500
+
 carchivetools (1.8) unstable; urgency=low
 
   * Add carchive.backend to setup.py

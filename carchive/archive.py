@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import logging
+_log = logging.getLogger(__name__)
 
 import threading
 
@@ -9,10 +11,14 @@ from twisted.internet import defer
 try:
     from .backend import classic
 except ImportError:
+    if _log.isEnabledFor(logging.DEBUG):
+        _log.exception("Failed to import classic backend")
     classic=None
 try:
     from .backend import appl
 except ImportError:
+    if _log.isEnabledFor(logging.DEBUG):
+        _log.exception("Failed to import appliance backend")
     appl=None
 
 def getArchive(conf):
@@ -70,6 +76,7 @@ class ReactorRunner(object):
         self.reactor.callFromThread(wrapper)
         E.wait()
         if isinstance(result[0], failure.Failure):
+            _log.error(result[0]) #TODO: not re-raising correctly...
             result[0].raiseException()
         else:
             return result[0]
@@ -100,6 +107,8 @@ class ReactorRunner(object):
                 E.set()
         self.reactor.callFromThread(wrapper)
         E.wait()
+        if isinstance(result[0], failure.Failure):
+            result[0].raiseException()
         R = [None]*len(result[0])
         for i,(ok,res) in enumerate(result[0]):
             if dothrow and not ok:

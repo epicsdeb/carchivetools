@@ -15,6 +15,7 @@ __all__ = [
     'REGEXP',
     'RAW',
     'PLOTBIN',
+    'SNAPSHOT',
 ]
 
 # PV name pattern formats
@@ -25,6 +26,7 @@ REGEXP = 2
 # Data processing formats
 RAW = 10
 PLOTBIN = 11
+SNAPSHOT = 12
 
 _dft_conf = ['DEFAULT']
 _reactor = [None]
@@ -62,7 +64,7 @@ class ResultPV(str):
     breakDown = None
 
 def arsearch(names, match = WILDCARD,
-             archs=None, conf=None,
+             archs='*', conf=None,
              breakDown=False):
     """Fetch a list of PV names matching the given pattern(s)
     
@@ -79,9 +81,11 @@ def arsearch(names, match = WILDCARD,
         names = [names]
 
     if match==EXACT:
-        names = map(re.escape, names)
+        names = ['^'+re.escape(N)+'$' for N in names]
     elif match==WILDCARD:
         names = map(util.wild2re, names)
+    
+    archs = _reactor[0].call(arch.archives, archs)
 
     res = _reactor[0].callAll([(arch.search, (), {'pattern':N,'archs':archs,'breakDown':breakDown}) for N in names])
 
@@ -119,7 +123,7 @@ def arget(names, match = WILDCARD, mode = RAW,
           start = None, end = None,
           count = None,
           callback = None, chunkSize = 100,
-          archs = None, conf=None,
+          archs = '*', conf=None,
           enumAsInt=False):
     """Fetch archive data.
     
@@ -161,29 +165,39 @@ def arget(names, match = WILDCARD, mode = RAW,
     scalar = False
     if isinstance(names, (str, unicode)):
         scalar, names = True, [names]
+    if scalar:
+      assert len(names)==1, str(names)
 
     if mode==PLOTBIN and count is None:
         raise ValueError("PLOTBIN requires sample count")
 
     start, end = date.makeTimeInterval(start, end)
 
+    arch = getArchive(conf)
+    
+    archs = _reactor[0].call(arch.archives, archs)
+
     if mode==RAW:
         def fn(pv, cb):
             return arch.fetchraw(pv, cb, T0=start, Tend=end,
                                  count=count, chunkSize=chunkSize,
-                                 enumAsInt=enumAsInt)
+                                 enumAsInt=enumAsInt, archs=archs)
     elif mode==PLOTBIN:
         def fn(pv, cb):
             return arch.fetchplot(pv, cb, T0=start, Tend=end,
                                  count=count, chunkSize=chunkSize,
-                                 enumAsInt=enumAsInt)
-    else:
+                                 enumAsInt=enumAsInt, archs=archs)
+    elif mode!=SNAPSHOT:
         raise ValueError("Unknown plotting mode %d"%mode)
 
-
-    arch = getArchive(conf)
-
     names = arsearch(names, match=match, archs=archs, conf=conf)
+
+    if mode==SNAPSHOT:
+        T = date.makeTimeInterval(start, None)[0]
+        names = map(str, names) # strip ResultPV
+        V, M = _reactor[0].call(arch.fetchsnap, names, T=T,
+                                archs=archs, chunkSize=chunkSize)
+        return (names, V, M)
 
     if callback:
         args = [(fn, (str(name), _AddPV(name, callback)), {}) for name in names]
@@ -206,6 +220,7 @@ def arget(names, match = WILDCARD, mode = RAW,
 
     if scalar:
         assert len(ret)==1
+        assert len(names)==1
         return ret[names.pop()]
 
     return ret
