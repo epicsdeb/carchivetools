@@ -33,3 +33,12 @@ See the [example configuration](carchive.conf.example) for details.
 * /etc/carchive.conf
 * $HOME/.carchiverc
 * $PWD/carchiver.conf
+
+Development Builds
+------------------
+
+Those wishing to make modifications to this code may find it easier to
+do an in-place build of the pbdecode Extension (as opposed to "setup.py install").
+
+    $ python setup.py build_protobuf -i
+    $ python setup.py build_ext -i
