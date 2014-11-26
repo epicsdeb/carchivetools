@@ -2,6 +2,13 @@ import re
 import os
 import platform
 
+def make_sure_path_exists(path):
+    try:
+        os.makedirs(path)
+    except OSError as exception:
+        if not os.path.isdir(path):
+            raise
+
 def get_dir_and_prefix(out_dir, delimiters, pv_name):
     regexPattern = '|'.join(map(re.escape, delimiters))
     path_components = [out_dir] + re.split(regexPattern, pv_name)
@@ -9,6 +16,7 @@ def get_dir_and_prefix(out_dir, delimiters, pv_name):
 
 def get_path_for_suffix(out_dir, delimiters, pv_name, time_suffix):
     dir_path, file_prefix = get_dir_and_prefix(out_dir, delimiters, pv_name)
+    make_sure_path_exists(dir_path)        
     name = '{}:{}.pb'
     if platform.system() == 'Windows':
         name = '{}@{}.pb'
