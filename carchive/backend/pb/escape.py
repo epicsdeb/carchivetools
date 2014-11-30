@@ -1,6 +1,12 @@
 # Archiver PB files are split by lines. The first line is some header information.
 # The remaining lines are samples. In these samples some characters are escaped.
 # The escaping rules were obtained from LineEscaper.java.
+import re
+try:
+    from carchive.backend.pbdecode import unescape
+except ImportError:
+    cppunescape=None
+
 
 NEWLINE_CHAR = '\x0A'
 
@@ -16,32 +22,37 @@ _UNESCAPE_MAP = {
     '\x03': '\x0D',
 }
 
-
+R=re.compile(r'[\x1b\x0a\x0d]')
+def X(M):
+    return _ESCAPE_MAP[M.group(0)]
+    
 def escape_line(data):
-    return ''.join(_ESCAPE_MAP[c] if c in _ESCAPE_MAP else c for c in data) + NEWLINE_CHAR
-
+    #return ''.join(_ESCAPE_MAP[c] if c in _ESCAPE_MAP else c for c in data) + NEWLINE_CHAR
+    return R.sub(X, data) + NEWLINE_CHAR
 
 class UnescapeError(Exception):
     pass
 
 def unescape_data(data):
-    res = ''
-    i = 0
-    l = len(data)
-    while i < l:
-        c = data[i]
-        i += 1
-        if c == '\x1B':
-            if not i < l:
-                raise UnescapeError('Short escape sequence')
-            d = data[i]
+    if cppunescape:
+        return unescape(data)
+    else:
+        res = ''
+        i = 0
+        l = len(data)
+        while i < l:
+            c = data[i]
             i += 1
-            if d not in _UNESCAPE_MAP:
-                raise UnescapeError('Invalid escape sequence')
-            c = _UNESCAPE_MAP[d]
-        res += c
-    return res
-
+            if c == '\x1B':
+                if not i < l:
+                    raise UnescapeError('Short escape sequence')
+                d = data[i]
+                i += 1
+                if d not in _UNESCAPE_MAP:
+                    raise UnescapeError('Invalid escape sequence')
+                c = _UNESCAPE_MAP[d]
+            res += c
+        return res
 
 class IterationError(Exception):
     pass

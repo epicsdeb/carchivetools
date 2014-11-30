@@ -1,17 +1,19 @@
 from __future__ import print_function
 import math
 import datetime
-from carchive.pb import EPICSEvent_pb2 as pbt
-from carchive.pb import dtypes as pb_dtypes
-from carchive.pb import appender as pb_appender
+from carchive.backend import EPICSEvent_pb2 as pbt
+from carchive.backend.pb import dtypes as pb_dtypes
+from carchive.backend.pb import appender as pb_appender
+from carchive.backend.pb import mysql
 
 class SkipPvError(Exception):
     pass
 
 class Exporter(object):
-    def __init__(self, pv_name, gran, out_dir, delimiters, ignore_ts_start, pvlog):
+    def __init__(self, pv_name, gran, out_dir, delimiters, ignore_ts_start, pvlog, mysql_writer=None):
         self._pv_name = pv_name
         self._pvlog = pvlog
+        self._mysql_writer = mysql_writer
         self._orig_type = None
         self._is_waveform = None
         self._type_desc = None
@@ -19,6 +21,10 @@ class Exporter(object):
         self._last_meta = {}
         self._last_meta_day = None
         self._meta_dirty = True
+        self._previous_disconnected_event = None
+        self._previous_dt_seconds = None
+        self._previous_nano = None
+        self._pv_disconnected = False
         self._appender = pb_appender.Appender(pv_name, gran, out_dir, delimiters, ignore_ts_start, pvlog)
     
     # with statement entry
@@ -33,7 +39,8 @@ class Exporter(object):
     def __call__(self, data, meta_vec, extraMeta):
         # Get data type of chunk.
         orig_type = extraMeta['orig_type']
-        is_waveform = extraMeta['reported_arr_size'] != 1
+        array_size = extraMeta['reported_arr_size']
+        is_waveform = array_size != 1
         
         # Got first chunk?
         if self._orig_type is None:
@@ -81,10 +88,27 @@ class Exporter(object):
             
             # Process the sample.
             self._process_sample(value, int(meta[0]), int(meta[1]), int(meta[2]), int(meta[3]))
+                    
+        if self._mysql_writer is not None:
+            the_meta = extraMeta['the_meta']
+            pv_type =  pb_dtypes.get_pv_type(orig_type,self._is_waveform)
+            self._mysql_writer.put_pv_info(self._pv_name, the_meta['disp_high'], the_meta['disp_low'],
+                                             the_meta['alarm_high'], the_meta['alarm_low'],
+                                             the_meta['warn_high'], the_meta['warn_low'],
+                                             the_meta['disp_high'], the_meta['disp_low'],
+                                             the_meta['prec'], the_meta['units'], 
+                                             not self._is_waveform, array_size,
+                                             pv_type)
+        
+    def write_last_disconnected(self):
+        if self._previous_disconnected_event is not None:
+            self._write_previous()
+        if self._pv_disconnected:
+            self._mysql_writer.pv_disconnected(self._pv_name)
     
     def _process_sample(self, value, sevr, stat, secs, nano):
         #print('sample VAL={} SEVR={} STAT={} SECS={} NANO={}'.format(value, sevr, stat, secs, nano))
-        
+
         # Build a datetime for the whole seconds.
         # Track nanoseconds separately to avoid time conversion errors.
         dt_seconds = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=secs)
@@ -97,6 +121,24 @@ class Exporter(object):
             self._type_desc.encode_scalar(value, sample_pb)
         sample_pb.severity = sevr
         sample_pb.status = stat
+        #if the severity is 'Disconnected(3904)' skip writing this sample and write it later
+        if sevr == 3904:
+            if self._previous_disconnected_event is None:
+                sample_pb.fieldvalues.extend([pbt.FieldValue(name='cnxlostepsecs', val='{}'.format(secs))])
+                sample_pb.severity = 0
+                sample_pb.status = 0
+                self._previous_disconnected_event = sample_pb
+                self._previous_dt_seconds = dt_seconds
+                self._previous_nano = nano
+            self._pv_disconnected = True
+            return
+        elif sevr == 3872 or sevr == 3848:
+            self._pv_disconnected = True
+        else:
+            if self._previous_disconnected_event is not None:
+                self._previous_disconnected_event.fieldvalues.extend([pbt.FieldValue(name='cnxregainedepsecs', val='{}'.format(secs))])
+                self._write_previous()
+            self._pv_disconnected = False
         
         # Force metadata on new day (unless there are no samples for a day...).
         sample_day = dt_seconds.date()
@@ -123,6 +165,13 @@ class Exporter(object):
     
     def _waveform_size_bad(self, data, extraMeta):
         return self._is_waveform and data.shape[1] != extraMeta['reported_arr_size']
+    
+    def _write_previous(self):
+        try:
+            self._appender.write_sample(self._previous_disconnected_event, self._previous_dt_seconds, self._previous_nano, self._pb_type)
+        except pb_appender.AppenderError as e:
+            raise SkipPvError(e)
+        self._previous_disconnected_event = None
 
 META_MAP = {
     'units': 'EGU',

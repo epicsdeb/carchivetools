@@ -1,8 +1,8 @@
 from __future__ import print_function
 import google.protobuf as protobuf
-from carchive.pb import EPICSEvent_pb2 as pbt
-from carchive.pb import escape as pb_escape
-from carchive.pb import dtypes as pb_dtypes
+from carchive.backend import EPICSEvent_pb2 as pbt
+from carchive.backend.pb import escape as pb_escape
+from carchive.backend.pb import dtypes as pb_dtypes
 
 class EmptyFileError(Exception):
     pass

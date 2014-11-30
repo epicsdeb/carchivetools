@@ -1,8 +1,8 @@
 from __future__ import print_function
 import os
 import errno
-from carchive.pb import filepath as pb_filepath
-from carchive.pb import verify as pb_verify
+from carchive.backend.pb import filepath as pb_filepath
+from carchive.backend.pb import verify as pb_verify
 
 class FindLastSampleError(Exception):
     pass

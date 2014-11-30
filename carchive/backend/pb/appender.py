@@ -1,9 +1,9 @@
 from __future__ import print_function
 import datetime
-from carchive.pb import EPICSEvent_pb2 as pbt
-from carchive.pb import escape as pb_escape
-from carchive.pb import filepath as pb_filepath
-from carchive.pb import verify as pb_verify
+from carchive.backend import EPICSEvent_pb2 as pbt
+from carchive.backend.pb import escape as pb_escape
+from carchive.backend.pb import filepath as pb_filepath
+from carchive.backend.pb import verify as pb_verify
 
 class AppenderError(Exception):
     pass

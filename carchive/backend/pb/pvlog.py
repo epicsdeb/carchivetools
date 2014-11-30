@@ -1,5 +1,6 @@
 from __future__ import print_function
-
+import logging
+    
 class SeverityError(object):
     TEXT = 'ERROR'
 
@@ -15,6 +16,7 @@ class PvLog(object):
         self._archived_count = 0
         self._initial_ignored_count = 0
         self._messages = []
+        self._log = logging.getLogger('carchive.backend.pb.{}'.format(pv_name))
     
     def archived_sample(self):
         self._archived_count += 1
@@ -25,16 +27,19 @@ class PvLog(object):
     def message(self, text, severity):
         msg = {'text': text, 'severity': severity}
         self._messages.append(msg)
-        print('{}'.format(self._format_message(msg)))
+        #print('{}'.format(self._format_message(msg)))
     
     def error(self, text):
         self.message(text, severity=SeverityError)
+        self._log.error(text)
     
     def warning(self, text):
         self.message(text, severity=SeverityWarning)
+        self._log.warning(text)
     
     def info(self, text):
         self.message(text, severity=SeverityInfo)
+        self._log.info(text)
     
     def has_errors(self):
         return any((msg['severity'] is SeverityError) for msg in self._messages)
@@ -42,8 +47,8 @@ class PvLog(object):
     def build_report(self):
         error_count = sum((msg['severity'] is SeverityError) for msg in self._messages)
         warning_count = sum((msg['severity'] is SeverityWarning) for msg in self._messages)
-        header_row = '{}: Archived={}, InitialIgnored={}, Errors={}, Warnings={}\n'.format(self._pv_name, self._archived_count, self._initial_ignored_count, error_count, warning_count)
-        message_rows = ''.join('  {}\n'.format(self._format_message(msg)) for msg in self._messages if msg['severity'] is not SeverityInfo)
+        header_row = '{}: Archived={}, InitialIgnored={}, Errors={}, Warnings={}'.format(self._pv_name, self._archived_count, self._initial_ignored_count, error_count, warning_count)
+        message_rows = ''.join('  {}'.format(self._format_message(msg)) for msg in self._messages if msg['severity'] is not SeverityInfo)
         return header_row + message_rows
     
     def _format_message(self, msg):

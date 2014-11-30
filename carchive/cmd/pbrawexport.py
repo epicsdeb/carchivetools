@@ -3,21 +3,24 @@
 from __future__ import print_function
 import datetime
 from twisted.internet import defer
-from carchive.pb import granularity as pb_granularity
-from carchive.pb import exporter as pb_exporter
-from carchive.pb import last as pb_last
-from carchive.pb import timestamp as pb_timestamp
-from carchive.pb import pvlog as pb_pvlog
+from carchive.backend.pb import granularity as pb_granularity
+from carchive.backend.pb import exporter as pb_exporter
+from carchive.backend.pb import last as pb_last
+from carchive.backend.pb import timestamp as pb_timestamp
+from carchive.backend.pb import pvlog as pb_pvlog
+from carchive.backend.pb import mysql as pb_mysql
+import logging
+from logging import INFO
+
+_log = logging.getLogger('carchive.pbrawexport')
+_log.setLevel(INFO)
 
 class PbExportError(Exception):
     pass
 
 @defer.inlineCallbacks
 def cmd(archive=None, opt=None, args=None, conf=None, **kws):
-    archs=set()
-    for ar in opt.archive:
-        archs|=set(archive.archives(pattern=ar))
-    archs=list(archs)
+    archs = opt.archive
     
     # Get out dir.
     if opt.export_out_dir is None:
@@ -31,58 +34,46 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
     if gran is None:
         raise PbExportError('Export granularity is not understood!')
     
+    appliance_name = 'appliance0'
+    if opt.appliance_name is not None:
+        appliance_name = opt.appliance_name
+    
+    mysql_write_connected = False
+    if opt.mysql_write_connected is not None:
+        mysql_write_connected = True
+        
+    
     # Collect PV name delimiters.
     delimiters = ([] if opt.export_no_default_delimiters else [':', '-']) + \
         ([] if opt.export_delimiter is None else opt.export_delimiter)
-    
-    # Collect PV name patterns.
-    patterns = []
-    if opt.export_all:
-        patterns.append('.*')
-    if opt.export_pattern is not None:
-        patterns += opt.export_pattern
-    
+        
     # Collect PVs to archive...
     pvs = set()
-    
-    # Query PVs for patterns.
-    for pattern in patterns:
-        print('Querying pattern: {}'.format(pattern))
-        search_result = yield archive.search(pattern=pattern, archs=archs)
-        print('--> {} PVs.'.format(len(search_result)))
-        pvs.update(search_result)
-
     # Add explicit PVs.
     pvs.update(args)
-    
     # Sort PVs.
     pvs = sorted(pvs)
     
     # Check we have any PVs.
     if len(pvs)==0:
-        raise PbExportError('Have no PV names to archive!')
-    
-    # Check UTC/local time interpretation.
-    if opt.utc_time and opt.local_time:
-        raise PbExportError('Both --utc-time and --local-time were given!')
-    if not (opt.utc_time or opt.local_time):
-        raise PbExportError('Neither --utc-time nor --local-time was given! Not assuming anything!')
-    use_local = bool(opt.local_time)
-    
+        raise PbExportError('No PVs found to export data!')
+            
     # Parse start/end times. These give us the native format for the query.
-    start_ca_t = parse_time(opt.start, 'start', use_local)
-    end_ca_t = parse_time(opt.end, 'end', use_local)
+    
+    start_ca_t = parse_time(opt.start, 'start')
+    end_ca_t = parse_time(opt.end, 'end')
     
     # Print some info.
-    print('-- Requested time range after conversion: {} -> {}'.format(start_ca_t, end_ca_t))
-    print('-- Will archive these PVs: {}'.format(' '.join(pvs)))
+    _log.info('Will export data of these PVs: {}'.format(', '.join(pvs)))
     
     # Keep PV-specific logs.
     pv_logs = []
     
+    mysql_writer = pb_mysql.MySqlWriter(out_dir,appliance_name)
+    
     # Archive PVs one by one.
     for pv in pvs:
-        print('-- Archiving PV: {}'.format(pv))
+        _log.info('Exporting data for PV: {}'.format(pv))
         
         # Create and remember a PvLog object.
         pvlog = pb_pvlog.PvLog(pv)
@@ -106,25 +97,30 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
         pvlog.info('Query low limit: {}'.format(query_start_ca_t))
         
         # Create exporter instance.
-        with pb_exporter.Exporter(pv, gran, out_dir, delimiters, last_timestamp, pvlog) as the_exporter:
+        with pb_exporter.Exporter(pv, gran, out_dir, delimiters, last_timestamp, pvlog, mysql_writer) as the_exporter:
             try:
                 # Ask for samples.
                 segment_data = yield archive.fetchraw(
                     pv, the_exporter, archs=archs, cbArgs=(),
                     T0=query_start_ca_t, Tend=end_ca_t, chunkSize=opt.chunk,
-                    enumAsInt=True, provideExtraMeta=True, rawTimes=True
+                    enumAsInt=True, displayMeta=True, rawTimes=True
                 )
             except pb_exporter.SkipPvError as e:
-                print('-- PV ERROR: {}: {}'.format(pv, e))
+                _log.error('PV ERROR: {}: {}'.format(pv, e))
                 pvlog.error(str(e))
                 break
-    
-    print('-- ALL DONE, REPORT FOLLOWS\n')
+        #In case the pv is disconnected, write the last sample and include the cnxlostepsecs    
+        the_exporter.write_last_disconnected()
+        #Write the pv info to mysql
+        mysql_writer.write_pv_info(mysql_write_connected)
+        
+    mysql_writer.close()
+    _log.info('ALL DONE, REPORT FOLLOWS\n')
     
     # Print out logs.
     for pvlog in pv_logs:
         report = pvlog.build_report()
-        print(report, end='')
+        _log.info(report)
     
     defer.returnValue(0)
 
@@ -135,7 +131,7 @@ TIME_FORMATS = [
     "%Y-%m-%d",
 ]
 
-def parse_time(time_str, role, use_local):
+def parse_time(time_str, role):
     # If there is no argument, assume unbounded.
     # But we do need to use something in the query.
     if time_str is None:
@@ -150,10 +146,6 @@ def parse_time(time_str, role, use_local):
             continue
     else:
         raise ValueError('The {} time argument is not understood. Supported formats are: {}'.format(role, TIME_FORMATS))
-    
-    # We don't support local time specification, only UTC time.
-    if use_local:
-        raise ValueError('Local time not yet supported! Must specify time in UTC.')
     
     # Convert to the format for the query.
     return pb_timestamp.dt_to_carchive(dt)

@@ -2,10 +2,17 @@ import re
 import os
 import platform
 
+if platform.system() == 'Windows':
+    pathName='{}@{}.pb'
+    fileName = '{}@(.*).pb';
+else:
+    pathName='{}:{}.pb'
+    fileName = '{}:(.*).pb';
+
 def make_sure_path_exists(path):
     try:
         os.makedirs(path)
-    except OSError as exception:
+    except OSError:
         if not os.path.isdir(path):
             raise
 
@@ -17,16 +24,11 @@ def get_dir_and_prefix(out_dir, delimiters, pv_name):
 def get_path_for_suffix(out_dir, delimiters, pv_name, time_suffix):
     dir_path, file_prefix = get_dir_and_prefix(out_dir, delimiters, pv_name)
     make_sure_path_exists(dir_path)        
-    name = '{}:{}.pb'
-    if platform.system() == 'Windows':
-        name = '{}@{}.pb'
-    return os.path.join(dir_path, name.format(file_prefix, time_suffix))
+    return os.path.join(dir_path, pathName.format(file_prefix, time_suffix))
 
 def filter_filenames(names, file_prefix):
-    reg = '\\A{}:(.*)\\.pb\\Z';
-    if platform.system() == 'Windows':
-        reg = '\\A{}@(.*)\\.pb\\Z'
+    p = re.compile(fileName.format(file_prefix));
     for name in names:
-        m = re.match(reg.format(re.escape(file_prefix)), name)
+        m = p.match(name)
         if m:
             yield m.group(1)
