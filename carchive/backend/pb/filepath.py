@@ -3,11 +3,11 @@ import os
 import platform
 
 if platform.system() == 'Windows':
-    pathName='{}@{}.pb'
-    fileName = '{}@(.*).pb';
+    pathName='{0}@{1}.pb'
+    fileName = '{0}@(.*).pb';
 else:
-    pathName='{}:{}.pb'
-    fileName = '{}:(.*).pb';
+    pathName='{0}:{1}.pb'
+    fileName = '{0}:(.*).pb';
 
 def make_sure_path_exists(path):
     try:

@@ -1,31 +1,34 @@
 from __future__ import print_function
 
-import datetime
+import datetime, re
+from carchive.backend.pb.filepath import make_sure_path_exists
 
-template = ('(\'{}\',\'{{"upperDisplayLimit":"{}","lowerDisplayLimit":"{}",'
-            '"upperAlarmLimit":"{}","lowerAlarmLimit":"{}",'
-            '"upperWarningLimit":"{}","lowerWarningLimit":"{}",'
-            '"upperCtrlLimit":"{}","lowerCtrlLimit":"{}",'
-            '"precision":"{}","units":"{}",'
-            '"scalar":"{}","elementCount":"{}",'
-            '"pvName":"{}",'
-            '"DBRType":"{}",'
+chunk = re.compile(r'[:-]')
+
+template = ('(\'{0}\',\'{{"upperDisplayLimit":"{1}","lowerDisplayLimit":"{2}",'
+            '"upperAlarmLimit":"{3}","lowerAlarmLimit":"{4}",'
+            '"upperWarningLimit":"{5}","lowerWarningLimit":"{6}",'
+            '"upperCtrlLimit":"{7}","lowerCtrlLimit":"{8}",'
+            '"precision":"{9}","units":"{10}",'
+            '"scalar":"{11}","elementCount":"{12}",'
+            '"pvName":"{13}",'
+            '"DBRType":"{14}",'
             '"samplingMethod":"MONITOR",'
             '"computedStorageRate":"0.0","computedBytesPerEvent":"0","computedEventRate":"0.0",'
             '"userSpecifiedEventRate":"0.0","samplingPeriod":"0.0",'
-            '"extraFields":{{"NAME":"{}","RTYP":"","SCAN":"0.0"}},'
+            '"extraFields":{{"NAME":"{15}","RTYP":"","SCAN":"0.0"}},'
             '"hostName":"0.0.0.0",'
-            '"hasReducedDataSet":"false","chunkKey":"{}:",'
-            '"applianceIdentity":"{}",'
-            '"paused":"false","archiveFields":[{}],'
-            '"creationTime":"{}","modificationTime":"{}",'
+            '"hasReducedDataSet":"false","chunkKey":"{16}:",'
+            '"applianceIdentity":"{17}",'
+            '"paused":"false","archiveFields":[{18}],'
+            '"creationTime":"{19}","modificationTime":"{20}",'
             '"dataStores":['
             '"pb:\/\/localhost?name=STS&rootFolder=${{ARCHAPPL_SHORT_TERM_FOLDER}}'
             '&partitionGranularity=PARTITION_HOUR&consolidateOnShutdown=true",'
             '"pb:\/\/localhost?name=MTS&rootFolder=${{ARCHAPPL_MEDIUM_TERM_FOLDER}}'
             '&partitionGranularity=PARTITION_DAY&hold=2&gather=1",'
             '"pb:\/\/localhost?name=LTS&rootFolder=${{ARCHAPPL_LONG_TERM_FOLDER}}'
-            '&partitionGranularity=PARTITION_YEAR"]}}\',\'{}\')')
+            '&partitionGranularity=PARTITION_YEAR"]}}\',\'{21}\')')
 
 class _MyInfo(object):
     def __init__(self, name, hdisp, ldisp, halarm, lalarm, hwarn, lwarn,
@@ -57,6 +60,7 @@ class MySqlWriter(object):
         tt = now.strftime('%Y-%m-%dT%H%M%S%f')[:-3]
         self._time = now.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]+'Z'
         self._time_field = now.strftime('%Y-%m-%d %H:%M:%S')
+        make_sure_path_exists(out_dir)
         self._cur_file = open(out_dir + '/mysqldump_'+ tt +'.sql'  , 'a')
         
         self._cur_file.write('insert into PVTypeInfo VALUES ')
@@ -84,9 +88,10 @@ class MySqlWriter(object):
             if self._first_info_written:
                 self._cur_file.write(',\n');
             info = self._last_pv_info;
+            nn = chunk.sub('\/',info._name)
             val = template.format(info._name,info._hdisp,info._ldisp,info._halarm,info._lalarm,info._hwarn,
                                   info._lwarn,info._hctrl,info._lctrl,info._prec,info._units,info._scalar,
-                                  info._ncount,info._name,info._pv_type,info._name,info._name,
+                                  info._ncount,info._name,info._pv_type,info._name,nn,
                                   self._appl,info._fields,self._time,self._time,self._time_field)
             
             self._first_info_written=True

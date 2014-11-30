@@ -29,7 +29,7 @@ class YearSegment(object):
         return YearSegment(self.year + 1)
     
     def file_suffix(self):
-        return '{:04}'.format(self.year)
+        return '{0:04}'.format(self.year)
 
 class YearGranularity(object):
     def get_segment_for_time(self, time):
@@ -56,7 +56,7 @@ class MonthSegment(object):
         return MonthSegment(year_seg, month)
     
     def file_suffix(self):
-        return '{}_{:02}'.format(self.year_seg.file_suffix(), self.month)
+        return '{0}_{1:02}'.format(self.year_seg.file_suffix(), self.month)
 
 class MonthGranularity(object):
     def get_segment_for_time(self, time):
@@ -82,7 +82,7 @@ class DaySegment(object):
         return DaySegment(month_seg, day)
     
     def file_suffix(self):
-        return '{}_{:02}'.format(self.month_seg.file_suffix(), self.day)
+        return '{0}_{1:02}'.format(self.month_seg.file_suffix(), self.day)
 
 class DayGranularity(object):
     def get_segment_for_time(self, time):
@@ -108,7 +108,7 @@ class HourSegment(object):
         return HourSegment(day_seg, hour)
     
     def file_suffix(self):
-        return '{}_{:02}'.format(self.day_seg.file_suffix(), self.hour)
+        return '{0}_{1:02}'.format(self.day_seg.file_suffix(), self.hour)
 
 class HourGranularity(object):
     def get_segment_for_time(self, time):
@@ -120,8 +120,8 @@ class HourGranularity(object):
 class MinuteSegment(object):
     def __init__(self, minutes_step, hour_seg, minute):
         self.minutes_step = minutes_step
+        self.minute = (minute / minutes_step)*minutes_step
         self.hour_seg = hour_seg
-        self.minute = minute
     
     def start_time(self):
         return datetime.datetime(self.hour_seg.day_seg.month_seg.year_seg.year, self.hour_seg.day_seg.month_seg.month, self.hour_seg.day_seg.day, self.hour_seg.hour, self.minute)
@@ -135,7 +135,7 @@ class MinuteSegment(object):
         return MinuteSegment(self.minutes_step, hour_seg, minute)
     
     def file_suffix(self):
-        return '{}_{:02}'.format(self.hour_seg.file_suffix(), self.minute)
+        return '{0}_{1:02}'.format(self.hour_seg.file_suffix(), self.minute)
 
 class MinuteGranularity(object):
     def __init__(self, minutes_step):

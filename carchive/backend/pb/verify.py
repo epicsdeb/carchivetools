@@ -18,7 +18,7 @@ def verify_stream(stream, pb_type=None, pv_name=None, year=None, upper_ts_bound=
     try:
         header_data = line_iterator.next()
     except pb_escape.IterationError as e:
-        raise VerificationError('Reading header: {}'.format(e))
+        raise VerificationError('Reading header: {0}'.format(e))
     except StopIteration:
         raise EmptyFileError()
     
@@ -27,15 +27,15 @@ def verify_stream(stream, pb_type=None, pv_name=None, year=None, upper_ts_bound=
     try:
         header_pb.ParseFromString(header_data)
     except protobuf.message.DecodeError as e:
-        raise VerificationError('Failed to decode header: {}'.format(e))
+        raise VerificationError('Failed to decode header: {0}'.format(e))
     
     # Sanity checks.
     if pb_type != None and header_pb.type != pb_type:
-        raise VerificationError('Type mispatch in header')
+        raise VerificationError('Type mismatch in header')
     if pv_name != None and header_pb.pvname != pv_name:
-        raise VerificationError('PV name mispatch in header')
+        raise VerificationError('PV name mismatch in header')
     if year != None and header_pb.year != year:
-        raise VerificationError('Year mispatch in header')
+        raise VerificationError('Year mismatch in header')
     
     # Find PB class for this data type.
     pb_class = pb_dtypes.get_pb_class_for_type(header_pb.type)
@@ -51,7 +51,7 @@ def verify_stream(stream, pb_type=None, pv_name=None, year=None, upper_ts_bound=
             try:
                 sample_pb.ParseFromString(sample_data)
             except protobuf.message.DecodeError as e:
-                raise VerificationError('Failed to decode sample: {}'.format(e))
+                raise VerificationError('Failed to decode sample: {0}'.format(e))
             
             # Sanity check timestamp.
             sample_timestamp = (sample_pb.secondsintoyear, sample_pb.nano)
@@ -62,7 +62,7 @@ def verify_stream(stream, pb_type=None, pv_name=None, year=None, upper_ts_bound=
             last_timestamp = sample_timestamp
             
     except pb_escape.IterationError as e:
-        raise VerificationError('Reading samples: {}'.format(e))
+        raise VerificationError('Reading samples: {0}'.format(e))
     
     return {
         'last_timestamp': last_timestamp,

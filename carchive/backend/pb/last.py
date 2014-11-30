@@ -27,7 +27,7 @@ def find_last_sample_timestamp(pv_name, out_dir, gran, delimiters):
     num_comps = gran.suffix_count()
     for x in time_suffixes:
         if len(x['ints']) != num_comps:
-            raise FindLastSampleError('Unexpected number of time suffix components: {}'.format(x['suffix']))
+            raise FindLastSampleError('Unexpected number of time suffix components: {0}'.format(x['suffix']))
     
     # Sort suffixes.
     time_suffixes = sorted(time_suffixes, key=lambda x: x['ints'])

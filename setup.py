@@ -134,7 +134,7 @@ Exports of data to Archiver Appliance and H5 are supported.
                 'carchive.a2aproxy.test',
                 'carchive.archmiddle',
                 'carchive.cmd',
-                'carchive.backend'
+                'carchive.backend',
                 'carchive.backend.test',
                 'carchive.backend.pb',
                ],

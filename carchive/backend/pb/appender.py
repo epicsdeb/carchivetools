@@ -30,8 +30,8 @@ class Appender(object):
     
     def write_sample(self, sample_pb, dt_seconds, nanoseconds, pb_type):
         # Extract the number of seconds into the year. This should be exact.
-        into_year_sec_fp = (dt_seconds - datetime.datetime(dt_seconds.year, 1, 1)).total_seconds()
-        assert into_year_sec_fp.is_integer()
+        td = (dt_seconds - datetime.datetime(dt_seconds.year, 1, 1))
+        into_year_sec_fp = (td.seconds + td.days * 24 * 3600)
         into_year_sec = int(into_year_sec_fp)
         
         # Ignore sample if requested by the lower bound.
@@ -67,7 +67,7 @@ class Appender(object):
             # Determine the path of the file.
             self._cur_path = pb_filepath.get_path_for_suffix(self._out_dir, self._delimiters, self._pv_name, segment.file_suffix())
             
-            self._pvlog.info('File: {}'.format(self._cur_path))
+            self._pvlog.info('File: {0}'.format(self._cur_path))
             
             # Open file. This creates the file if it does not exist,
             # and the the cursor is set to the *end*.
@@ -84,7 +84,7 @@ class Appender(object):
                 pb_verify.verify_stream(self._cur_file, pb_type=pb_type, pv_name=self._pv_name, year=dt_seconds.year, upper_ts_bound=upper_ts_bound)
                 
             except pb_verify.VerificationError as e:
-                raise AppenderError('Verification failed: {}: {}'.format(self._cur_path, e))
+                raise AppenderError('Verification failed: {0}: {1}'.format(self._cur_path, e))
             
             except pb_verify.EmptyFileError:
                 # Build header.

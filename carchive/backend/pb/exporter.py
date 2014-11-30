@@ -4,7 +4,7 @@ import datetime
 from carchive.backend import EPICSEvent_pb2 as pbt
 from carchive.backend.pb import dtypes as pb_dtypes
 from carchive.backend.pb import appender as pb_appender
-from carchive.backend.pb import mysql
+from carchive.date import makeTime
 
 class SkipPvError(Exception):
     pass
@@ -55,7 +55,7 @@ class Exporter(object):
             self._pb_type = self._type_desc.PB_TYPE[self._is_waveform]
             self._pb_class = self._type_desc.PB_CLASS[self._is_waveform]
             
-            self._pvlog.info('Data type: {} {}'.format(self._type_desc.NAME, ('Waveform' if self._is_waveform else 'Scalar')))
+            self._pvlog.info('Data type: {0} {1}'.format(self._type_desc.NAME, ('Waveform' if self._is_waveform else 'Scalar')))
             
             # We do get enum labels but we cannot store them anywhere :(
             if extraMeta['the_meta']['type'] == 0:
@@ -111,7 +111,8 @@ class Exporter(object):
 
         # Build a datetime for the whole seconds.
         # Track nanoseconds separately to avoid time conversion errors.
-        dt_seconds = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=secs)
+        dt_seconds = makeTime(secs)
+        #datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=secs)
         
         # Build sample structure. But leave the time to the appender.
         sample_pb = self._pb_class()
@@ -124,7 +125,7 @@ class Exporter(object):
         #if the severity is 'Disconnected(3904)' skip writing this sample and write it later
         if sevr == 3904:
             if self._previous_disconnected_event is None:
-                sample_pb.fieldvalues.extend([pbt.FieldValue(name='cnxlostepsecs', val='{}'.format(secs))])
+                sample_pb.fieldvalues.extend([pbt.FieldValue(name='cnxlostepsecs', val='{0}'.format(secs))])
                 sample_pb.severity = 0
                 sample_pb.status = 0
                 self._previous_disconnected_event = sample_pb
@@ -136,7 +137,7 @@ class Exporter(object):
             self._pv_disconnected = True
         else:
             if self._previous_disconnected_event is not None:
-                self._previous_disconnected_event.fieldvalues.extend([pbt.FieldValue(name='cnxregainedepsecs', val='{}'.format(secs))])
+                self._previous_disconnected_event.fieldvalues.extend([pbt.FieldValue(name='cnxregainedepsecs', val='{0}'.format(secs))])
                 self._write_previous()
             self._pv_disconnected = False
         
@@ -153,7 +154,7 @@ class Exporter(object):
                 try:
                     val = convert_meta(self._last_meta[meta_name])
                 except TypeError as e:
-                    self._pvlog.warning('Could not encode metadata field {}={}: {}'.format(meta_name, repr(self._last_meta[meta_name]), e))
+                    self._pvlog.warning('Could not encode metadata field {0}={1}: {2}'.format(meta_name, repr(self._last_meta[meta_name]), e))
                 else:
                     sample_pb.fieldvalues.extend([pbt.FieldValue(name=meta_name, val=val)])
         
@@ -191,7 +192,8 @@ def meta_convert_float(x):
         return 'NaN'
     if math.isinf(x):
         return 'Infinity' if x > 0.0 else '-Infinity'
-    return '{:.17E}'.format(x)
+    return '{0}'.format(x)
+    #return '{:.17E}'.format(x)
 
 META_CONVERSION = {
     str: lambda x: x,

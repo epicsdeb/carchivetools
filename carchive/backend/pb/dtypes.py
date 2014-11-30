@@ -73,7 +73,7 @@ def get_pv_type(orig_type, is_waveform):
     for type_desc in ALL_TYPE_DESCRIPTIONS:
         if orig_type == type_desc.ORIG_TYPE:
             return type_desc.PB_NAME[1] if is_waveform else type_desc.PB_NAME[0] 
-    raise TypeError('Unsupported data type {}'.format(orig_type))
+    raise TypeError('Unsupported data type {0}'.format(orig_type))
 
 class UnknownPbTypeError(Exception):
     pass

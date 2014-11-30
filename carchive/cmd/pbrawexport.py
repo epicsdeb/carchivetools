@@ -64,7 +64,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
     end_ca_t = parse_time(opt.end, 'end')
     
     # Print some info.
-    _log.info('Will export data of these PVs: {}'.format(', '.join(pvs)))
+    _log.info('Will export data of these PVs: {0}'.format(', '.join(pvs)))
     
     # Keep PV-specific logs.
     pv_logs = []
@@ -73,7 +73,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
     
     # Archive PVs one by one.
     for pv in pvs:
-        _log.info('Exporting data for PV: {}'.format(pv))
+        _log.info('Exporting data for PV: {0}'.format(pv))
         
         # Create and remember a PvLog object.
         pvlog = pb_pvlog.PvLog(pv)
@@ -83,7 +83,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
         # This is used as-is as a lower bound filter after the query.
         last_timestamp = pb_last.find_last_sample_timestamp(pv, out_dir, gran, delimiters)
         
-        pvlog.info('Last timestamp: {}'.format(last_timestamp))
+        pvlog.info('Last timestamp: {0}'.format(last_timestamp))
         
         # We don't want samples <=last_timestamp, we can't write those out.
         # Due to conversion errors, we limit the query conservatively, and filter out any
@@ -94,7 +94,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
         else:
             query_start_ca_t = start_ca_t
         
-        pvlog.info('Query low limit: {}'.format(query_start_ca_t))
+        pvlog.info('Query low limit: {0}'.format(query_start_ca_t))
         
         # Create exporter instance.
         with pb_exporter.Exporter(pv, gran, out_dir, delimiters, last_timestamp, pvlog, mysql_writer) as the_exporter:
@@ -106,7 +106,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
                     enumAsInt=True, displayMeta=True, rawTimes=True
                 )
             except pb_exporter.SkipPvError as e:
-                _log.error('PV ERROR: {}: {}'.format(pv, e))
+                _log.error('PV ERROR: {0}: {1}'.format(pv, e))
                 pvlog.error(str(e))
                 break
         #In case the pv is disconnected, write the last sample and include the cnxlostepsecs    
@@ -145,7 +145,7 @@ def parse_time(time_str, role):
         except ValueError:
             continue
     else:
-        raise ValueError('The {} time argument is not understood. Supported formats are: {}'.format(role, TIME_FORMATS))
+        raise ValueError('The {0} time argument is not understood. Supported formats are: {1}'.format(role, TIME_FORMATS))
     
     # Convert to the format for the query.
     return pb_timestamp.dt_to_carchive(dt)
