@@ -31,7 +31,7 @@ Supported syntax:
   eg: "-1.4 week 2 hours"
 """
 
-import datetime, time, re
+import datetime, time, re, sys
 from collections import defaultdict
 
 __all__ = ["makeTime", "makeTimeInterval", 'timeTuple']
@@ -72,6 +72,23 @@ _units={
     'week':('days',7),
     'weeks':('days',7),
 }
+
+if sys.version_info<(2,7):
+    def total_seconds(td):
+        """Convert a timedelta to a number of seconds (float with us prec.)
+
+        >>> TD = datetime.timedelta
+        >>> total_seconds(TD(0,2)-TD(0,1))
+        1.0
+        >>> total_seconds(TD(2,2)-TD(1,1))
+        86401.0
+        >>> T=total_seconds(TD(2,2,2000)-TD(1,1,1000))
+        >>> T>86401.000999 and T<86401.001001
+        True
+        """
+        return td.days*86400.0 + td.seconds + td.microseconds*1e-6
+else:
+    total_seconds = datetime.timedelta.total_seconds
 
 def timeTuple(dt):
     """Convert datetime object to (sec, nsec)

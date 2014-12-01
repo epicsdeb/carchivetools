@@ -151,6 +151,8 @@ def haveArchive(act, opt, args, conf):
         args = map(wild2re, args)
         opt.match='regexp'
 
+    if opt.verbose>0:
+        print 'Working with archives', opt.archive
     opt.archive=serv.archives(pattern=opt.archive)
 
     breakDown = None

@@ -14,7 +14,7 @@ from fnmatch import fnmatch
 from collections import defaultdict
 import numpy as np
 
-from ..date import makeTime, timeTuple
+from ..date import makeTime, timeTuple, total_seconds
 from datetime import datetime
 
 from twisted.internet import defer
@@ -489,7 +489,7 @@ class Archive(object):
         Results are passed to the given callback as they arrive.
         """
 
-        delta = (Tend-T0).total_seconds()
+        delta = total_seconds(Tend-T0)
         if delta<=0.0 or count<=0:
             raise ValueError("invalid time range or sample count")
 
