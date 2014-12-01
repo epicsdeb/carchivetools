@@ -133,6 +133,7 @@ Support Channel Archiver as well as Archiver Appliance.
                 'carchive.a2aproxy.test',
                 'carchive.archmiddle',
                 'carchive.cmd',
+                'carchive.backend',
                 'carchive.backend.test',
                ],
     py_modules = ['twisted.plugins.a2aproxy', 'twisted.plugins.archmiddle'],
