@@ -72,15 +72,9 @@ class printInfo(object):
 @defer.inlineCallbacks
 def cmd(archive=None, opt=None, args=None, conf=None, **kws):
     
-    archs=set()
-    for ar in opt.archive:
-        archs|=set(archive.archives(pattern=ar))
-    archs=list(archs)
+    archs=opt.archive
 
     if len(args)==0:
-        print 'Missing HDF5 file name'
-        defer.returnValue(0)
-    elif len(args)==1:
         print 'Missing PV names'
         defer.returnValue(0)
     
@@ -89,7 +83,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
 
     count = opt.count if opt.count>0 else conf.getint('defaultcount')
 
-    h5file, _, path = args.pop(0).partition(':')
+    h5file, _, path = opt.h5file.partition(':')
     if path=='':
         path='/'
     
@@ -152,3 +146,9 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
     yield defer.DeferredList(Ds, fireOnOneErrback=True)
 
     defer.returnValue(0)
+
+def mangleArgs(opt, args):
+    if len(args)==0:
+        raise RuntimeError('Missing HDF5 file name')
+    opt.h5file = args[0]
+    return opt, args[1:]

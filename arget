@@ -131,6 +131,9 @@ def haveArchive(act, opt, args, conf):
     mod = __import__('carchive.cmd', fromlist=[act])
     mod = getattr(mod, act)
 
+    if hasattr(mod, 'mangleArgs'):
+        opt, args = mod.mangleArgs(opt, args)
+
     try:
         serv = yield getArchive(conf)
     except HandledError:
