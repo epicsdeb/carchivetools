@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 
+import sys
+
+from twisted.trial import unittest
+
+if sys.version_info<(2,7):
+    raise unittest.SkipTest('Not supported for python 2.6')
+
 from cStringIO import StringIO
 from xmlrpclib import dumps, loads, Fault
 
@@ -7,7 +14,6 @@ from twisted.web.xmlrpc import Proxy
 
 from twisted.internet import defer, reactor
 from twisted.web.server import Site
-from twisted.trial import unittest
 
 from .. import resource, xrpcrequest
 

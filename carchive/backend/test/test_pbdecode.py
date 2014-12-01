@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
 
+import sys
+
 from unittest import TestCase
+from twisted.trial.unittest import SkipTest
+
+if sys.version_info<(2,7):
+    raise SkipTest('Not supported for python 2.6')
 
 import numpy
 from numpy.testing import assert_equal
