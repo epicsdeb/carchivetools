@@ -1,6 +1,5 @@
 from __future__ import print_function
 import math
-import datetime
 from carchive.backend import EPICSEvent_pb2 as pbt
 from carchive.backend.pb import dtypes as pb_dtypes
 from carchive.backend.pb import appender as pb_appender
@@ -101,10 +100,14 @@ class Exporter(object):
                                              pv_type)
         
     def write_last_disconnected(self):
+        ''' If the last event that was pulled from the archive marks the PV as disconnected, it has
+        not been written yet, because extra fields have to be added to the sample. Add those fields
+        to the sample and write it. In addition, mark the disconnected state in the mysql writer.'''
         if self._previous_disconnected_event is not None:
             self._write_previous()
         if self._pv_disconnected:
             self._mysql_writer.pv_disconnected(self._pv_name)
+            self._pv_disconnected = False
     
     def _process_sample(self, value, sevr, stat, secs, nano):
         #print('sample VAL={} SEVR={} STAT={} SECS={} NANO={}'.format(value, sevr, stat, secs, nano))
@@ -168,6 +171,7 @@ class Exporter(object):
         return self._is_waveform and data.shape[1] != extraMeta['reported_arr_size']
     
     def _write_previous(self):
+        ''' Write the previous disconnected event. The event has to exist. '''
         try:
             self._appender.write_sample(self._previous_disconnected_event, self._previous_dt_seconds, self._previous_nano, self._pb_type)
         except pb_appender.AppenderError as e:

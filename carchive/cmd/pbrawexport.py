@@ -69,7 +69,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
     # Keep PV-specific logs.
     pv_logs = []
     
-    mysql_writer = pb_mysql.MySqlWriter(out_dir,appliance_name)
+    mysql_writer = pb_mysql.MySqlWriter(out_dir,appliance_name,mysql_write_connected)
     
     # Archive PVs one by one.
     for pv in pvs:
@@ -112,7 +112,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
         #In case the pv is disconnected, write the last sample and include the cnxlostepsecs    
         the_exporter.write_last_disconnected()
         #Write the pv info to mysql
-        mysql_writer.write_pv_info(mysql_write_connected)
+        mysql_writer.write_pv_info()
         
     mysql_writer.close()
     _log.info('ALL DONE, REPORT FOLLOWS\n')

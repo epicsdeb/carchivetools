@@ -7,7 +7,6 @@ try:
 except ImportError:
     cppunescape=None
 
-
 NEWLINE_CHAR = '\x0A'
 
 _ESCAPE_MAP = {

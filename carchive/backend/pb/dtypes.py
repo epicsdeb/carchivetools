@@ -1,6 +1,10 @@
 from __future__ import print_function
 from carchive.backend import EPICSEvent_pb2 as pbt
 
+'''
+    dtypes.py provides routines to convert the channel archiver data types to archiver appliance data types.
+'''
+
 class DoubleTypeDesc(object):
     ORIG_TYPE = 3
     PB_TYPE = (pbt.SCALAR_DOUBLE, pbt.WAVEFORM_DOUBLE)

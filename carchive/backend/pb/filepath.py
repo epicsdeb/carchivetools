@@ -10,6 +10,7 @@ else:
     fileName = '{0}:(.*).pb';
 
 def make_sure_path_exists(path):
+    ''' Make sure that the given path exists. Create it if it doesn't. '''
     try:
         os.makedirs(path)
     except OSError:

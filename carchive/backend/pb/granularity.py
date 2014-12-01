@@ -1,6 +1,12 @@
 import datetime
 import calendar
 
+'''
+    Defines the types of granularity that can be used for exporting the data. 
+    Granularity defines the names of the files that are used as well as which
+    data (according to the timestamp) goes to which file.
+'''
+
 def get_granularity(gran_str):
     if gran_str == '1year':
         return YearGranularity()

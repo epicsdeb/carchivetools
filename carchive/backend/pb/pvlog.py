@@ -1,6 +1,11 @@
 from __future__ import print_function
 import logging
     
+'''
+    Gathers the logs related to a specific PV to allow generating a report after the 
+    export is finished.
+'''
+
 class SeverityError(object):
     TEXT = 'ERROR'
 

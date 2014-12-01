@@ -29,6 +29,8 @@ class Appender(object):
             self._cur_file.close()
     
     def write_sample(self, sample_pb, dt_seconds, nanoseconds, pb_type):
+        ''' Determines the appropriate file for the sample (based on the timestamp) and 
+        writes the given sample into a file.'''  
         # Extract the number of seconds into the year. This should be exact.
         td = (dt_seconds - datetime.datetime(dt_seconds.year, 1, 1))
         into_year_sec_fp = (td.seconds + td.days * 24 * 3600)
