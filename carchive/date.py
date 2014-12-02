@@ -186,14 +186,11 @@ def makeTime(intime, now=None):
     >>> makeTime('2012-10-11 16:36:44.41248000', now)
     datetime.datetime(2012, 10, 11, 16, 36, 44, 412480)
     """
-    tzinfo=None
     if isinstance(intime, (datetime.datetime, datetime.timedelta)):
         return intime
 
     if now is None:
         now=datetime.datetime.now()
-    elif isinstance(now, datetime.datetime):
-        tzinfo=now.tzinfo
 
     try:
         intime = float(intime)
@@ -210,7 +207,7 @@ def makeTime(intime, now=None):
 
     if isinstance(intime, tuple):
         S, NS = intime
-        S=datetime.datetime.fromtimestamp(float(S), tz=tzinfo)
+        S=datetime.datetime.fromtimestamp(float(S))
         S+=datetime.timedelta(microseconds=NS/1000)
         return S
 
