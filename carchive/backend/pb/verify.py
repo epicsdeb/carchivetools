@@ -31,11 +31,11 @@ def verify_stream(stream, pb_type=None, pv_name=None, year=None, upper_ts_bound=
     
     # Sanity checks.
     if pb_type != None and header_pb.type != pb_type:
-        raise VerificationError('Type mismatch in header')
+        raise VerificationError('Type mismatch in header.')
     if pv_name != None and header_pb.pvname != pv_name:
-        raise VerificationError('PV name mismatch in header')
+        raise VerificationError('PV name mismatch in header. Probably two PVs are bound to the same destination file. Check the used delimiters.')
     if year != None and header_pb.year != year:
-        raise VerificationError('Year mismatch in header')
+        raise VerificationError('Year mismatch in header.')
     
     # Find PB class for this data type.
     pb_class = pb_dtypes.get_pb_class_for_type(header_pb.type)

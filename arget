@@ -85,10 +85,10 @@ par.add_option('-C','--conf', metavar='KEY', default='DEFAULT',
 
 # PB archive options
 par.add_option('--export-no-default-delimiters', action='store_true', help='(pbraw export only) Don\'t use default export delimiters.')
-par.add_option('--export-delimiter', action='append', help='(pbraw export only) Add extra PV name delimiter.')
-par.add_option('--export-granularity', help='(pbraw export only) Time granularity for splitting data into files (5min, 15min, 30min, 1day, 1month, 1year).')
-par.add_option('--export-out-dir', help='(pbraw export only) Output directory.')
-par.add_option('--appliance-name', help='(pbraw export only) The name of the appliance to use in mysql.')
+par.add_option('--export-delimiter', metavar='DELIMITER', action='append', help='(pbraw export only) Add extra PV name delimiter.')
+par.add_option('--export-granularity', metavar='GRANULARITY', help='(pbraw export only) Time granularity for splitting data into files (5min, 15min, 30min, 1day, 1month, 1year).')
+par.add_option('--export-out-dir', metavar='OUT_DIR', help='(pbraw export only) Output directory.')
+par.add_option('--appliance-name', metavar='APPLIANCE_NAME', help='(pbraw export only) The name of the appliance to use in mysql.')
 par.add_option('--mysql-write-connected', action='store_true', help='(pbraw export only) If defined, mysql statement for the connected and disconnected pvs will be generated, otherwise only disconnected will be included.')
 
 opt, args = par.parse_args()

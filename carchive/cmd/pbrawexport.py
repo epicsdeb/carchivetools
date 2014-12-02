@@ -69,7 +69,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
     # Keep PV-specific logs.
     pv_logs = []
     
-    mysql_writer = pb_mysql.MySqlWriter(out_dir,appliance_name,mysql_write_connected)
+    mysql_writer = pb_mysql.MySqlWriter(out_dir,appliance_name,delimiters,mysql_write_connected)
     
     # Archive PVs one by one.
     for pv in pvs:
@@ -95,7 +95,6 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
             query_start_ca_t = start_ca_t
         
         pvlog.info('Query low limit: {0}'.format(query_start_ca_t))
-        
         # Create exporter instance.
         with pb_exporter.Exporter(pv, gran, out_dir, delimiters, last_timestamp, pvlog, mysql_writer) as the_exporter:
             try:

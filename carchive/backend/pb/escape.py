@@ -4,8 +4,9 @@
 import re
 try:
     from carchive.backend.pbdecode import unescape
+    cppunescape = True
 except ImportError:
-    cppunescape=None
+    cppunescape = False
 
 NEWLINE_CHAR = '\x0A'
 
