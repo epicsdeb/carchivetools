@@ -13,13 +13,14 @@ from twisted.python.failure import Failure
 from .xrpcrequest import NamesRequest, ValuesRequest
 
 from ..backend.appl import getArchive
+from ..status import status
 
 _info = {
     'ver':0,
     'desc':'Archiver to Applicance gateway',
     # list all the possible "how"s even though we won't support them
     'how':['raw', 'spreadsheeet', 'averaged', 'plot-binning', 'linear'],
-    'stat':map(str, range(22)),
+    'stat':status.values(),
     'sevr':[
         {'num':0, 'sevr':'NO_ALARM','has_value':True, 'txt_stat':True},
         {'num':1, 'sevr':'MINOR',   'has_value':True, 'txt_stat':True},

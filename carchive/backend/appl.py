@@ -18,6 +18,7 @@ from twisted.web._newclient import ResponseFailed
 
 from ..date import isoString, makeTime, timeTuple
 from ..dtype import dbr_time
+from ..status import get_status
 from .EPICSEvent_pb2 import PayloadInfo
 
 from carchive.backend.pbdecode import decoders, unescape, DecodeError
@@ -262,9 +263,7 @@ class Appliance(object):
 
     @classmethod
     def status(cls, i):
-        if i==0:
-            return ''
-        return str(i) #TODO: real status names
+        return get_status(i)
 
     @defer.inlineCallbacks
     def search(self, exact=None, pattern=None,
