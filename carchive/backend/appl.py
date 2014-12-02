@@ -164,7 +164,7 @@ class PBReceiver(protocol.Protocol):
                 Nsamp = len(P)
 
             try:
-                V, M = decoders[H.type](P, self.cadiscon)
+                V, M = decoders[H.type](P, self.cadiscon, self._year)
             except DecodeError as e:
                 raise ValueError("Failed to decode: "+repr(e.args[0]))
             M = np.rec.array(M, dtype=dbr_time)

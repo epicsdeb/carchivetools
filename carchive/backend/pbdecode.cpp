@@ -205,10 +205,12 @@ PyObject* PBD_decode_X(PyObject *unused, PyObject *args)
 {
     PyObject *lines;
     int cadismod;
+    unsigned long sectoyear = 0;
 
-    if(!PyArg_ParseTuple(args, "O!i",
+    if(!PyArg_ParseTuple(args, "O!i|k",
                          &PyList_Type, &lines,
-                         &cadismod
+                         &cadismod,
+                         &sectoyear
                          ))
         return NULL;
 
@@ -272,9 +274,7 @@ PyObject* PBD_decode_X(PyObject *unused, PyObject *args)
             for(int j=0; j<D.fieldvalues_size(); ++j) {
                 const ::EPICS::FieldValue& FV = D.fieldvalues(j);
 
-                if(FV.name()=="cnxregainedepsecs" ||
-                   FV.name()=="cnxlostepsecs" ||
-                   FV.name()=="connectionChange")
+                if(FV.name()=="cnxlostepsecs")
                 {
                     extrasamp[i] = true;
                     nextrasamp++;
@@ -318,8 +318,7 @@ PyObject* PBD_decode_X(PyObject *unused, PyObject *args)
         if(cadismod==0 && extrasamp[i]) {
             bool havets = false;
             // inject disconnect event here
-/*
- *TODO: use provided time
+
             for(int k=0; k<D.fieldvalues_size(); ++k) {
                 const ::EPICS::FieldValue& FV = D.fieldvalues(k);
 
@@ -331,15 +330,46 @@ PyObject* PBD_decode_X(PyObject *unused, PyObject *args)
                     std::istringstream m(FV.val());
                     unsigned int I;
                     m >> I;
-                    M->sec = I;
+                    M->sec = I - sectoyear;
                     M->nano = 0;
-                    if(!m.bad()) {
-                        havets = true;
+                    if(m.bad())
                         break;
+
+                    unsigned int prevS=0, nextS = D.secondsintoyear(),
+                                 prevNS=0, nextNS = D.nano();
+                    if(j>0) {
+                        meta *prevM = (meta*)PyArray_GETPTR1(outmeta.get(), j-1);
+                        prevS = prevM->sec;
+                        prevNS= prevM->nano;
                     }
+
+                    // try to preserve monotonic time for the disconnect event
+                    if(prevS==nextS) {
+                        M->sec = prevS;
+                        M->nano= (nextNS+prevNS)/2;
+                    } else if(prevS==M->sec) {
+                        if(prevNS>=999999999) {
+                            M->sec = prevS+1;
+                            M->nano= 0;
+                        } else {
+                            M->sec = prevS;
+                            M->nano= prevNS+1;
+                        }
+                    } else if(nextS==M->sec) {
+                        if(nextNS==0) {
+                            M->sec = nextS-1;
+                            M->nano= 999999999;
+                        } else {
+                            M->sec = nextS;
+                            M->nano= nextNS-1;
+                        }
+                    }
+
+                    havets = true;
+                    break;
                 }
             }
-*/
+
             if(!havets || M->sec>D.secondsintoyear()) {
                 M->sec = D.secondsintoyear();
                 M->nano = D.nano();
@@ -352,6 +382,7 @@ PyObject* PBD_decode_X(PyObject *unused, PyObject *args)
             }
             M->severity = 3904;
 
+            // increment for the real sample
             j++;
             M = (meta*)PyArray_GETPTR1(outmeta.get(), j);
             val = (char*)PyArray_GETPTR2(outval.get(), j, 0);

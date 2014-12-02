@@ -152,21 +152,38 @@ class TestDecodeScalar(TestCase):
         except pbdecode.DecodeError as e:
             self.assertEqual(e.args, (raw[:5],))
 
-    def test_disconn(self):
+    _dis_data = [
+        # easy case, disconnect has different second
+        ((5,1500), (15,750000), 10, (10,0)),
+        # Disconnect has same second as previous sample
+        ((5,1500), (15,750000), 5, (5,1501)),
+        # Disconnect has same second as previous sample, at the second boundary
+        ((5,999999999), (15,750000), 5, (6,0)),
+        # Disconnect has same second as next sample
+        ((5,1500), (15,750000), 15, (15,749999)),
+        # Disconnect has same second as next sample, at the second boundary
+        ((5,1500), (15,0), 15, (14,999999999)),
+        # Disconnect has same second as next and previous samples
+        ((15,400000), (15,500000), 15, (15,450000)),
+        # really pathological case.  No right answer here...
+        ((15,400000), (15,400001), 15, (15,400000)),
+    ]
+
+    def _dis(self, prevT, nextT, badT, result):
+        sectoyear = 100000
+
         S = _fields[6]()
         S.val = 1.0
         S.severity = 1
-        S.secondsintoyear = 1024
-        S.nano = 0x1234
+        S.secondsintoyear, S.nano = prevT
 
         raw = [S.SerializeToString()]
         
         S.Clear()
         S.val = 2.0
         S.severity = 2
-        S.secondsintoyear = 1025
-        S.nano = 0x1234
-        S.fieldvalues.add(name='cnxlostepsecs',val='5678')
+        S.secondsintoyear, S.nano = nextT
+        S.fieldvalues.add(name='cnxlostepsecs',val=str(badT+sectoyear))
 
         raw.append(S.SerializeToString())
 
@@ -175,12 +192,20 @@ class TestDecodeScalar(TestCase):
 
         assert_equal(M['severity'], [1, 3904])
 
-        V, M = pbdecode.decoders[6](raw, 0)
+        V, M = pbdecode.decoders[6](raw, 0, sectoyear)
         M = numpy.rec.array(M, dtype=dbr_time)
 
         assert_equal(M['severity'], [1, 3904, 2])
-        assert_equal(M['sec'], [1024, 1025, 1025])
-        assert_equal(M['ns'], [4660, 4659, 4660])
+        assert_equal(M['sec'], [prevT[0], result[0], nextT[0]])
+        assert_equal(M['ns'], [prevT[1], result[1], nextT[1]])
+
+    def test_disconn(self):
+        for D in self._dis_data:
+            try:
+                self._dis(*D)
+            except:
+                print 'Failure with', D
+                raise
 
 class TestDecodeVector(TestCase):
     _vals = [
