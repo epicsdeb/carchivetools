@@ -141,14 +141,13 @@ Or write all points of in this time range to an HDF5 file.
 
 The time and date formats understood by the B<--start> and B<--end> arguments can be absolute time as
 
- YYYY-MM-DD HH:MM:SS[.fff]
+ [YYYY-]MM-DD HH:MM[:SS[.fff]]
 
  DD/MM[/YYYY] HH:MM[:SS[.fff]]
 
  HH:MM[:SS[.fff]]
 
-When part of the date is omitted then the current day is used.  When part of the time is omitted then zero is used
-for these parts.
+When part of the date is omitted then the current day is used.  When part of the time is omitted then zero is used.
 
  ### UUU [### UUU ...]
 
