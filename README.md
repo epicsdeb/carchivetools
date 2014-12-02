@@ -19,7 +19,7 @@ Requirements
 
 Basic requirements.
 
-* [Python](http://www.python.org/) >=2.6, <3.0 (>= 2.7 required for Appliance)
+* [Python](http://www.python.org/) >=2.6, &lt;3.0 (&gt;= 2.7 required for Appliance)
 * [Twisted](http://twistedmatrix.com/) Core and Web >= 10.1
 * [Numpy](http://www.numpy.org/) >= 1.4
 
