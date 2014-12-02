@@ -19,7 +19,7 @@ Requirements
 
 Basic requirements.
 
-* [Python](http://www.python.org/) 2.6 or 2.7
+* [Python](http://www.python.org/) >=2.6, <3.0 (>= 2.7 required for Appliance)
 * [Twisted](http://twistedmatrix.com/) Core and Web >= 10.1
 * [Numpy](http://www.numpy.org/) >= 1.4
 
@@ -46,3 +46,4 @@ do an in-place build of the pbdecode Extension (as opposed to "setup.py install"
 
     $ python setup.py build_protobuf -i
     $ python setup.py build_ext -i
+
