@@ -129,6 +129,9 @@ class DataServer(Resource):
         return NOT_DONE_YET
 
 def buildResource(infourl=None):
+    if not infourl.startswith('http') and infourl.find('/')==-1:
+        # only host:port is provided, use default URL
+        infourl = "http://%s/mgmt/bpl/getApplianceInfo"%infourl
     C = DataServer()
     C.infourl = infourl
 

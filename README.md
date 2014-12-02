@@ -8,6 +8,10 @@ and Archive Appliance data storage services.
 The commands argrep and arget are provided.
 See the [man page](arget.pod) for details.
 
+In addition to the user tools, two backend servers
+[a2aproxy](README-a2aproxy.md) and [archmiddle](README-archmiddle.md)
+are provided.
+
 [EPICS]: http://www.aps.anl.gov/epics/
 
 Requirements
