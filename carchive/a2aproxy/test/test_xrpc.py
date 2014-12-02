@@ -61,7 +61,7 @@ class TestReq(unittest.TestCase):
 class TestServer(unittest.TestCase):
     timeout = 1.0
     def setUp(self):
-        self.root = resource.buildResource()
+        self.root = resource.buildResource('127.0.0.1:99999')
         self.site = Site(self.root) # TODO: what is timeout?
         self.serv = reactor.listenTCP(0, self.site, interface='127.0.0.1')
         P = self.serv.getHost().port
