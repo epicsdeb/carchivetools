@@ -118,7 +118,7 @@ except:
 
 setup(
     name = "carchivetools",
-    version = "2.0-dev",
+    version = "2.0",
     description = "Tools to query EPICS Channel Archiver and Archiver Appliance",
     long_description = """Tools to retrieve data from EPICS data archivers.
 Support Channel Archiver as well as Archiver Appliance.

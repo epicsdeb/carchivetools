@@ -1,4 +1,4 @@
-carchivetools (2.0) UNRELEASED; urgency=low
+carchivetools (2.0) unstable; urgency=low
 
   * Support Archiver Appliance backend
   * a2a proxy (Archiver to Appliance) protocol translater
@@ -6,7 +6,7 @@ carchivetools (2.0) UNRELEASED; urgency=low
   * add plot binning query
   * add snapshot query (Channel Archiver only)
 
- -- Michael Davidsaver <mdavidsaver@bnl.gov>  Mon, 24 Nov 2014 16:52:15 -0500
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Wed, 03 Dec 2014 16:14:27 -0500
 
 carchivetools (1.9) unstable; urgency=low
 
