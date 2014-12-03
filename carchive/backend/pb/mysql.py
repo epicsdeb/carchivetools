@@ -79,12 +79,12 @@ class MySqlWriter(object):
         make_sure_path_exists(out_dir)
         suffix = now.strftime('%Y-%m-%dT%H%M%S%f')[:-3]
         self._dis_file = open(out_dir + '/disconnected_'+ suffix +'.sql'  , 'a')
-        self._dis_file.write('insert into PVTypeInfo VALUES ')
+        self._dis_file.write('insert ignore into PVTypeInfo VALUES ')
         
         self._con_file = None
         if self._write_connected:
             self._con_file = open(out_dir + '/connected_'+ suffix +'.sql'  , 'a')
-            self._con_file.write('insert into PVTypeInfo VALUES ')
+            self._con_file.write('insert ignore into PVTypeInfo VALUES ')
         
         self._dis_first_info_written = False
         self._con_first_info_written = False

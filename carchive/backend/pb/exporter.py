@@ -32,6 +32,8 @@ class Exporter(object):
     
     # with statement exit - clean up
     def __exit__(self, tyype, value, traceback):
+        self.write_last_disconnected()
+        self._pvlog.info('Finished exporting data for PV {0}'.format(self._pv_name))
         self._appender.close()
     
     # called by fetchraw for every chunk of samples receeived.
