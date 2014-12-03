@@ -1,4 +1,4 @@
 # -P is the port where the daemon will listen
 # -A is the /getApplianceInfo URL
 # -d enable debug logging
-DAEMON_ARGS="-P 8888 -A http://capp01.cs.nsls2.local:17665/mgmt/bpl/getApplianceInfo -d"
+DAEMON_ARGS="-P 8889 -A http://capp01.cs.nsls2.local:17665/mgmt/bpl/getApplianceInfo -d"
