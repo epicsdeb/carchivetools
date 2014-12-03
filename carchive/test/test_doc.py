@@ -1,4 +1,4 @@
 
-from .. import date
+from .. import date, util
 
-__doctests__ = [date]
+__doctests__ = [date, util]
