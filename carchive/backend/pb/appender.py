@@ -86,7 +86,11 @@ class Appender(object):
                 pb_verify.verify_stream(self._cur_file, pb_type=pb_type, pv_name=self._pv_name, year=dt_seconds.year, upper_ts_bound=upper_ts_bound)
                 
             except pb_verify.VerificationError as e:
-                raise AppenderError('Verification failed: {0}: {1}'.format(self._cur_path, e))
+                self._pvlog.error('Verification failed: {0}: {1}'.format(self._cur_path, e))
+                self._cur_file.close()
+                self._cur_file = None
+                return;
+                #raise AppenderError('Verification failed: {0}: {1}'.format(self._cur_path, e))
             
             except pb_verify.EmptyFileError:
                 # Build header.
