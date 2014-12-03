@@ -24,6 +24,7 @@ class Exporter(object):
         self._previous_dt_seconds = None
         self._previous_nano = None
         self._pv_disconnected = False
+        self._print_mysql = True
         self._appender = pb_appender.Appender(pv_name, gran, out_dir, delimiters, ignore_ts_start, pvlog)
     
     # with statement entry
@@ -90,16 +91,23 @@ class Exporter(object):
             # Process the sample.
             self._process_sample(value, int(meta[0]), int(meta[1]), int(meta[2]), int(meta[3]))
                     
-        if self._mysql_writer is not None:
+        if self._mysql_writer is not None and self._print_mysql:
+            self._print_mysql = False
             the_meta = extraMeta['the_meta']
             pv_type =  pb_dtypes.get_pv_type(orig_type,self._is_waveform)
-            self._mysql_writer.put_pv_info(self._pv_name, the_meta['disp_high'], the_meta['disp_low'],
+            try:
+                self._mysql_writer.put_pv_info(self._pv_name, the_meta['disp_high'], the_meta['disp_low'],
                                              the_meta['alarm_high'], the_meta['alarm_low'],
                                              the_meta['warn_high'], the_meta['warn_low'],
                                              the_meta['disp_high'], the_meta['disp_low'],
                                              the_meta['prec'], the_meta['units'], 
                                              not self._is_waveform, array_size,
                                              pv_type)
+            except:
+                ''' If we have a PV that doesn't have the limits, do not try to load them '''
+                self._mysql_writer.put_pv_info(name=self._pv_name, 
+                                             scalar=not self._is_waveform, ncount=array_size,
+                                             pv_type=pv_type)
         
     def write_last_disconnected(self):
         ''' If the last event that was pulled from the archive marks the PV as disconnected, it has
