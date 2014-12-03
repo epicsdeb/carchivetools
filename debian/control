@@ -3,7 +3,7 @@ Section: python
 Priority: optional
 Maintainer: Michael Davidsaver <mdavidsaver@bnl.gov>
 Build-Depends: debhelper (>= 7.0.50~),
-               python-all-dev, python-support (>= 0.90),
+               python-all-dev,
                python-numpy,
                python-twisted-core, python-twisted-web,
                protobuf-compiler, libprotobuf-dev,
@@ -18,21 +18,36 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${python:Depends},
          python-numpy,
          python-twisted-core, python-twisted-web,
-         python-protobuf,
-         python-support (>= 0.90), ${misc:Depends},
+         ${misc:Depends},
+Recommends: carchivetools-archappl
+Suggests: channelarchiver-a2aproxy, channelarchiver-archmiddle
 XB-Python-Version: ${python:Versions}
 Description: CLI utilities to query EPICS data archiver systems
  Tools to query and extract data from the EPICS
  Channel Archiver's XMLRPC data server, and the
  Archiver Appliance's HTTP server.
 
+Package: carchivetools-archappl
+Architecture: any
+Depends: ${shlibs:Depends}, ${python:Depends},
+         carchivetools (>= ${source:Version}), carchivetools (<< ${source:Version}.1~),
+         python-protobuf,
+         ${misc:Depends},
+XB-Python-Version: 2.7
+Description: CLI utilities to query EPICS data archiver systems
+ Tools to query and extract data from the EPICS
+ Channel Archiver's XMLRPC data server, and the
+ Archiver Appliance's HTTP server.
+ .
+ This package contains Archive Appliance support
+
 Package: channelarchiver-a2aproxy
 Architecture: any
-Depends: carchivetools (>= ${source:Version}), carchivetools (<< ${source:Version}.1~),
-         python-support (>= 0.90), ${misc:Depends},
+Depends: carchivetools-archappl (>= ${source:Version}), carchivetools-archappl (<< ${source:Version}.1~),
+         ${misc:Depends},
          adduser,
 Suggests: channelarchiver-dataserver
-XB-Python-Version: ${python:Versions}
+XB-Python-Version: 2.7
 Description: Proxies requests from a Channel Archiver Client to an Archiver Appliance
  Acts as a server for Channel Archiver Dataserver requests and as a client
  to an Archiver Appliance server. Allows legacy Channel Archiver client
@@ -41,7 +56,7 @@ Description: Proxies requests from a Channel Archiver Client to an Archiver Appl
 Package: channelarchiver-archmiddle
 Architecture: any
 Depends: carchivetools (>= ${source:Version}), carchivetools (<< ${source:Version}.1~),
-         python-support (>= 0.90), ${misc:Depends},
+         ${misc:Depends},
          adduser,
 Suggests: channelarchiver-dataserver
 XB-Python-Version: ${python:Versions}

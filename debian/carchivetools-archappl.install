@@ -1,0 +1,4 @@
+usr/lib/python*/dist-packages/carchive/backend/appl.py
+usr/lib/python*/dist-packages/carchive/backend/*pbdecode*.so
+usr/lib/python*/dist-packages/carchive/backend/EPICSEvent_pb2.py
+usr/lib/python*/dist-packages/carchive/backend/test
