@@ -22,6 +22,9 @@ class Appender(object):
         self._cur_start = None
         self._cur_end = None
         self._cur_path = None
+        
+        # Last non-out-of-order timestamp.
+        self._last_ts = None
     
     def close(self):
         # Close any file we have open.
@@ -35,6 +38,7 @@ class Appender(object):
         td = (dt_seconds - datetime.datetime(dt_seconds.year, 1, 1))
         into_year_sec_fp = (td.seconds + td.days * 24 * 3600)
         into_year_sec = int(into_year_sec_fp)
+        sample_ts = (into_year_sec, nanoseconds)
         
         # Ignore sample if requested by the lower bound.
         if self._ignore_ts_start is not None:
@@ -42,9 +46,14 @@ class Appender(object):
                 self._pvlog.ignored_initial_sample()
                 return
         
+        # Ignore out-of-order samples.
+        if self._last_ts is not None and sample_ts < self._last_ts:
+            self._pvlog.error('Out-of-order sample: last={0} this={1}'.format(self._last_ts, sample_ts))
+            return
+        self._last_ts = sample_ts
+        
         # Write timestamp to sample.
-        sample_pb.secondsintoyear = into_year_sec
-        sample_pb.nano = nanoseconds
+        sample_pb.secondsintoyear, sample_pb.nano = sample_ts
         
         # Serialize sample.
         sample_serialized = sample_pb.SerializeToString()
@@ -79,7 +88,7 @@ class Appender(object):
             self._cur_file.seek(0, 0)
             
             # We fail if we found samples newer than this one in the file.
-            upper_ts_bound = (into_year_sec, nanoseconds)
+            upper_ts_bound = sample_ts
             
             # Verify any existing contents of the file.
             try:
