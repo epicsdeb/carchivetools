@@ -24,6 +24,7 @@ class Exporter(object):
         self._previous_nano = None
         self._pv_disconnected = False
         self._print_mysql = True
+        self._last_timestamp_secnano = None
         self._appender = pb_appender.Appender(pv_name, gran, out_dir, delimiters, ignore_ts_start, pvlog)
     
     # with statement entry
@@ -125,6 +126,12 @@ class Exporter(object):
         # Track nanoseconds separately to avoid time conversion errors.
         # dt_seconds must be in UTC
         dt_seconds = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=secs)
+        
+        # Skip out-of-order samples in input.
+        secnano = (secs, nano)
+        if self._last_timestamp_secnano is not None and secnano < self._last_timestamp_secnano:
+            self._pvlog.error('Out-of-order sample: last={0} this={1}'.format(self._last_timestamp_secnano, secnano))
+        self._last_timestamp_secnano = secnano
         
         # Build sample structure. But leave the time to the appender.
         sample_pb = self._pb_class()

@@ -23,9 +23,6 @@ class Appender(object):
         self._cur_end = None
         self._cur_path = None
         
-        # Last non-out-of-order timestamp.
-        self._last_ts = None
-    
     def close(self):
         # Close any file we have open.
         if self._cur_file is not None:
@@ -45,12 +42,6 @@ class Appender(object):
             if (dt_seconds.year, into_year_sec, nanoseconds) <= self._ignore_ts_start:
                 self._pvlog.ignored_initial_sample()
                 return
-        
-        # Ignore out-of-order samples.
-        if self._last_ts is not None and sample_ts < self._last_ts:
-            self._pvlog.error('Out-of-order sample: last={0} this={1}'.format(self._last_ts, sample_ts))
-            return
-        self._last_ts = sample_ts
         
         # Write timestamp to sample.
         sample_pb.secondsintoyear, sample_pb.nano = sample_ts
