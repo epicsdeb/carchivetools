@@ -1,5 +1,5 @@
 from __future__ import print_function
-import datetime
+import datetime, os
 from carchive.backend import EPICSEvent_pb2 as pbt
 from carchive.backend.pb import escape as pb_escape
 from carchive.backend.pb import filepath as pb_filepath
@@ -77,6 +77,7 @@ class Appender(object):
             
             # Determine the path of the file.
             self._cur_path = pb_filepath.get_path_for_suffix(self._out_dir, self._delimiters, self._pv_name, segment.file_suffix())
+            pb_filepath.make_sure_path_exists(os.path.dirname(self._cur_path))
             
             self._pvlog.info('File: {0}'.format(self._cur_path))
             

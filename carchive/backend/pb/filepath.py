@@ -24,7 +24,6 @@ def get_dir_and_prefix(out_dir, delimiters, pv_name):
 
 def get_path_for_suffix(out_dir, delimiters, pv_name, time_suffix):
     dir_path, file_prefix = get_dir_and_prefix(out_dir, delimiters, pv_name)
-    make_sure_path_exists(dir_path)        
     return os.path.join(dir_path, pathName.format(file_prefix, time_suffix))
 
 def filter_filenames(names, file_prefix):
