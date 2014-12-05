@@ -1,0 +1,164 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import print_function
+
+import sys
+
+from urllib2 import quote
+
+import json
+from cStringIO import StringIO
+
+from twisted.internet import protocol, reactor, defer
+from twisted.web.client import Agent, ResponseDone
+
+agent = Agent(reactor, connectTimeout=3)
+
+class ReadAll(protocol.Protocol):
+    def __init__(self):
+        self._S, self.defer = StringIO(), defer.Deferred()
+    def dataReceived(self, raw):
+        self._S.write(raw)
+    def connectionLost(self, reason):
+        if reason.check(ResponseDone):
+            S = self._S.getvalue()
+            J = json.loads(S)
+            self.defer.callback(J)
+        else:
+            self.defer.errback(reason)
+
+@defer.inlineCallbacks
+def getURL(url):
+    #print('GET',url,file=sys.stderr)
+    R = yield agent.request('GET', str(url))
+
+    if R.code!=200:
+        print('oops',R.code,url,file=sys.stderr)
+        raise RuntimeError("%s: %s"%(R.code, url))
+
+    B = ReadAll()
+    R.deliverBody(B)
+
+    X = yield B.defer
+    defer.returnValue(X)
+
+@defer.inlineCallbacks
+def pausePV(pvs, I):
+    while len(pvs):
+        pv = pvs.pop()
+        url = '%s/pauseArchivingPV?pv=%s'%(I['mgmtURL'],quote(pv))
+        R = yield getURL(url)
+        print(pv,R,file=sys.stderr)
+
+@defer.inlineCallbacks
+def resumePV(pvs, I):
+    while len(pvs):
+        pv = pvs.pop()
+        url = '%s/resumeArchivingPV?pv=%s'%(I['mgmtURL'],quote(pv))
+        R = yield getURL(url)
+        print(pv,R,file=sys.stderr)
+
+@defer.inlineCallbacks
+def deletePV(pvs, I):
+    while len(pvs):
+        pv = pvs.pop()
+        url = '%s/deletePV?pv=%s'%(I['mgmtURL'],quote(pv))
+        R = yield getURL(url)
+        print(pv,R,file=sys.stderr)
+
+@defer.inlineCallbacks
+def abortPV(pvs, I):
+    while len(pvs):
+        pv = pvs.pop()
+        url = '%s/abortArchivingPV?pv=%s'%(I['mgmtURL'],quote(pv))
+        R = yield getURL(url)
+        print(pv,R,file=sys.stderr)
+
+@defer.inlineCallbacks
+def statusPV(pvs, I):
+    while len(pvs):
+        pv = pvs.pop()
+        url = '%s/getPVStatus?pv=%s'%(I['mgmtURL'],quote(pv))
+        R = (yield getURL(url))[0]
+        if R['status']=='Being archived':
+            print(pv,R['status'],R['lastEvent'])
+        else:
+            print(pv,R['status'])
+
+@defer.inlineCallbacks
+def doStuff(opts, args):
+    print('Fetch Appliance info',file=sys.stderr)
+    I = yield getURL(opts.url)
+    print('Info',I,file=sys.stderr)
+
+    if opts.pvs=='pattern':
+        pvs=set()
+        for pat in args:
+            R = yield getURL('%s/getAllPVs?pv=%s'%(I['mgmtURL'], quote(pat)))
+            pvs.update(R)
+        pvs=list(pvs)
+
+    elif opts.pvs=='disconn':
+        R = yield getURL('%s/getCurrentlyDisconnectedPVs'%(I['mgmtURL'],))
+
+        pvs = [ent['pvName'] for ent in R]
+
+    elif opts.pvs=='never':
+        R = yield getURL('%s/getNeverConnectedPVs'%(I['mgmtURL'],))
+
+        pvs = [ent['pvName'] for ent in R]
+
+    elif opts.pvs=='pause':
+        R = yield getURL('%s/getPausedPVsReport'%(I['mgmtURL'],))
+
+        pvs = [ent['pvName'] for ent in R]
+
+    if opts.action is None:
+        map(print, pvs)
+    else:
+        N = opts.count
+        Ds = [opts.action(pvs[i::N], I) for i in range(N)]
+        yield defer.DeferredList(Ds, fireOnOneErrback=True)#, consumeErrors=True)
+
+    print(len(pvs), 'PVs',file=sys.stderr)
+
+if __name__=='__main__':
+    from optparse import OptionParser
+    P = OptionParser(usage='%prog [options] [<pvpattern(s)>|--disconn|--never|--paused]')
+    P.add_option('-U','--url', help='Appliance info URL')
+    P.add_option('-P','--pause', action='store_const', dest='action', const=pausePV, default=None,
+                 help='Pause archiving')
+    P.add_option('-R','--resume', action='store_const', dest='action', const=resumePV,
+                 help='Resume archiving')
+    P.add_option('-D','--delete', action='store_const', dest='action', const=deletePV,
+                 help='Resume archiving')
+    P.add_option('-S','--status', action='store_const', dest='action', const=statusPV,
+                 help='Show PV status')
+    P.add_option('-A','--abort', action='store_const', dest='action', const=abortPV,
+                 help='Cancel archiving request')
+
+    P.add_option('--disconn', action='store_const', dest='pvs', const='disconn', default='pattern',
+                 help='Operate on disconnected PVs')
+    P.add_option('--never', action='store_const', dest='pvs', const='never',
+                 help='Operate on never connected PVs')
+    P.add_option('--paused', action='store_const', dest='pvs', const='pause',
+                 help='Operate on paused PVs')
+    P.add_option('-C','--count', type=int, default=5,
+                 help='Number of parallel operations')
+
+    opts, args = P.parse_args()
+
+    if len(args)==0 and opts.pvs=='pattern':
+        P.error("one of PV name(s) or --disconn or --never is required")
+    
+    if not opts.url.startswith('http') and opts.url.find('/')==-1:
+        opts.url='http://%s/mgmt/bpl/getApplianceInfo'%opts.url
+
+    D = doStuff(opts, args)
+    def stop(D):
+        reactor.stop()
+        return D
+    D.addBoth(stop)
+    reactor.run()
+    print('Done',file=sys.stderr)
