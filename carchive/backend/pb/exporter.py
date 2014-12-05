@@ -1,9 +1,8 @@
 from __future__ import print_function
-import math
+import math, datetime
 from carchive.backend import EPICSEvent_pb2 as pbt
 from carchive.backend.pb import dtypes as pb_dtypes
 from carchive.backend.pb import appender as pb_appender
-from carchive.date import makeTime
 
 class SkipPvError(Exception):
     pass
@@ -124,8 +123,8 @@ class Exporter(object):
 
         # Build a datetime for the whole seconds.
         # Track nanoseconds separately to avoid time conversion errors.
-        dt_seconds = makeTime(secs)
-        #datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=secs)
+        # dt_seconds must be in UTC
+        dt_seconds = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=secs)
         
         # Build sample structure. But leave the time to the appender.
         sample_pb = self._pb_class()
