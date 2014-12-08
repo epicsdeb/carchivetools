@@ -384,7 +384,13 @@ class Appliance(object):
         yield defer.gatherResults(Ds, consumeErrors=True)
 
         if any(map(lambda x:x is None, pieces)):
-            defer.returnValue(0) # no data
+            # Binning operator returned nothing for the first bin.
+            # try backup strategy
+            _log.debug('Fallback binning stratagy for %s: %s', pv, pieces)
+            pv = 'firstFill(%s)'%pv
+            kws['count'] = 1
+            D = yield self.fetchraw(pv, callback, cbArgs, cbKWs, **kws)
+            defer.returnValue(D)
 
         # First, mInimum, mAximum, Last, Num
         # each is a pair of (values, metas)
