@@ -270,14 +270,17 @@ class Appliance(object):
                archs=None, breakDown=False,
                rawTime=False):
 
+        assert (exact is None) ^ (pattern is None), 'Only one of exact= or pattern= can be given'
         # ArchiveDataServer looks for partial matches
         # Archive Appliance matches the entire line (implicit ^...$)
-        if not pattern:
-            pattern=re.escape(exact)
+        if pattern is None:
+            pattern='^%s$'%re.escape(exact)
+        elif not pattern:
+            pattern = '^.*$'
         else:
-            if not pattern.startswith('^'):
+            if not pattern.startswith('^') and not pattern.startswith('.*'):
                 pattern='.*'+pattern
-            if not pattern.endswith('$'):
+            if not pattern.endswith('$') and not pattern.endswith('.*'):
                 pattern=pattern+'.*'
 
         url='%s/getAllPVs?%s'%(self._info['mgmtURL'],urlencode({'regex':pattern}))

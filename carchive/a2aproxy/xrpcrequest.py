@@ -59,19 +59,8 @@ class NamesRequest(XMLRPCRequest):
     def __init__(self, httprequest, args, applinfo=None):
         super(NamesRequest, self).__init__(httprequest, args)
         self.applinfo = applinfo
-        pattern = self.args[1]
 
-        # ArchiveDataServer looks for partial matches
-        # Archive Appliance matches the entire line (implicit ^...$)
-        if not pattern:
-            pattern='.*'
-        else:
-            if not pattern.startswith('^'):
-                pattern='.*'+pattern
-            if not pattern.endswith('$'):
-                pattern=pattern+'.*'
-
-        self.defer = S = applinfo.search(pattern=pattern)
+        self.defer = S = applinfo.search(pattern=self.args[1] or '^.*$')
 
         S.addCallback(self.results)
         S.addErrback(self.error)
