@@ -328,15 +328,6 @@ class Appliance(object):
 
         defer.returnValue(C)
 
-    _binops = [
-        ('firstSample_%d(%s)', 0),
-        ('minSample_%d(%s)', 1),
-        ('maxSample_%d(%s)', 2),
-        ('lastSample_%d(%s)', 3),
-        ('countSample_%d(%s)', 4),
-    ]
-
-    @defer.inlineCallbacks
     def fetchplot(self, pv, callback,
                  cbArgs=(), cbKWs={},
                  T0=None, Tend=None,
@@ -348,6 +339,7 @@ class Appliance(object):
 
         kws['T0'] = T0
         kws['Tend'] = Tend
+
         T0, Tend = timeTuple(makeTime(T0))[0], timeTuple(makeTime(Tend))[0]
 
         if count<=0:
@@ -358,114 +350,11 @@ class Appliance(object):
 
         if N<=1 or delta<=0:
             _log.info("Time range too short for plot bin, switching to raw")
-            D = yield self.fetchraw(pv, callback, cbArgs, cbKWs, **kws)
-            defer.returnValue(D)
+            return self.fetchraw(pv, callback, cbArgs, cbKWs, **kws)
 
-        assert N>=1, (delta, count)
-        T0 -= T0%N
-        if Tend%N:
-            Tend += N-Tend%N
-
-        kws['T0'] = T0
-        kws['Tend'] = Tend
-        kws['cadiscon'] = 1
-
-        pieces = [None]*len(self._binops)
-        def storeN(values, metas, i):
-            if values.shape[1]!=1:
-                raise ValueError("fetchplot not defined for waveforms")
-            values = values[:,0]
-            if pieces[i]:
-                values = np.concatenate((pieces[i][0], values), axis=0)
-                metas  = np.concatenate((pieces[i][1], metas), axis=0)
-            pieces[i] = values, metas
-
-        Ds = [None]*len(pieces)
-        for pat, i in self._binops:
-            Ds[i] = self.fetchraw(pat%(N,pv), storeN, cbArgs=(i,), cbKWs={}, **kws)
-        
-        yield defer.gatherResults(Ds, consumeErrors=True)
-
-        if any(map(lambda x:x is None, pieces)):
-            # Binning operator returned nothing for the first bin.
-            # try backup strategy
-            _log.debug('Fallback binning stratagy for %s: %s', pv, pieces)
-            pv = 'firstFill(%s)'%pv
-            kws['count'] = 1
-            D = yield self.fetchraw(pv, callback, cbArgs, cbKWs, **kws)
-            defer.returnValue(D)
-
-        # First, mInimum, mAximum, Last, Num
-        # each is a pair of (values, metas)
-        Fst, mIn, mAx, Lst, Num = pieces
-
-        pieceLen = np.asarray([len(P[1]) for P in pieces])
-        assert pieceLen.max()==pieceLen.min(), pieceLen
-
-        one = Num[0]==1
-        two = Num[0]==2
-        many= Num[0]>2
-
-        # the number of output samples for each bin
-        mapping = Num[0].copy()
-        mapping[many]= 4
-        
-        # index of the first output sample of each bin
-        idx = np.ndarray((len(one),), dtype=np.int32)
-        idx[0]=0
-        idx[1:] = mapping[:-1].cumsum()
-
-        nsamp = mapping.sum() # total num. of output samples
-        
-        assert idx[-1]+mapping[-1]==nsamp
-
-        values = np.ndarray((nsamp,1), dtype=Fst[0].dtype)
-        metas  = np.ndarray((nsamp,), dtype=Fst[1].dtype)
-        
-        # bins with one sample simply pass through that sample
-        if np.any(one):
-            values[idx[one],0] = Fst[0][one]
-            metas[idx[one]]    = Fst[1][one]
-
-        # bins w/ two samples are just as easy
-        if np.any(two):
-            values[idx[two],0]  = mIn[0][two]
-            metas[idx[two]]     = mIn[1][two]
-            values[idx[two]+1,0]= mAx[0][two]
-            metas[idx[two]+1]   = mAx[1][two]
-
-        # bins with more than two samples are more complex
-
-        # Start by copying through
-        if np.any(many):
-            #print 'Q',values[idx[many]]
-            values[idx[many],0]  = Fst[0][many]
-            metas[idx[many]]     = Fst[1][many]
-            values[idx[many]+1,0]= mIn[0][many]
-            metas[idx[many]+1]   = mIn[1][many]
-            values[idx[many]+3,0]= Lst[0][many]
-            metas[idx[many]+3]   = Lst[1][many]
-            values[idx[many]+2,0]= mAx[0][many]
-            metas[idx[many]+2]   = mAx[1][many]
-            
-            # place min/max samples at times 1/3 and 2/3 between first and last
-    
-            T0 = Fst[1]['sec'][many]+1e-9*Fst[1]['ns'][many]
-            T1 = Lst[1]['sec'][many]+1e-9*Lst[1]['ns'][many]
-            dT = (T1-T0)/3.0
-    
-            TI = T0 + dT
-            TA = TI + dT
-    
-            metas['sec'][idx[many]+1] = np.asarray(TI, dtype=np.uint32)
-            metas['sec'][idx[many]+2] = np.asarray(TA, dtype=np.uint32)
-    
-            metas['ns'][idx[many]+1] = np.asarray((TI*1e9)%1e9, dtype=np.uint32)
-            metas['ns'][idx[many]+2] = np.asarray((TA*1e9)%1e9, dtype=np.uint32)
-
-        callback(values, metas, *cbArgs, **cbKWs)
-
-        defer.returnValue(nsamp)
+        pv = 'caplotbinning_%d(%s)'%(N,pv)
+        return self.fetchraw(pv, callback, cbArgs=cbArgs, cbKWs=cbKWs,
+                             **kws)
 
     def fetchsnap(self, pvs, T=None,
                   archs=None, chunkSize=100,

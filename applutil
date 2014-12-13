@@ -114,6 +114,9 @@ def doStuff(opts, args):
 
         pvs = [ent['pvName'] for ent in R]
 
+    elif opts.pvs=='all':
+        pvs = yield getURL('%s/getAllPVs'%(I['mgmtURL'],))
+
     if opts.action is None:
         map(print, pvs)
     else:
@@ -144,6 +147,8 @@ if __name__=='__main__':
                  help='Operate on never connected PVs')
     P.add_option('--paused', action='store_const', dest='pvs', const='pause',
                  help='Operate on paused PVs')
+    P.add_option('--all', action='store_const', dest='pvs', const='all',
+                 help='Operate on all PVs')
     P.add_option('-C','--count', type=int, default=5,
                  help='Number of parallel operations')
 
