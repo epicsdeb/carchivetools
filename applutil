@@ -5,13 +5,14 @@ from __future__ import print_function
 
 import sys
 
-from urllib2 import quote
+from urllib import quote, quote_plus
 
 import json
 from cStringIO import StringIO
 
 from twisted.internet import protocol, reactor, defer
 from twisted.web.client import Agent, ResponseDone
+from twisted.web.http import Headers
 
 agent = Agent(reactor, connectTimeout=3)
 
@@ -28,6 +29,19 @@ class ReadAll(protocol.Protocol):
         else:
             self.defer.errback(reason)
 
+class ProduceAll(object):
+    def __init__(self, content):
+        self.length, self.content = len(content), content
+    def startProducing(self, consumer):
+        consumer.write(self.content)
+        return defer.succeed(None)
+    def resumeProducing(self):
+        pass
+    def pauseProducing(self):
+        pass
+    def stopProcuding(self):
+        pass
+
 @defer.inlineCallbacks
 def getURL(url):
     #print('GET',url,file=sys.stderr)
@@ -42,6 +56,27 @@ def getURL(url):
 
     X = yield B.defer
     defer.returnValue(X)
+
+@defer.inlineCallbacks
+def addPV(pvs, I):
+    H = Headers()
+    H.setRawHeaders('Content-Type', ['application/x-www-form-urlencoded'])
+    body = 'pv='+(','.join(map(quote_plus,pvs)))
+    url = str('%s/archivePV'%I['mgmtURL'])
+    R = yield agent.request('POST', url, headers=H,
+                            bodyProducer=ProduceAll(body))
+
+    if R.code!=200:
+        print('oops',R.code,url,file=sys.stderr)
+
+    B = ReadAll()
+    R.deliverBody(B)
+
+    X = yield B.defer
+    if R.code!=200:
+        raise RuntimeError("%s: %s"%(R.code, url))
+    for E in X:
+        print(E)
 
 @defer.inlineCallbacks
 def pausePV(pvs, I):
@@ -116,12 +151,22 @@ def doStuff(opts, args):
 
     elif opts.pvs=='all':
         pvs = yield getURL('%s/getAllPVs'%(I['mgmtURL'],))
+        
+    elif opts.pvs=='file':
+        pvs = []
+        for fname in args:
+            if fname=='-':
+                F = sys.stdin
+            else:
+                F = open(fname, 'r')
+            [pvs.append(pv.split(None,1)[0].strip()) for pv in F]
+            F.close()
 
     if opts.action is None:
         map(print, pvs)
     else:
-        N = opts.count
-        Ds = [opts.action(pvs[i::N], I) for i in range(N)]
+        N = len(pvs)/opts.count
+        Ds = [opts.action(pvs[i:i+N], I) for i in range(0, len(pvs), N)]
         yield defer.DeferredList(Ds, fireOnOneErrback=True)#, consumeErrors=True)
 
     print(len(pvs), 'PVs',file=sys.stderr)
@@ -130,15 +175,17 @@ if __name__=='__main__':
     from optparse import OptionParser
     P = OptionParser(usage='%prog [options] [<pvpattern(s)>|--disconn|--never|--paused]')
     P.add_option('-U','--url', help='Appliance info URL')
-    P.add_option('-P','--pause', action='store_const', dest='action', const=pausePV, default=None,
+    P.add_option('--add', action='store_const', dest='action', const=addPV, default=None,
                  help='Pause archiving')
-    P.add_option('-R','--resume', action='store_const', dest='action', const=resumePV,
+    P.add_option('--pause', action='store_const', dest='action', const=pausePV,
+                 help='Pause archiving')
+    P.add_option('--resume', action='store_const', dest='action', const=resumePV,
                  help='Resume archiving')
-    P.add_option('-D','--delete', action='store_const', dest='action', const=deletePV,
+    P.add_option('--delete', action='store_const', dest='action', const=deletePV,
                  help='Resume archiving')
-    P.add_option('-S','--status', action='store_const', dest='action', const=statusPV,
+    P.add_option('--status', action='store_const', dest='action', const=statusPV,
                  help='Show PV status')
-    P.add_option('-A','--abort', action='store_const', dest='action', const=abortPV,
+    P.add_option('--abort', action='store_const', dest='action', const=abortPV,
                  help='Cancel archiving request')
 
     P.add_option('--disconn', action='store_const', dest='pvs', const='disconn', default='pattern',
@@ -149,6 +196,9 @@ if __name__=='__main__':
                  help='Operate on paused PVs')
     P.add_option('--all', action='store_const', dest='pvs', const='all',
                  help='Operate on all PVs')
+    P.add_option('-i', '--file', action='store_const', dest='pvs', const='file',
+                 help='Operate on PVs from file ( - for stdin)')
+
     P.add_option('-C','--count', type=int, default=5,
                  help='Number of parallel operations')
 
@@ -161,6 +211,11 @@ if __name__=='__main__':
         opts.url='http://%s/mgmt/bpl/getApplianceInfo'%opts.url
 
     D = doStuff(opts, args)
+    def error(E):
+        if isinstance(E, defer.FirstError):
+            E = E.subFailure
+        E.printDetailedTraceback()
+    D.addErrback(error)
     def stop(D):
         reactor.stop()
         return D
