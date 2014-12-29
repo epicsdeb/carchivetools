@@ -19,10 +19,6 @@ try:
 except ImportError:
     ShellFactory = None
 
-from carchive._conf import ConfigDict
-from carchive.archmiddle.proxy import buildResource
-from carchive.archmiddle.info import InfoCache, KeyNameMap
-
 class Log2Twisted(logging.StreamHandler):
     """Print logging module stream to the twisted log
     """
@@ -52,6 +48,10 @@ class Maker(object):
     options = Options
 
     def makeService(self, opts):
+        from carchive._conf import ConfigDict
+        from carchive.archmiddle.proxy import buildResource
+        from carchive.archmiddle.info import InfoCache, KeyNameMap
+
         server = ConfigDict(opts['config'], 'server')
         mapping = ConfigDict(opts['config'], 'mapping')
 

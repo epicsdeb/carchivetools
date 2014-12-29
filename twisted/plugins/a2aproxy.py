@@ -16,9 +16,6 @@ try:
 except ImportError:
     ShellFactory = None
 
-from carchive.a2aproxy.resource import buildResource
-from carchive.util import LimitedSite, LimitedTCPServer
-
 class Log2Twisted(logging.StreamHandler):
     """Print logging module stream to the twisted log
     """
@@ -49,6 +46,9 @@ class Maker(object):
     options = Options
 
     def makeService(self, opts):
+        from carchive.a2aproxy.resource import buildResource
+        from carchive.util import LimitedSite, LimitedTCPServer
+
         L = logging.INFO
         if opts['debug']:
             L = logging.DEBUG
