@@ -117,9 +117,9 @@ def statusPV(pvs, I):
         url = '%s/getPVStatus?pv=%s'%(I['mgmtURL'],quote(pv))
         R = (yield getURL(url))[0]
         if R['status']=='Being archived':
-            print(pv,R['status'],R['lastEvent'])
+            print('%s\t\t%s\t%s'%(pv,R['status'],R['lastEvent']))
         else:
-            print(pv,R['status'])
+            print('%s\t\t%s'%(pv,R['status']))
 
 @defer.inlineCallbacks
 def doStuff(opts, args):
@@ -176,13 +176,13 @@ if __name__=='__main__':
     P = OptionParser(usage='%prog [options] [<pvpattern(s)>|--disconn|--never|--paused]')
     P.add_option('-U','--url', help='Appliance info URL')
     P.add_option('--add', action='store_const', dest='action', const=addPV, default=None,
-                 help='Pause archiving')
+                 help='Start archiving')
     P.add_option('--pause', action='store_const', dest='action', const=pausePV,
                  help='Pause archiving')
     P.add_option('--resume', action='store_const', dest='action', const=resumePV,
                  help='Resume archiving')
     P.add_option('--delete', action='store_const', dest='action', const=deletePV,
-                 help='Resume archiving')
+                 help='Stop archiving and delete')
     P.add_option('--status', action='store_const', dest='action', const=statusPV,
                  help='Show PV status')
     P.add_option('--abort', action='store_const', dest='action', const=abortPV,
