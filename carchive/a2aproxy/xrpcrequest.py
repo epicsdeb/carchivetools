@@ -208,10 +208,11 @@ class ValuesRequest(XMLRPCRequest):
 
 
     def getPV(self, V):
+        if self._first_val and V==0:
+            _log.warn('Query returned zero samples: %s', self._cur_pv)
+            import numpy
+            self.processRaw(numpy.zeros((0,0)), [])
         if not self._first_val:
-            if self._count==0:
-                import numpy
-                self.processRaw(numpy.zeros((0,0)), [])
             # emit footer for completed PV
             self.request.write(_values_foot)
         self._first_val = True
