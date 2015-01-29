@@ -349,7 +349,7 @@ class Appliance(object):
         N = math.ceil(delta/count) # average sample period
 
         if N<=1 or delta<=0:
-            _log.info("Time range too short for plot bin, switching to raw")
+            _log.info("Time range %s too short for plot bin %s, switching to raw", delta, count)
             return self.fetchraw(pv, callback, cbArgs, cbKWs, **kws)
 
         pv = 'caplotbinning_%d(%s)'%(N,pv)
