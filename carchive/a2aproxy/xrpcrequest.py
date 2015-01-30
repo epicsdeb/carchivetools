@@ -3,9 +3,11 @@
 import logging
 _log = logging.getLogger(__name__)
 
-import time
+import time, datetime
 
 from xmlrpclib import dumps, Fault, escape
+
+import numpy
 
 from twisted.internet import defer
 
@@ -204,46 +206,43 @@ class ValuesRequest(XMLRPCRequest):
         #TODO: throttle reply
         self.request.write(_values_start)
 
-        self.defer = self.getPV(None)
+        self.defer = self.getPVs()
 
+    @defer.inlineCallbacks
+    def getPVs(self):
+        for name in self._names:
+            self._cur_pv = name
+            self._first_val = True
 
-    def getPV(self, V):
-        if self._first_val and V==0:
-            _log.warn('Query returned zero samples: %s', self._cur_pv)
-            import numpy
-            self.processRaw(numpy.zeros((0,0)), [])
-        if not self._first_val:
-            # emit footer for completed PV
+            if self._how==3:
+                # Request for plot binning
+                C = yield self.applinfo.fetchplot(name, T0=self._start, Tend=self._end,
+                                                  count=self._count_limit, callback=self.processRaw)
+
+                if self._first_val and C==0:
+                    # So the plot binning didn't return anything, which is a bug.
+                    # We try to get the last raw data point so we can at least
+                    # give the client something...
+                    _log.warn('plotbin returned zero samples: %s', self._cur_pv)
+                    C = yield self.applinfo.fetchraw(name,
+                                                     T0=self._end,
+                                                     Tend=self._end+datetime.timedelta(seconds=1),
+                                                     count=1, callback=self.processRaw)
+
+                if self._first_val and C==0:
+                    # oh well, we tried.  Ensure that an empty array is returned
+                    _log.warn('raw returned zero samples: %s', self._cur_pv)
+                    self.processRaw(numpy.zeros((0,0)), [])
+
+            else:
+                C = yield self.applinfo.fetchraw(name, T0=self._start, Tend=self._end,
+                                                 count=self._count_limit, callback=self.processRaw)
+
+            assert not self._first_val, "values header never sent"
             self.request.write(_values_foot)
-        self._first_val = True
 
-        if len(self._names)==0:
-            _log.debug("Complete %s after %s samples", self._cur_pv, self._count)
-            #self.request.unregisterProducer()
-            self.request.write(_values_end)
-            self.request.finish()
-            return
-
-        self._cur_pv = self._names.pop(0)
-
-        self._count = 0
-
-        if self._how==3:
-            D = self.fetchBinned()
-        else:
-            D = self.fetchRaw()
-
-        D.addCallback(self.getPV)
-
-        return D
-
-    def fetchRaw(self):
-        return self.applinfo.fetchraw(self._cur_pv, T0=self._start, Tend=self._end,
-                                   count=self._count_limit, callback=self.processRaw)
-
-    def fetchBinned(self):
-        return self.applinfo.fetchplot(self._cur_pv, T0=self._start, Tend=self._end,
-                                   count=self._count_limit, callback=self.processRaw)
+        self.request.write(_values_end)
+        self.request.finish()
 
     def processRaw(self, V, M):
         if self._first_val:
