@@ -51,10 +51,7 @@ def cleanupRequest(R, req):
             req.unregisterProducer()
             req.finish()
     if isinstance(R, Failure):
-        try:
-            R.raiseException()
-        except:
-            _log.exception("Unhandled execption during request: %s", req)
+        _log.error("Unhandled execption during request: %s", R.getTraceback())
 
 
 class DataServer(Resource):
