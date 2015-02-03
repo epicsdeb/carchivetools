@@ -146,7 +146,7 @@ class PBReceiver(protocol.Protocol):
                         H.year = 1 # -1 when no samples available
                     self._year = calendar.timegm(datetime.date(H.year,1,1).timetuple())
                 except ValueError:
-                    _log.error("Error docoding: %s %s", H.year, repr(P[0]))
+                    _log.error("Error docoding: %s %s %s", self.name, H.year, repr(P[0]))
                     print H
                     raise
                 P = P[1:]
@@ -167,7 +167,7 @@ class PBReceiver(protocol.Protocol):
             try:
                 V, M = decoders[H.type](P, self.cadiscon, self._year)
             except DecodeError as e:
-                raise ValueError("Failed to decode: "+repr(e.args[0]))
+                raise ValueError("Failed to decode: %s as type %s %s"%(self.name,H.type,repr(e.args[0])))
             M = np.rec.array(M, dtype=dbr_time)
 
             M['sec'] += self._year
