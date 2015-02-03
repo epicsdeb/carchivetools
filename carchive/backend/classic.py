@@ -286,7 +286,7 @@ class Archive(object):
 
             assert len(data)==1, "Server returned more than one PVs? (%s)"%len(data)
 
-            assert data[0]['name']==pv, "Server gives us some other PV?"
+            assert data[0]['name']==pv, "Server gives us %s != %s"%(data[0]['name'], pv)
 
             vals = data[0]['values']
 
