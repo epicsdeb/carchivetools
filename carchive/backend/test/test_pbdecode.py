@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import sys
+import sys, logging
 
 from unittest import TestCase
 from twisted.trial.unittest import SkipTest
@@ -125,6 +125,13 @@ class TestDecodeScalar(TestCase):
         self.assertEqual(V[1], ord('b'))
         self.assertEqual(tuple(M[1]), (0, 0, 1025, 0x1235))
 
+    class CaptureHandler(logging.Handler):
+        def __init__(self, *args):
+            logging.Handler.__init__(self, *args)
+            self.logs = []
+        def handle(self, rec):
+            self.logs.append(rec.getMessage())
+
     def test_fail(self):
         S = _fields[4]()
         S.val = 'a'
@@ -137,6 +144,10 @@ class TestDecodeScalar(TestCase):
         self.assertRaises(TypeError, pbdecode.decode_scalar_byte, [1], 1)
         self.assertRaises(TypeError, pbdecode.decode_scalar_byte, [raw,4], 1)
 
+        H = self.CaptureHandler()
+        L = pbdecode._getLogger()
+        L.addHandler(H)
+
         # decode empty string
         self.assertRaises(pbdecode.DecodeError, pbdecode.decode_scalar_byte, ['',''], 1)
 
@@ -145,6 +156,12 @@ class TestDecodeScalar(TestCase):
 
         # decode partial string in second item
         self.assertRaises(pbdecode.DecodeError, pbdecode.decode_scalar_byte, [raw,raw[:5]], 1)
+
+        L.removeHandler(H)
+
+        # all three decodes result in the same error, so only one message
+        self.assertEqual(len(H.logs), 1)
+        self.assertRegexpMatches(H.logs[0], 'missing required fields:')
 
         try:
             pbdecode.decode_scalar_byte([raw,raw[:5]], 1)

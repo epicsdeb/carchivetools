@@ -404,7 +404,72 @@ PyObject* PBD_decode_X(PyObject *unused, PyObject *args)
     return Py_BuildValue("OO", outval.release(), outmeta.release());
 }
 
+static
+char decoderErrorName[] = "carchive.backend.pbdecode.DecodeError";
+
+static
+char moduleName[] = "carchive.backend.pbdecode";
+
+static
+PyObject *pblogger;
+
+static
+void PBLog(google::protobuf::LogLevel L,
+           const char *filename, int line,
+           const std::string& msg)
+{
+    if(!pblogger) return;
+    PyGILState_STATE tstate;
+    tstate = PyGILState_Ensure();
+    PyRef junk(PyObject_CallMethod(pblogger, "error", "ssis", "protobuf: %s:%d: %s",
+                        filename, line, msg.c_str()));
+    if(junk.isnull()) {
+        PyErr_Print();
+        PyErr_Clear();
+    }
+    PyGILState_Release(tstate);
 }
+
+static
+PyObject* cleanupLogger(PyObject *unused, PyObject *unused2)
+{
+    Py_XDECREF(pblogger);
+    pblogger = NULL;
+    Py_RETURN_NONE;
+}
+
+static
+PyObject* getLog(PyObject *unused, PyObject *unused2)
+{
+    char *msg;
+    PyObject *R=pblogger;
+    if(!R)
+        R = Py_None;
+    Py_INCREF(R);
+    return R;
+}
+
+static
+bool initLogger(PyObject *modself)
+{
+    PyRef logging(PyImport_ImportModule("logging")),
+          atexit(PyImport_ImportModule("atexit"));
+    if(logging.isnull() || atexit.isnull())
+        return false;
+    // reference to the cleanupLogger method
+    PyRef cleanup(PyObject_GetAttrString(modself, "_cleanupLogger"));
+    if(cleanup.isnull())
+        return false;
+    PyRef junk1(PyObject_CallMethod(atexit.get(), "register", "O", cleanup.get()));
+    if(junk1.isnull())
+        return false;
+    pblogger = PyObject_CallMethod(logging.get(), "getLogger", "s", moduleName);
+    if(pblogger)
+        google::protobuf::SetLogHandler(&PBLog);
+    return !!pblogger;
+}
+
+}//namespace
 
 static PyMethodDef PBDMethods[] = {
     {"unescape", PBD_unescape, METH_VARARGS,
@@ -438,6 +503,8 @@ static PyMethodDef PBDMethods[] = {
     {"decode_vector_double", PBD_decode_X<double, EPICS::VectorDouble, true>, METH_VARARGS,
      "Decode protobuf stream into numpy array"},
 
+    {"_getLogger", getLog, METH_NOARGS, "Fetch extension module logger"},
+    {"_cleanupLogger", cleanupLogger, METH_NOARGS, "Remove extension module logger"},
     {NULL}
 };
 
@@ -463,8 +530,6 @@ static const mapent decodemap[] = {
     {NULL}
 };
 
-char decoderErrorName[] = "carchive.backend.pbdecode.DecodeError";
-
 PyMODINIT_FUNC
 initpbdecode(void)
 {
@@ -476,7 +541,7 @@ initpbdecode(void)
 
     GOOGLE_PROTOBUF_VERIFY_VERSION;
 
-    mod = Py_InitModule("carchive.backend.pbdecode", PBDMethods);
+    mod = Py_InitModule(moduleName, PBDMethods);
     if(!mod)
         return;
     import_array();
@@ -517,4 +582,9 @@ initpbdecode(void)
                                       PyExc_ValueError, NULL);
     Py_XINCREF(decoderError);
     PyModule_AddObject(mod, "DecodeError", decoderError);
+
+    if(!initLogger(mod)) {
+        PyErr_Print();
+        PyErr_Clear();
+    }
 }
