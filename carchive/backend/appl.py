@@ -147,7 +147,6 @@ class PBReceiver(protocol.Protocol):
                     self._year = calendar.timegm(datetime.date(H.year,1,1).timetuple())
                 except ValueError:
                     _log.error("Error docoding: %s %s %s", self.name, H.year, repr(P[0]))
-                    print H
                     raise
                 P = P[1:]
             else:
@@ -184,7 +183,7 @@ class PBReceiver(protocol.Protocol):
                 assert not isinstance(D, defer.Deferred), "appl does not support callbacks w/ deferred"
 
             if self._count_limit and self._count>=self._count_limit:
-                _log.info("%s count limit reached", self.name)
+                _log.debug("%s count limit reached", self.name)
                 self.transport.stopProducing()
                 break
         self.header = H

@@ -54,7 +54,7 @@ class Maker(object):
             L = logging.DEBUG
 
         handle = Log2Twisted()
-        handle.setFormatter(logging.Formatter("%(message)s"))
+        handle.setFormatter(logging.Formatter("%(levelname)s:%(name)s %(message)s"))
         root = logging.getLogger()
         root.addHandler(handle)
         root.setLevel(L)

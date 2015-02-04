@@ -170,11 +170,11 @@ class LimitedSite(Site):
         proto = Site.buildProtocol(self, addr)
         if proto:
             self._connections[proto] = weakref.ref(proto, self._dec)
-        _log.info('build %s %s', addr, proto)
+        _log.debug('build %s %s', addr, proto)
         return proto
 
     def _dec(self, X):
-        _log.info('clean %s', X)
+        _log.debug('clean %s', X)
         if not self._active and len(self._connections)<=self.maxConnections:
             self.lport.startReading()
             _log.info('Un-Throttling with %s/%s connections',len(self._connections), self.maxConnections )

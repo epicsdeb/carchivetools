@@ -42,12 +42,14 @@ _archives_rep = dumps((_archives,), methodresponse=True)
 
 
 def cleanupRequest(R, req):
-    print 'cleanup',req,R
     if not req._disconnected:
         if not req.startedWriting:
+            _log.warn('Cleanup of request with no reply')
             req.setResponseCode(500)
             req.write("")
-        if not req.finished:
+            req.finish()
+        elif not req.finished:
+            _log.warn('Cleanup of request with incomplete reply')
             req.unregisterProducer()
             req.finish()
     if isinstance(R, Failure):
