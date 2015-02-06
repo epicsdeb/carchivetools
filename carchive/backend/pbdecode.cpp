@@ -401,6 +401,7 @@ PyObject* PBD_decode_X(PyObject *unused, PyObject *args)
 
     }
 
+    locker.lock();
     return Py_BuildValue("OO", outval.release(), outmeta.release());
 }
 
