@@ -11,7 +11,7 @@ from cStringIO import StringIO
 
 import numpy as np
 
-from twisted.internet import defer, protocol, reactor
+from twisted.internet import defer, protocol, reactor, threads
 
 from twisted.web.client import Agent, ResponseDone
 from twisted.web._newclient import ResponseFailed
@@ -19,6 +19,7 @@ from twisted.web._newclient import ResponseFailed
 from ..date import isoString, makeTime, timeTuple
 from ..dtype import dbr_time
 from ..status import get_status
+from ..util import BufferingLineProtocol
 from .EPICSEvent_pb2 import PayloadInfo
 
 from carchive.backend.pbdecode import decoders, unescape, DecodeError
@@ -44,7 +45,7 @@ _dtypes = dict([(k,np.dtype(v)) for k,v in _dtypes.iteritems()])
 
 _is_vect = set([7,8,9,10,11,12,13,14])
 
-class PBReceiver(protocol.Protocol):
+class PBReceiver(BufferingLineProtocol):
     """Receive and incrementaionally decode a stream of protobuf.
 
     nreport is number of samples to accumulate before callback.
@@ -61,60 +62,24 @@ class PBReceiver(protocol.Protocol):
     _rx_buf_size = 2**20
 
     def __init__(self, cb, cbArgs=(), cbKWs={}, nreport=1000,
-                 count=None, name=None, cadiscon=0):
+                 count=None, name=None, cadiscon=0, inthread=False):
+        BufferingLineProtocol.__init__(self)
         self._S, self.defer = StringIO(), defer.Deferred()
         self.name, self.nreport, self.cadiscon = name, nreport, cadiscon
-
-        self._B = StringIO() # partial line buffer
-
-        # trick StringIO to allocate the full buffer size
-        # to allow append w/o re-alloc
-        self._B.seek(self._rx_buf_size+1024)
-        self._B.write('x')
-        self._B.truncate(0)
 
         self.header, self._dec, self.name = None, None, name
         self._count_limit, self._count = count, 0
         self._CB, self._CB_args, self._CB_kws = cb, cbArgs, cbKWs
+        self.inthread = inthread
 
-    def dataReceived(self, raw, flush=False):
-        try:
-            self._B.write(raw)
-            if self._B.tell() < self._rx_buf_size and not flush:
-                return
-
-            L = self._B.getvalue().split('\n')
-            self._B.truncate(0)
-            self._B.write(L[-1]) # any bytes after the last newline (partial message)
-
-            self.process(L[:-1])
-        except:
-            self.transport.stopProducing()
-            _log.exception("dataReceived")
-            return
-
-    def connectionLost(self, reason):
-        if self._count_limit and self._count>=self._count_limit and reason.check(ResponseFailed):
-            _log.debug("Lost connection after data count reached")
-            self.defer.callback(self._count)
-
-        elif reason.check(ResponseDone):
-            try:
-                if self._B.tell()>0:
-                    self.dataReceived('', flush=True)
-            except:
-                self.defer.errback()
-            else:
-                _log.debug("%s samples received for %s", self._count, self.name)
-                self.defer.callback(self._count)
-
+    def processLines(self, lines, prev=None):
+        _log.debug("Process %d lines for %s", len(lines), self.name)
+        if self.inthread:
+            return threads.deferToThread(self.process, lines, prev or 0)
         else:
-            _log.error("Connection lost while reading %s (%s)", self.name, reason)
-            self.defer.errback(reason)
+            return self.process(lines, prev or 0)
 
-    # Internal methods
-
-    def process(self, lines):
+    def process(self, lines, linesSoFar):
         # find the index of blank lines which preceed new headers
         # These are assumed to be relatively rare (so 'splits' is short)
         #
@@ -130,7 +95,7 @@ class PBReceiver(protocol.Protocol):
 
         if len(parts)==0:
             _log.warn("no parts in %d lines?  %s", len(lines), lines[:5])
-            return
+            return self._count
 
         for P,dP in zip(parts,dparts):
             if len(P)==0:
@@ -179,14 +144,18 @@ class PBReceiver(protocol.Protocol):
                 _log.warn("%s discarding 0 length array %s %s", self.name, V, M)
             else:
                 #_log.debug("pushing %s samples: %s", V.shape, self.name)
-                D = self._CB(V, M, *self._CB_args, **self._CB_kws)
-                assert not isinstance(D, defer.Deferred), "appl does not support callbacks w/ deferred"
+                if self.inthread:
+                    reactor.callFromThread(self._CB, V, M, *self._CB_args, **self._CB_kws)
+                else:
+                    D = self._CB(V, M, *self._CB_args, **self._CB_kws)
+                    assert not isinstance(D, defer.Deferred), "appl does not support callbacks w/ deferred"
 
             if self._count_limit and self._count>=self._count_limit:
                 _log.debug("%s count limit reached", self.name)
                 self.transport.stopProducing()
                 break
         self.header = H
+        return self._count
 
 class JSONReceiver(protocol.Protocol):
     """Receive a JSON encoded object
