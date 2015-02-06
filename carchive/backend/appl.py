@@ -51,6 +51,9 @@ class PBReceiver(BufferingLineProtocol):
     nreport is number of samples to accumulate before callback.
     Callback will be invoked when either nreport samples are
     available, or no more samples are availble.
+
+    The PB stream begins with a header line (PayloadInfo) followed by zero
+    or more value lines, then possibly a blank line and another header.
     """
 
     # max number of bytes to accumulate before processing

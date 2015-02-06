@@ -139,7 +139,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
 
         @D.addCallback
         def show(C, pv=pv):
-            print '%s received %s points'%(pv,C)
+            _log.info('%s received %s points', pv,C)
 
         Ds[i] = D
 
