@@ -22,7 +22,7 @@ from ..status import get_status
 from ..util import BufferingLineProtocol
 from .EPICSEvent_pb2 import PayloadInfo
 
-from carchive.backend.pbdecode import decoders, unescape, DecodeError
+from carchive.backend.pbdecode import decoders, unescape, DecodeError, linesplitter
 
 _dtypes = {
     0: np.dtype('a40'),
@@ -79,25 +79,22 @@ class PBReceiver(BufferingLineProtocol):
         else:
             return self.process(lines, prev or 0)
 
+
     def process(self, lines, linesSoFar):
         # find the index of blank lines which preceed new headers
         # These are assumed to be relatively rare (so 'splits' is short)
         #
-        # 'splits' will be a list of indicies of blank lines
-        splits = map(lambda (a,b):a, filter(lambda (i,x):len(x)==0, enumerate(lines)))
         # break up the single list of lines into a list of lists
         # where eash sub-list where the first element is a header (except for the first)
         # and the remaining lines are all of the same type
-        parts = map(lambda (a,b):lines[a+1:b], zip([-1] + splits, splits + [None]))
-        
-        dparts = map(lambda (a,b):(a+1,b), zip([-1] + splits, splits + [None]))
-        _log.debug("Parts: %s", dparts)
+
+        parts = linesplitter(lines)
 
         if len(parts)==0:
             _log.warn("no parts in %d lines?  %s", len(lines), lines[:5])
             return self._count
 
-        for P,dP in zip(parts,dparts):
+        for P in parts:
             if len(P)==0:
                 _log.warn("Part with no lines? %s", P)
                 continue

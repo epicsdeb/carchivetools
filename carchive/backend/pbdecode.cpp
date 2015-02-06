@@ -31,6 +31,11 @@ public:
     inline C* as() const { return (C*)obj; }
     template<class C>
     inline C* releaseas() { C* ret=as<C>(); obj=NULL; return ret; }
+    void reset(PyObject* n) {
+        Py_XDECREF(obj);
+        Py_XINCREF(n);
+        obj = n;
+    }
 };
 
 class GIL {
@@ -406,6 +411,44 @@ PyObject* PBD_decode_X(PyObject *unused, PyObject *args)
 }
 
 static
+PyObject *splitter(PyObject *unused, PyObject *args)
+{
+    PyObject *lines;
+    if(!PyArg_ParseTuple(args, "O!", &PyList_Type, &lines))
+        return NULL;
+
+    const Py_ssize_t numin = PyList_Size(lines);
+    if(numin<0)
+        return NULL;
+
+    PyRef groups(PyList_New(0)),
+          current(PyList_New(0));
+    if(groups.isnull() || current.isnull())
+        return NULL;
+
+    for(Py_ssize_t i=0; i<numin; i++) {
+        PyObject *cur = PyList_GET_ITEM(lines, i);
+        Py_ssize_t esize = PyObject_Length(cur);
+        if(esize<=0) {
+            // start a new sub-list
+            if(PyList_Append(groups.get(), current.release()))
+                return NULL;
+            current.reset(PyList_New(0));
+            if(current.isnull())
+                return NULL;
+        } else {
+            if(PyList_Append(current.get(), cur))
+                return NULL;
+        }
+    }
+
+    if(PyList_Append(groups.get(), current.release()))
+        return NULL;
+
+    return groups.release();
+}
+
+static
 char decoderErrorName[] = "carchive.backend.pbdecode.DecodeError";
 
 static
@@ -442,7 +485,6 @@ PyObject* cleanupLogger(PyObject *unused, PyObject *unused2)
 static
 PyObject* getLog(PyObject *unused, PyObject *unused2)
 {
-    char *msg;
     PyObject *R=pblogger;
     if(!R)
         R = Py_None;
@@ -503,6 +545,8 @@ static PyMethodDef PBDMethods[] = {
      "Decode protobuf stream into numpy array"},
     {"decode_vector_double", PBD_decode_X<double, EPICS::VectorDouble, true>, METH_VARARGS,
      "Decode protobuf stream into numpy array"},
+
+    {"linesplitter", splitter, METH_VARARGS, "Group AA PB lines"},
 
     {"_getLogger", getLog, METH_NOARGS, "Fetch extension module logger"},
     {"_cleanupLogger", cleanupLogger, METH_NOARGS, "Remove extension module logger"},
