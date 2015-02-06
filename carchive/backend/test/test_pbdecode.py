@@ -291,13 +291,22 @@ class TestDecodeVector(TestCase):
 class TestSpecial(TestCase):
     def test_invalid(self):
         """Found this sample being returned from a caplotbinning query
+        with the wrong type code
         """
         _data =['\x08\x80\x88\xa4\x01\x10\x00\x19\x00\x00\x00\x00\x00\x00>@']
         I = pb.ScalarInt()
-        I.ParseFromString(_data[0]) # Should fail! w/ missing required field 'val'
+        I.ParseFromString(_data[0]) # Should fail! Really ScalarDouble
         self.assertEqual(I.val, 0)
         self.assertEqual(I.secondsintoyear, 2688000)
+        I = pb.ScalarDouble()
+        I.ParseFromString(_data[0])
+        self.assertEqual(I.val, 30)
+        self.assertEqual(I.secondsintoyear, 2688000)
+        
         self.assertRaises(pbdecode.DecodeError, pbdecode.decoders[5], _data, 0)
+        V, M = pbdecode.decoders[6](_data, 0)
+        self.assertEqual(V[0,0], 30)
+
 
 if __name__=='__main__':
     import unittest
