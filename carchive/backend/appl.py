@@ -99,7 +99,11 @@ class PBReceiver(BufferingLineProtocol):
 
         for P in parts:
             if len(P)==0:
-                _log.warn("Part with no lines? %s", P)
+                if self.header is None:
+                    _log.warn("Part with no lines? %s", P)
+                else:
+                    # we happened to get a blank as the first line of a new block
+                    self.header = None
                 continue
 
             if not self.header:
