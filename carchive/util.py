@@ -3,9 +3,15 @@ import logging
 _log = logging.getLogger(__name__)
 
 import re, collections, time
+from cStringIO import StringIO
 
 from twisted.web.server import Site
 from twisted.application.internet import TCPServer
+from twisted.internet import defer, protocol, error
+from twisted.python import failure
+#defer.Deferred.debug=1
+
+from twisted.web.client import ResponseDone
 
 class HandledError(Exception):
     pass
@@ -147,6 +153,123 @@ class Cache(object):
             # too large
             K, _ = self._values.popitem(last=False)
             del self._times[K]
+
+class BufferingLineProtocol(protocol.Protocol):
+    """A line based protocol which buffers lines and delivers them in bulk.
+
+    Processing will be started when the buffer is full, or when the connection
+    is closed.
+
+    C{processLines} may return a Deferred for longer processing.
+    The rx buffer will continue to fill while processing is in progress.
+    If the buffer fills before processing completes, then
+    transport C{Producer} will be stopped (pauseProducing()) until processing
+    completes, then resumed.
+    
+    @ivar defer: A Deferred which fires after the protocol is closed, and processing completes.
+    @type defer: C{Deferred}
+    
+    @ivar rx_buf_size: Number of bytes to buffer before processing
+    @type rx_buf_size: C{int}
+    """
+    rx_buf_size = 2**20
+
+    def __init__(self):
+        # This Deferred will fire when the request ends with the result
+        # of the final call to processLines
+        self.defer = defer.Deferred(canceller=self._abort)
+        # The internal Deferred which tracks our processing
+        self._defer= defer.succeed(None)
+        self.active, self.done = True, False
+
+    def _abort(self, _ignore):
+        if not self.done:
+            self.transport.stopProducing()
+
+    def processLines(self, lines, prev=None):
+        """Called with a list of strings.
+        
+        @param prev: holds the value returned from a previous call to processLines,
+        or None for the first invokation.
+        
+        @return: May return a Deferred() which fires when processing is complete
+        @rtype: C{Deferred} or any value
+        """
+        raise NotImplementedError()
+
+    def connectionMade(self):
+        self.rxbuf = StringIO()
+        # trick cStringIO to allocate the full buffer size
+        # to allow append w/o re-alloc
+        self.rxbuf.seek(self.rx_buf_size+1024)
+        self.rxbuf.write('x')
+        self.rxbuf.truncate(0)
+
+    def dataReceived(self, data, last=False):
+        self.rxbuf.write(data)
+        if self.rxbuf.tell()<self.rx_buf_size and not last:
+            return # below threshold
+
+        elif (not self._defer.called or self._defer.paused) and not last:
+            # buffer full and processing in progress
+            # stop reading more until processing completes
+            self.transport.pauseProducing()
+            self.active = False
+            return
+
+        # split into complete lines
+        L = self.rxbuf.getvalue().split('\n')
+        self.rxbuf.truncate(0)
+        # any bytes after the last newline are a partial line
+        self.rxbuf.write(L[-1])
+
+        if not last or self.rxbuf.tell()==0:
+            self._defer.addCallback(self._invoke, lines=L[:-1])
+
+    @defer.inlineCallbacks
+    def _invoke(self, V, lines):
+        try:
+            V = yield defer.maybeDeferred(self.processLines, lines, prev=V)
+            # processing complete
+            if not self.done and not self.active:
+                # resume reading
+                self.transport.resumeProducing()
+                self.active = True
+        except:
+            _log.exception("Exceptionn in processLines")
+            if not self.done:
+                self.transport.stopProducing()
+            raise
+        defer.returnValue(V)
+
+    def connectionLost(self, reason):
+        if not isinstance(reason, failure.Failure):
+            reason = failure.Failure(reason)
+
+        self.done = True
+
+        if reason.check(error.ConnectionDone, ResponseDone):
+            # normal completion
+            if self.rxbuf.tell()>0:
+                # process remaining
+                @self._defer.addCallback
+                def _flush(V):
+                    self.dataReceived('', last=True)
+                    if self.rxbuf.tell()!=0:
+                        raise RuntimeError('connection closed with partial line')
+                    return V
+
+        else:
+            # abnormal connection termination
+            # inject the connectionn failure in place of success
+            # processing failure takes precedence
+            _log.debug("BLP connectionLost %s", reason)
+            @self._defer.addCallback
+            def _oops(V):
+                return reason
+
+        self._defer.chainDeferred(self.defer)
+
 
 import weakref
 class LimitedSite(Site):
