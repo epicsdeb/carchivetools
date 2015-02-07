@@ -433,6 +433,8 @@ PyObject *splitter(PyObject *unused, PyObject *args)
             // start a new sub-list
             if(PyList_Append(groups.get(), current.release()))
                 return NULL;
+            if(PyList_Append(groups.get(), Py_None))
+                return NULL;
             current.reset(PyList_New(0));
             if(current.isnull())
                 return NULL;

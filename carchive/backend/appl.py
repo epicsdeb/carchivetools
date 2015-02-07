@@ -84,13 +84,8 @@ class PBReceiver(BufferingLineProtocol):
 
 
     def process(self, lines, linesSoFar):
-        # find the index of blank lines which preceed new headers
-        # These are assumed to be relatively rare (so 'splits' is short)
-        #
-        # break up the single list of lines into a list of lists
-        # where eash sub-list where the first element is a header (except for the first)
-        # and the remaining lines are all of the same type
-
+        # group non-empty lines together, empty lines replaced with null
+        # eg. 'a\nb\n\nc\nd\n' -> [['a','b'],None,['c','d']]
         parts = linesplitter(lines)
 
         if len(parts)==0:
@@ -98,17 +93,17 @@ class PBReceiver(BufferingLineProtocol):
             return self._count
 
         for P in parts:
-            if len(P)==0:
-                if self.header is None:
-                    _log.warn("Part with no lines? %s", P)
-                else:
-                    # we happened to get a blank as the first line of a new block
-                    self.header = None
+            if P is None:
+                # new header will be next
+                self.header = None
+                continue
+
+            elif len(P)==0:
                 continue
 
             if not self.header:
                 # first message in the stream
-                H = PayloadInfo()
+                self.header = H = PayloadInfo()
                 H.ParseFromString(unescape(P[0]))
                 try:
                     if H.year<0:
@@ -119,8 +114,8 @@ class PBReceiver(BufferingLineProtocol):
                     raise
                 P = P[1:]
             else:
-                # reuse header (interrupted stream)
-                H, self.header = self.header, None
+                # use header from previous
+                H = self.header
 
             Nsamp = len(P)
             if not Nsamp:
@@ -158,7 +153,7 @@ class PBReceiver(BufferingLineProtocol):
                 _log.debug("%s count limit reached", self.name)
                 self.transport.stopProducing()
                 break
-        self.header = H
+
         return self._count
 
 class JSONReceiver(protocol.Protocol):

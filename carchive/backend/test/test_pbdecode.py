@@ -64,25 +64,14 @@ class TestEscape(TestCase):
         self.assertRaises(ValueError, pbdecode.unescape, '\x1bworld' )
 
 class TestSplitter(TestCase):
-    def manual(self, lines):
-        splits = map(lambda (a,b):a, filter(lambda (i,x):len(x)==0, enumerate(lines)))
-        parts = map(lambda (a,b):lines[a+1:b], zip([-1] + splits, splits + [None]))
-        return parts
-        #dparts = map(lambda (a,b):(a+1,b), zip([-1] + splits, splits + [None]))
-        #return zip(parts,dparts)
-
-    def doTest(self, fn):
+    def test_split(self):
+        fn = pbdecode.linesplitter
         self.assertEqual(fn([]), [[]])
-        self.assertEqual(fn(['']), [[],[]])
+        self.assertEqual(fn(['']), [[],None,[]])
         self.assertEqual(fn(['a']), [['a']])
         self.assertEqual(fn(['a','b']), [['a','b']])
-        self.assertEqual(fn(['a','b','','c']), [['a','b'],['c']])
-        self.assertEqual(fn(['','a','c','','b']), [[], ['a','c'],['b']])
-
-    def test_manual(self):
-        self.doTest(self.manual)
-    def test_opt(self):
-        self.doTest(pbdecode.linesplitter)
+        self.assertEqual(fn(['a','b','','c']), [['a','b'],None,['c']])
+        self.assertEqual(fn(['','a','c','','b']), [[],None, ['a','c'],None ,['b']])
 
 class TestDecodeScalar(TestCase):
     _vals = [
