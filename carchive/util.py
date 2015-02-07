@@ -223,7 +223,7 @@ class BufferingLineProtocol(protocol.Protocol):
         # any bytes after the last newline are a partial line
         self.rxbuf.write(L[-1])
 
-        if not last or self.rxbuf.tell()==0:
+        if len(L)>1 and (not last or self.rxbuf.tell()==0):
             self._defer.addCallback(self._invoke, lines=L[:-1])
 
     @defer.inlineCallbacks
@@ -235,8 +235,8 @@ class BufferingLineProtocol(protocol.Protocol):
                 # resume reading
                 self.transport.resumeProducing()
                 self.active = True
-        except:
-            _log.exception("Exceptionn in processLines")
+        except Exception:
+            _log.exception("Exception in processLines")
             if not self.done:
                 self.transport.stopProducing()
             raise
