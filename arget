@@ -3,6 +3,7 @@
 
 import sys, os.path, logging, re
 from optparse import OptionParser
+_log = logging.getLogger('arget')
 
 from twisted.internet import reactor, defer
 
@@ -179,9 +180,13 @@ def haveArchive(act, opt, args, conf):
             defer.returnValue(None)
 
     try:
+        import time
+        S = time.time()
         yield mod.cmd(action=act, archive=serv,
                       opt=opt, args=args,
                       conf=conf, breakDown=breakDown)
+        E = time.time()
+        _log.debug('Command runtime %.02f s', E-S)
     except HandledError:
         pass
     except:
