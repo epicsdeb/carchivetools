@@ -17,6 +17,8 @@ from ..appl import _dtypes
 
 from .. import EPICSEvent_pb2 as pb
 
+from google.protobuf.message import DecodeError as PyDecodeError
+
 # Proto buffer instances for decoding individual samples
 _fields = {
     0:pb.ScalarString,
@@ -35,6 +37,13 @@ _fields = {
     13:pb.VectorDouble,
     14:pb.V4GenericBytes,
 }
+
+class CaptureHandler(logging.Handler):
+    def __init__(self, *args):
+        logging.Handler.__init__(self, *args)
+        self.logs = []
+    def handle(self, rec):
+        self.logs.append(rec.getMessage())
 
 class TestEscape(TestCase):
     def test_noop(self):
@@ -135,13 +144,6 @@ class TestDecodeScalar(TestCase):
         self.assertEqual(V[1], ord('b'))
         self.assertEqual(tuple(M[1]), (0, 0, 1025, 0x1235))
 
-    class CaptureHandler(logging.Handler):
-        def __init__(self, *args):
-            logging.Handler.__init__(self, *args)
-            self.logs = []
-        def handle(self, rec):
-            self.logs.append(rec.getMessage())
-
     def test_fail(self):
         S = _fields[4]()
         S.val = 'a'
@@ -154,7 +156,7 @@ class TestDecodeScalar(TestCase):
         self.assertRaises(TypeError, pbdecode.decode_scalar_byte, [1], 1)
         self.assertRaises(TypeError, pbdecode.decode_scalar_byte, [raw,4], 1)
 
-        H = self.CaptureHandler()
+        H = CaptureHandler()
         L = pbdecode._getLogger()
         L.addHandler(H)
 
@@ -278,9 +280,17 @@ class TestDecodeVector(TestCase):
                 raise
 
 class TestSpecial(TestCase):
-    def test_invalid(self):
+    def setUp(self):
+        H = self.H = CaptureHandler()
+        L = self.L = pbdecode._getLogger()
+        L.addHandler(H)
+    def tearDown(self):
+        self.L.removeHandler(self.H)
+
+    def test_wrongtype(self):
         """Found this sample being returned from a caplotbinning query
-        with the wrong type code
+        with the wrong type code.
+        caplotbinning has since been fixed.
         """
         _data =['\x08\x80\x88\xa4\x01\x10\x00\x19\x00\x00\x00\x00\x00\x00>@']
         I = pb.ScalarInt()
@@ -291,11 +301,26 @@ class TestSpecial(TestCase):
         I.ParseFromString(_data[0])
         self.assertEqual(I.val, 30)
         self.assertEqual(I.secondsintoyear, 2688000)
-        
+
         self.assertRaises(pbdecode.DecodeError, pbdecode.decoders[5], _data, 0)
+
+        self.assertEqual(len(self.H.logs), 1)
+        self.assertRegexpMatches(self.H.logs[0], 'missing required fields: val')
+
         V, M = pbdecode.decoders[6](_data, 0)
         self.assertEqual(V[0,0], 30)
 
+    def test_invalid2(self):
+        """Another wierd sample
+        """
+        _data=['\x08\xf9\x8e\xc3\x01\x10\x80\xfe\x83\x9d\x03\x19']
+        I = pb.ScalarDouble()
+        self.assertRaises(PyDecodeError, I.ParseFromString, _data[0])
+
+        _data=['\x08\xf9\x8e\xc3\x01\x10\x80\xfe\x83\x9d\x03\x19']
+        self.assertRaises(pbdecode.DecodeError, pbdecode.decoders[6], _data, 0)
+        # libprotobuf tells us nothing about the cause of the failure...
+        self.assertEqual(len(self.H.logs), 0)
 
 if __name__=='__main__':
     import unittest
