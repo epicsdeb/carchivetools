@@ -83,6 +83,8 @@ par.add_option('-d','--debug', action='store_true', default=False,
                help='Show archiver queries')
 par.add_option('-C','--conf', metavar='KEY', default='DEFAULT',
                help='Key for the server configuration')
+par.add_option('','--hotshot', metavar='FILE',
+               help='Run with the hot-shot profiler.  Write results to the named file')
 
 opt, args = par.parse_args()
 
@@ -207,6 +209,17 @@ def main(*args):
 
 reactor.callWhenRunning(main, act, opt, args, conf)
 
-reactor.run()
+if opt.hotshot:
+    from hotshot import Profile, stats
+    _prof=Profile(opt.hotshot)
+    _prof.runcall(reactor.run)
+    _prof.close()
+
+    S = stats.load(opt.hotshot)
+    S.stream = sys.stderr
+    S.sort_stats('time','calls')
+    S.print_stats(20)
+else:
+    reactor.run()
 
 sys.exit(0)
