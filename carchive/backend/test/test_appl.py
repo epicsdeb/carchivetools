@@ -46,13 +46,15 @@ class CB(object):
     def __call__(self, *args):
         self.data.append(args)
 
-class TestAppl(unittest.TestCase):
+class TestApplST(unittest.TestCase):
     timeout = 1
+    inthread = False
 
     def setUp(self):
         self.alldone = False
         self.cb = cb = CB()
-        self.P = appl.PBReceiver(cb, name='LN-AM{RadMon:1}DoseRate-I')
+        self.P = appl.PBReceiver(cb, name='LN-AM{RadMon:1}DoseRate-I',
+                                 inthread=self.inthread)
         self.T = proto_helpers.StringTransport()
 
     def tearDown(self):
@@ -67,7 +69,8 @@ class TestAppl(unittest.TestCase):
 
         self.assertFalse(self.P.defer.called)
         self.P.connectionLost(protocol.connectionDone)
-        self.assertTrue(self.P.defer.called)
+        if not self.inthread:
+            self.assertTrue(self.P.defer.called)
 
         C = yield self.P.defer
         self.assertEqual(C,22)
@@ -100,26 +103,37 @@ class TestAppl(unittest.TestCase):
         self.P.makeConnection(self.T)
         [self.P.dataReceived(B) for B in _data]
 
-        self.assertEqual(len(self.cb.data), 21)
+        if not self.inthread:
+            self.assertEqual(len(self.cb.data), 21)
 
-        self.assertFalse(self.P.defer.called)
+            self.assertFalse(self.P.defer.called)
+
         self.P.connectionLost(protocol.connectionDone)
-        self.assertTrue(self.P.defer.called)
+
+        if not self.inthread:
+            self.assertTrue(self.P.defer.called)
 
         C = yield self.P.defer
         self.assertEqual(C,22)
 
-        self.assertEqual(len(self.cb.data), 21)
-        Vs = [V for V,M in self.cb.data]
-        Ms = [M for V,M in self.cb.data]
+        if self.inthread:
+            # Due to threading, grouping will not be by individual line
+            self.assertEqual(len(self.cb.data), 2)
+        else:
+            self.assertEqual(len(self.cb.data), 21)
 
-        V = np.concatenate(Vs, axis=0)
-        M = np.concatenate(Ms, axis=0)
+        val = np.concatenate([V for V,M in self.cb.data], axis=0)
+        meta = np.concatenate([M for V,M in self.cb.data], axis=0)
 
-        assert_array_almost_equal(V, _all_values)
-        assert_array_almost_equal(M['severity'], _all_metas['severity'])
-        assert_array_almost_equal(M['status'], _all_metas['status'])
-        assert_array_almost_equal(M['sec'], _all_metas['sec'])
-        assert_array_almost_equal(M['ns'], _all_metas['ns'])
+        self.assertEqual(val.shape, (22,1))
+
+        assert_array_almost_equal(val, _all_values)
+        assert_array_almost_equal(meta['severity'], _all_metas['severity'])
+        assert_array_almost_equal(meta['status'], _all_metas['status'])
+        assert_array_almost_equal(meta['sec'], _all_metas['sec'])
+        assert_array_almost_equal(meta['ns'], _all_metas['ns'])
 
         self.alldone = True
+
+class TestApplMT(TestApplST):
+    inthread = True

@@ -180,11 +180,12 @@ class BufferingLineProtocol(protocol.Protocol):
         self.defer = defer.Deferred(canceller=self._abort)
         # The internal Deferred which tracks our processing
         self._defer= defer.succeed(None)
-        self.active, self.done = True, False
+        # Our last processing callback
+        self._last = None
+        self.active = True
 
     def _abort(self, _ignore):
-        if not self.done:
-            self.transport.stopProducing()
+        self.transport.stopProducing()
 
     def processLines(self, lines, prev=None):
         """Called with a list of strings.
@@ -205,40 +206,43 @@ class BufferingLineProtocol(protocol.Protocol):
         self.rxbuf.write('x')
         self.rxbuf.truncate(0)
 
-    def dataReceived(self, data, last=False):
+    def dataReceived(self, data):
         self.rxbuf.write(data)
-        if self.rxbuf.tell()<self.rx_buf_size and not last:
+        if self.rxbuf.tell()<self.rx_buf_size:
             return # below threshold
 
-        elif (not self._defer.called or self._defer.paused) and not last:
+        elif not self._defer.called or self._defer.paused:
             # buffer full and processing in progress
             # stop reading more until processing completes
-            self.transport.pauseProducing()
+            if self.active:
+                self.transport.pauseProducing()
             self.active = False
             return
 
         # split into complete lines
         L = self.rxbuf.getvalue().split('\n')
+        if len(L)==1:
+            return # no newline found
+
         self.rxbuf.truncate(0)
         # any bytes after the last newline are a partial line
         self.rxbuf.write(L[-1])
-
-        if len(L)>1 and (not last or self.rxbuf.tell()==0):
-            self._defer.addCallback(self._invoke, lines=L[:-1])
+        assert self._defer.called
+        self._defer.addCallback(self._invoke, lines=L[:-1])
 
     @defer.inlineCallbacks
     def _invoke(self, V, lines):
         try:
-            V = yield defer.maybeDeferred(self.processLines, lines, prev=V)
+            self._last = defer.maybeDeferred(self.processLines, lines, prev=V)
+            V = yield self._last
             # processing complete
-            if not self.done and not self.active:
+            if not self.active:
                 # resume reading
                 self.transport.resumeProducing()
                 self.active = True
         except Exception:
             _log.exception("Exception in processLines")
-            if not self.done:
-                self.transport.stopProducing()
+            self.transport.stopProducing()
             raise
         defer.returnValue(V)
 
@@ -246,18 +250,18 @@ class BufferingLineProtocol(protocol.Protocol):
         if not isinstance(reason, failure.Failure):
             reason = failure.Failure(reason)
 
-        self.done = True
-
         if reason.check(error.ConnectionDone, ResponseDone):
             # normal completion
             if self.rxbuf.tell()>0:
                 # process remaining
+                lines = self.rxbuf.getvalue().split('\n')
                 @self._defer.addCallback
                 def _flush(V):
-                    self.dataReceived('', last=True)
-                    if self.rxbuf.tell()!=0:
+                    if len(lines[-1])>0:
+                        # last line is incomplete
                         raise RuntimeError('connection closed with partial line')
-                    return V
+
+                    return self._invoke(V, lines=lines[:-1])
 
         else:
             # abnormal connection termination

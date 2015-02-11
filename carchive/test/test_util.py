@@ -144,14 +144,11 @@ class TestBLP(unittest.TestCase):
 
         P.dataReceived('A\nB\nC\n')
         self.assertEqual(P.lines, ['A','B','C'])
-        self.assertFalse(P.done)
 
         P._finish(err=RuntimeError('oops'))
         self.assertEqual(T.producerState, 'stopped')
         P.connectionLost(error.ConnectionClosed())
 
-        self.assertTrue(P.done)
-        self.assertTrue(P.defer.called) # error delivered before connection closes
         # connection error will be ignored in favor of proc. error
         P.connectionLost(failure.Failure(error.ConnectionAborted()))
 
