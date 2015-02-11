@@ -9,7 +9,7 @@ if sys.version_info<(2,7):
     raise SkipTest('Not supported for python 2.6')
 
 import numpy
-from numpy.testing import assert_equal
+from numpy.testing import assert_equal, assert_array_equal
 
 from ...dtype import dbr_time
 from .. import pbdecode
@@ -161,25 +161,41 @@ class TestDecodeScalar(TestCase):
         L.addHandler(H)
 
         # decode empty string
-        self.assertRaises(pbdecode.DecodeError, pbdecode.decode_scalar_byte, ['',''], 1)
+        V, M = pbdecode.decode_scalar_byte(['',''], 1)
+        M = numpy.rec.array(M, dtype=dbr_time)
+
+        self.assertEqual(V.shape, (2,1))
+        self.assertEqual(M.shape, (2,))
+        assert_array_equal(M['severity'], [3,3])
 
         # decode partial string
-        self.assertRaises(pbdecode.DecodeError, pbdecode.decode_scalar_byte, [raw[:5],''], 1)
+        V, M = pbdecode.decode_scalar_byte([raw[:5],''], 1)
+        M = numpy.rec.array(M, dtype=dbr_time)
+
+        self.assertEqual(V.shape, (2,1))
+        self.assertEqual(M.shape, (2,))
+        assert_array_equal(M['severity'], [3,3])
 
         # decode partial string in second item
-        self.assertRaises(pbdecode.DecodeError, pbdecode.decode_scalar_byte, [raw,raw[:5]], 1)
+        V, M = pbdecode.decode_scalar_byte([raw,raw[:5]], 1)
+        M = numpy.rec.array(M, dtype=dbr_time)
+
+        self.assertEqual(V.shape, (2,1))
+        self.assertEqual(M.shape, (2,))
+        assert_array_equal(M['severity'], [0,3])
 
         L.removeHandler(H)
 
         # all three decodes result in the same error, so only one message
-        self.assertEqual(len(H.logs), 1)
+        self.assertEqual(len(H.logs), 8)
         self.assertRegexpMatches(H.logs[0], 'missing required fields:')
-
-        try:
-            pbdecode.decode_scalar_byte([raw,raw[:5]], 1)
-            self.assertTrue(False, "Should not get here")
-        except pbdecode.DecodeError as e:
-            self.assertEqual(e.args, (raw[:5],))
+        self.assertRegexpMatches(H.logs[1], 'protobuf decode fails:')
+        self.assertRegexpMatches(H.logs[2], 'missing required fields:')
+        self.assertRegexpMatches(H.logs[3], 'protobuf decode fails:')
+        self.assertRegexpMatches(H.logs[4], 'protobuf decode fails:')
+        self.assertRegexpMatches(H.logs[5], 'missing required fields:')
+        self.assertRegexpMatches(H.logs[6], 'protobuf decode fails:')
+        self.assertRegexpMatches(H.logs[7], 'protobuf decode fails:')
 
     _dis_data = [
         # easy case, disconnect has different second
@@ -302,10 +318,16 @@ class TestSpecial(TestCase):
         self.assertEqual(I.val, 30)
         self.assertEqual(I.secondsintoyear, 2688000)
 
-        self.assertRaises(pbdecode.DecodeError, pbdecode.decoders[5], _data, 0)
+        V, M = pbdecode.decoders[5](_data, 0)
+        M = numpy.rec.array(M, dtype=dbr_time)
 
-        self.assertEqual(len(self.H.logs), 1)
+        self.assertEqual(V.shape, (1,1))
+        self.assertEqual(M.shape, (1,))
+        assert_array_equal(M['severity'], [3])
+
+        self.assertEqual(len(self.H.logs), 2)
         self.assertRegexpMatches(self.H.logs[0], 'missing required fields: val')
+        self.assertRegexpMatches(self.H.logs[1], 'protobuf decode fails:')
 
         V, M = pbdecode.decoders[6](_data, 0)
         self.assertEqual(V[0,0], 30)
@@ -318,9 +340,16 @@ class TestSpecial(TestCase):
         self.assertRaises(PyDecodeError, I.ParseFromString, _data[0])
 
         _data=['\x08\xf9\x8e\xc3\x01\x10\x80\xfe\x83\x9d\x03\x19']
-        self.assertRaises(pbdecode.DecodeError, pbdecode.decoders[6], _data, 0)
+        V, M = pbdecode.decoders[6](_data, 0)
+        M = numpy.rec.array(M, dtype=dbr_time)
+
+        self.assertEqual(V.shape, (1,1))
+        self.assertEqual(M.shape, (1,))
+        assert_array_equal(M['severity'], [3])
+
         # libprotobuf tells us nothing about the cause of the failure...
-        self.assertEqual(len(self.H.logs), 0)
+        self.assertEqual(len(self.H.logs), 1)
+        self.assertRegexpMatches(self.H.logs[0], 'protobuf decode fails:')
 
 if __name__=='__main__':
     import unittest

@@ -47,6 +47,10 @@ public:
     void lock() { if(_save) PyEval_RestoreThread(_save); _save=NULL; }
 };
 
+static
+void LogBadSample(const char *filename, int line,
+                   const char* buf, size_t buflen);
+
 }
 
 /* compute the size of the unescaped string */
@@ -269,9 +273,10 @@ PyObject* PBD_decode_X(PyObject *unused, PyObject *args)
             }
 
             if(!D.ParseFromArray((const void*)outbuf, buflen)) {
-                locker.lock();
-                PyErr_SetObject(decoderError, PyByteArray_FromStringAndSize(outbuf, buflen));
-                return NULL;
+                // Mark invalid sample
+                LogBadSample(__FILE__, __LINE__, outbuf, buflen);
+                D.Clear();
+                D.set_severity(3);
             }
 
             maxelements = std::max(maxelements, vectop<E,PB,vect>::nelem(D));
@@ -458,6 +463,23 @@ char moduleName[] = "carchive.backend.pbdecode";
 
 static
 PyObject *pblogger;
+
+static
+void LogBadSample(const char *filename, int line,
+                   const char* buf, size_t buflen)
+{
+    if(!pblogger) return;
+    PyGILState_STATE tstate;
+    tstate = PyGILState_Ensure();
+    PyRef arr(PyByteArray_FromStringAndSize(buf,buflen));
+    PyRef junk(PyObject_CallMethod(pblogger, "error", "ssiO", "protobuf decode fails: %s:%d: %s",
+                        filename, line, arr.get()));
+    if(junk.isnull()) {
+        PyErr_Print();
+        PyErr_Clear();
+    }
+    PyGILState_Release(tstate);
+}
 
 static
 void PBLog(google::protobuf::LogLevel L,
