@@ -166,7 +166,7 @@ class TestDecodeScalar(TestCase):
 
         self.assertEqual(V.shape, (2,1))
         self.assertEqual(M.shape, (2,))
-        assert_array_equal(M['severity'], [3,3])
+        assert_array_equal(M['severity'], [103,103])
 
         # decode partial string
         V, M = pbdecode.decode_scalar_byte([raw[:5],''], 1)
@@ -174,7 +174,7 @@ class TestDecodeScalar(TestCase):
 
         self.assertEqual(V.shape, (2,1))
         self.assertEqual(M.shape, (2,))
-        assert_array_equal(M['severity'], [3,3])
+        assert_array_equal(M['severity'], [103,103])
 
         # decode partial string in second item
         V, M = pbdecode.decode_scalar_byte([raw,raw[:5]], 1)
@@ -182,7 +182,7 @@ class TestDecodeScalar(TestCase):
 
         self.assertEqual(V.shape, (2,1))
         self.assertEqual(M.shape, (2,))
-        assert_array_equal(M['severity'], [0,3])
+        assert_array_equal(M['severity'], [0,103])
 
         L.removeHandler(H)
 
@@ -323,7 +323,7 @@ class TestSpecial(TestCase):
 
         self.assertEqual(V.shape, (1,1))
         self.assertEqual(M.shape, (1,))
-        assert_array_equal(M['severity'], [3])
+        assert_array_equal(M['severity'], [103])
 
         self.assertEqual(len(self.H.logs), 2)
         self.assertRegexpMatches(self.H.logs[0], 'missing required fields: val')
@@ -333,7 +333,7 @@ class TestSpecial(TestCase):
         self.assertEqual(V[0,0], 30)
 
     def test_invalid2(self):
-        """Another wierd sample
+        """Truncated sample
         """
         _data=['\x08\xf9\x8e\xc3\x01\x10\x80\xfe\x83\x9d\x03\x19']
         I = pb.ScalarDouble()
@@ -345,7 +345,7 @@ class TestSpecial(TestCase):
 
         self.assertEqual(V.shape, (1,1))
         self.assertEqual(M.shape, (1,))
-        assert_array_equal(M['severity'], [3])
+        assert_array_equal(M['severity'], [103])
 
         # libprotobuf tells us nothing about the cause of the failure...
         self.assertEqual(len(self.H.logs), 1)

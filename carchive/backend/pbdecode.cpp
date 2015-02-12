@@ -276,7 +276,7 @@ PyObject* PBD_decode_X(PyObject *unused, PyObject *args)
                 // Mark invalid sample
                 LogBadSample(__FILE__, __LINE__, outbuf, buflen);
                 D.Clear();
-                D.set_severity(3);
+                D.set_severity(103);
             }
 
             maxelements = std::max(maxelements, vectop<E,PB,vect>::nelem(D));
