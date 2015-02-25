@@ -8,7 +8,9 @@ from twisted.internet import defer
 from carchive.date import makeTimeInterval, makeTime
 
 class Printer(object):
-    def __init__(self, opt):
+    def __init__(self, opt, pvname):
+        self.pvname, self.first = pvname, True
+        self.skipFirst, self.printName = opt.skipFirst, False
         if not opt.timefmt or opt.timefmt=='string':
             self.timefmt = self.timestring
         elif opt.timefmt=='posix':
@@ -24,6 +26,14 @@ class Printer(object):
 
     def __call__(self, data, meta, archive):
         assert len(meta)==data.shape[0]
+        if self.first and self.skipFirst:
+            self.first=False
+            data, meta = data[1:,:], meta[1:]
+            if len(meta)==0:
+                return # no data
+        if not self.printName:
+            self.printName=True
+            print self.pvname
 
         if data.shape[1] == 1: # scalar
             data = data.reshape((data.shape[0],))
@@ -49,7 +59,6 @@ def cmd(archive=None, opt=None, args=None, conf=None, breakDown=None, **kws):
         raise ValueError('Unknown plot type %s'%opt.how)
 
     archs=opt.archive
-    printData = Printer(opt)
 
     if len(args)==0:
         print 'Missing PV names'
@@ -62,7 +71,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, breakDown=None, **kws):
     count = opt.count if opt.count>0 else conf.getint('defaultcount')
 
     for pv in args:
-        print pv
+        printData = Printer(opt, pv)
         D = yield op(pv, printData, archs=archs,
                      cbArgs=(archive,),
                      T0=T0, Tend=Tend, breakDown=breakDown,
@@ -70,4 +79,5 @@ def cmd(archive=None, opt=None, args=None, conf=None, breakDown=None, **kws):
                      enumAsInt=opt.enumAsInt)
 
         C = yield D
-        print 'Found %s points'%C
+        if printData.printName:
+            print 'Found %s points'%C

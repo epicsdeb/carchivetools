@@ -67,6 +67,8 @@ par.add_option('-M','--merge', metavar='NAME', default='simple',
 # Data options
 par.add_option('', '--no-enum', default=False, action='store_true', dest='enumAsInt',
                help='Return enumerations as integers')
+par.add_option('', '--skip-first', default=False, action='store_true', dest='skipFirst',
+               help="(arget only) Don't print first sample, or PVs with only one sample")
 
 # Input options
 par.add_option('', '--pv-list', metavar='FILE', dest='pvlist',
