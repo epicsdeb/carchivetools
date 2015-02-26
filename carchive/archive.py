@@ -108,10 +108,12 @@ class ReactorRunner(object):
         self.reactor.callFromThread(wrapper)
         E.wait()
         if isinstance(result[0], failure.Failure):
+            _log.error(result[0]) #TODO: not re-raising correctly...
             result[0].raiseException()
         R = [None]*len(result[0])
         for i,(ok,res) in enumerate(result[0]):
             if dothrow and not ok:
+                _log.error(res) #TODO: not re-raising correctly...
                 res.raiseException()
             R[i] = res
         return R
