@@ -218,9 +218,8 @@ def arget(names, match = WILDCARD, mode = RAW,
         meta = numpy.concatenate(data.metas,axis=0)
         ret[pv] = vals, meta
 
-    if scalar:
-        assert len(ret)==1
-        assert len(names)==1
+    if scalar and len(names)==1:
+        assert len(ret)==1, len(ret)
         return ret[names.pop()]
 
     return ret
