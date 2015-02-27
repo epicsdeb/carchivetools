@@ -231,12 +231,16 @@ class ValuesRequest(XMLRPCRequest):
 
                 if self._first_val and C==0:
                     # oh well, we tried.  Ensure that an empty array is returned
-                    _log.warn('raw returned zero samples: %s', self._cur_pv)
+                    _log.warn('raw fallback returned zero samples: %s', self._cur_pv)
                     self.processRaw(numpy.zeros((0,0)), [])
 
             else:
                 C = yield self.applinfo.fetchraw(name, T0=self._start, Tend=self._end,
                                                  count=self._count_limit, callback=self.processRaw)
+                if C==0:
+                    # oh well, we tried.  Ensure that an empty array is returned
+                    _log.warn('raw returned zero samples: %s', self._cur_pv)
+                    self.processRaw(numpy.zeros((0,0)), [])
 
             assert not self._first_val, "values header never sent"
             self.request.write(_values_foot)
