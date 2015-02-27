@@ -103,6 +103,7 @@ int unescape(const char *in, Py_ssize_t inlen, char *out, Py_ssize_t outlen)
     return 0;
 }
 
+static
 PyObject* PBD_unescape(PyObject *unused, PyObject *args)
 {
     const char *inbuf;
@@ -124,6 +125,75 @@ PyObject* PBD_unescape(PyObject *unused, PyObject *args)
     int err = unescape(inbuf, inbuflen, outbuf, outbuflen);
     if(err)
         return PyErr_Format(PyExc_ValueError, "Invalid escape sequence in input (%d)", err);
+
+    return ret.release();
+}
+
+/* compute the size of the escaped string */
+static
+Py_ssize_t escape_plan(const char *in, Py_ssize_t inlen)
+{
+    Py_ssize_t outlen = inlen;
+
+    while(inlen--) {
+        switch(*in++) {
+        case '\x1b':
+        case '\n':
+        case '\r':
+            outlen++;
+        default:
+            break;
+        }
+    }
+    return outlen;
+}
+
+static
+void escape(const char *in, Py_ssize_t inlen, char *out, Py_ssize_t outlen)
+{
+    const char *lastin = in+inlen;
+    char *lastout = out + outlen;
+    while(in<lastin && out<lastout) {
+        char I = *in++;
+        switch(I) {
+        case '\x1b':
+        case '\n':
+        case '\r':
+            *out++ = '\x1b';
+            break;
+        default:
+            *out++ = I;
+            continue;
+        }
+        switch(I) {
+        case '\x1b': *out++ = 1; break;
+        case '\n': *out++ = 2; break;
+        case '\r': *out++ = 3; break;
+        default:
+            break;
+        }
+    }
+    assert(in==lastin && out==lastout);
+}
+
+static
+PyObject* PBD_escape(PyObject *unused, PyObject *args)
+{
+    const char *inbuf;
+    Py_ssize_t inbuflen;
+
+    if(!PyArg_ParseTuple(args, "s#", &inbuf, &inbuflen))
+        return NULL;
+
+    Py_ssize_t outbuflen = escape_plan(inbuf, inbuflen);
+
+    PyRef ret(PyString_FromStringAndSize(NULL, outbuflen));
+    if(!ret.get())
+        return NULL;
+
+    char *outbuf = PyString_AS_STRING(ret.get());
+
+    escape(inbuf, inbuflen, outbuf, outbuflen);
 
     return ret.release();
 }
@@ -541,6 +611,8 @@ bool initLogger(PyObject *modself)
 static PyMethodDef PBDMethods[] = {
     {"unescape", PBD_unescape, METH_VARARGS,
      "Unescape a byte string"},
+    {"escape", PBD_escape, METH_VARARGS,
+     "Escape a byte string"},
 
     {"decode_scalar_string", PBD_decode_X<std::string, EPICS::ScalarString, false>, METH_VARARGS,
      "Decode protobuf stream into numpy array of strings"},

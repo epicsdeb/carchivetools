@@ -45,7 +45,7 @@ class CaptureHandler(logging.Handler):
     def handle(self, rec):
         self.logs.append(rec.getMessage())
 
-class TestEscape(TestCase):
+class TestUnEscape(TestCase):
     def test_noop(self):
         self.assertEqual('', pbdecode.unescape(''))
         self.assertEqual('hello', pbdecode.unescape('hello'))
@@ -71,6 +71,23 @@ class TestEscape(TestCase):
 
         self.assertRaises(ValueError, pbdecode.unescape, 'hello \x1b' )
         self.assertRaises(ValueError, pbdecode.unescape, '\x1bworld' )
+
+class TestEscape(TestCase):
+    def test_noop(self):
+        self.assertEqual('', pbdecode.escape(''))
+        self.assertEqual('hello', pbdecode.escape('hello'))
+
+    def test_escape(self):
+        self.assertEqual('\x1b\x01', pbdecode.escape('\x1b'))
+        self.assertEqual('\x1b\x02', pbdecode.escape('\n'))
+        self.assertEqual('\x1b\x03', pbdecode.escape('\r'))
+
+        self.assertEqual('\x1b\x02\x1b\x02', pbdecode.escape('\n\n'))
+
+        self.assertEqual('Testin \x1b\x02g', pbdecode.escape('Testin \ng'))
+
+        self.assertEqual('Test\x1b\x02in \x1b\x02g',
+                         pbdecode.escape('Test\nin \ng'))
 
 class TestSplitter(TestCase):
     def test_split(self):
