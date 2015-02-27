@@ -238,7 +238,7 @@ class Archive(object):
                    cbArgs=(), cbKWs={},
                    T0=None, Tend=None,
                    count=None, chunkSize=None,
-                   how=0, enumAsInt=False):
+                   how=0, enumAsInt=False, displayMeta=False):
         if count is None and chunkSize is None:
             raise TypeError("If count is None then chunkSize must be given")
         if chunkSize is None:
@@ -299,12 +299,14 @@ class Archive(object):
             if count and N>=count:
                 last = True
 
+            the_meta = data[0]['meta']
             if data[0]['meta']['type']==0:
                 states = data[0]['meta']['states']
             else:
                 states = []
 
-            vtype = data[0]['type']
+            orig_type = data[0]['type']
+            vtype = orig_type
             if vtype==1 and enumAsInt:
                 vtype = 2
 
@@ -332,7 +334,8 @@ class Archive(object):
                 maxelem = max(maxelem, len(E['value']))
                 metadata[i] = (E['sevr'], E['stat'], E['secs'], E['nano'])
 
-            assert maxcount==maxelem, "Value shape inconsistent. %d %d"%(maxcount,maxelem)
+            if not displayMeta:
+                assert maxcount==maxelem, "Value shape inconsistent. %d %d"%(maxcount,maxelem)
 
             values = np.ndarray((len(XML), maxelem), dtype=dtype)
             
@@ -356,8 +359,12 @@ class Archive(object):
                 break
 
             Tcur = (int(metadata[-1]['sec']), int(metadata[-1]['ns']+1))
-
-            yield defer.maybeDeferred(callback, values, metadata, *cbArgs, **cbKWs)
+            
+            if displayMeta:
+                extraMeta = {'orig_type':orig_type, 'the_meta':the_meta, 'reported_arr_size':maxcount}
+                yield defer.maybeDeferred(callback, values, metadata, *cbArgs, extraMeta=extraMeta, **cbKWs)
+            else:
+                yield defer.maybeDeferred(callback, values, metadata, *cbArgs, **cbKWs)
 
         defer.returnValue(N)
 
@@ -367,7 +374,7 @@ class Archive(object):
                  T0=None, Tend=None,
                  count=None, chunkSize=None,
                  archs=None, breakDown=None,
-                 enumAsInt=False):
+                 enumAsInt=False, displayMeta=False, rawTimes=False):
         """Fetch raw data for the given PV.
 
         Results are passed to the given callback as they arrive.
@@ -382,7 +389,10 @@ class Archive(object):
             _log.error("PV not archived")
             defer.returnValue(0)
 
-        Tcur, Tend = timeTuple(T0), timeTuple(Tend)
+        if rawTimes:
+            Tcur, Tend = T0, Tend
+        else:
+            Tcur, Tend = timeTuple(T0), timeTuple(Tend)
 
         _log.debug("Time range: %s -> %s", Tcur, Tend)
         _log.debug("Planning with: %s", map(lambda (a,b,c):(a,b,self.__rarchs[c]), breakDown))
@@ -445,13 +455,13 @@ class Archive(object):
                                 Ctot=0, Climit=count,
                                 callback=callback, cbArgs=cbArgs,
                                 cbKWs=cbKWs, chunkSize=chunkSize,
-                                enumAsInt=enumAsInt)
+                                enumAsInt=enumAsInt, displayMeta=displayMeta)
 
         defer.returnValue(N)
 
     def _nextraw(self, partcount, pv, plan, Ctot, Climit,
                  callback, cbArgs, cbKWs, chunkSize,
-                 enumAsInt):
+                 enumAsInt, displayMeta=False):
         sofar = partcount + Ctot
         if len(plan)==0:
             _log.debug("Plan complete: %s", pv)
@@ -470,7 +480,8 @@ class Archive(object):
                             T0=T0, Tend=Tend,
                             count=count,
                             chunkSize=chunkSize,
-                            enumAsInt=enumAsInt)
+                            enumAsInt=enumAsInt,
+                            displayMeta=displayMeta)
 
         D.addCallback(self._nextraw, pv, plan, sofar, Climit,
                       callback, cbArgs, cbKWs, chunkSize, enumAsInt)

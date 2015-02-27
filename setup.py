@@ -119,9 +119,10 @@ except:
 setup(
     name = "carchivetools",
     version = "2.1-dev",
-    description = "Tools to query EPICS Channel Archiver and Archiver Appliance",
+    description = "Tools to query EPICS Channel Archiver and Archiver Appliance and export data",
     long_description = """Tools to retrieve data from EPICS data archivers.
-Support Channel Archiver as well as Archiver Appliance.
+Supports Channel Archiver as well as Archiver Appliance.
+Exports of data to Archiver Appliance and H5 are supported.
 """,
     url = "https://github.com/epicsdeb/carchivetools",
     download_url = "https://github.com/epicsdeb/carchivetools/releases",
@@ -135,6 +136,7 @@ Support Channel Archiver as well as Archiver Appliance.
                 'carchive.cmd',
                 'carchive.backend',
                 'carchive.backend.test',
+                'carchive.backend.pb',
                ],
     py_modules = ['twisted.plugins.a2aproxy', 'twisted.plugins.archmiddle'],
     scripts = ['arget','arplothdf5'],

@@ -301,6 +301,11 @@ def makeTime(intime, now=None):
     if now is None:
         now=datetime.datetime.now()
 
+    if intime == 'min':
+        return datetime.datetime.min
+    if intime == 'max':
+        return datetime.datetime.max
+
     try:
         intime = float(intime)
     except (TypeError, ValueError):
