@@ -484,7 +484,7 @@ class Archive(object):
                             displayMeta=displayMeta)
 
         D.addCallback(self._nextraw, pv, plan, sofar, Climit,
-                      callback, cbArgs, cbKWs, chunkSize, enumAsInt)
+                      callback, cbArgs, cbKWs, chunkSize, enumAsInt, displayMeta)
 
         return D
 
