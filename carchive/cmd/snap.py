@@ -39,9 +39,12 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
 
     for n, data, M in zip(args, vals, metas):
         print n,'\t', timefmt((M['sec'],int(M['ns']))),
-        if len(data)==1:
-            D = data[0]
-            print D,
+        try:
+            scalar = len(data)>1
+        except:
+            scalar=True
+        if scalar:
+            print data,
             print archive.severity(M['severity']),
             print archive.status(M['status'])
 
