@@ -44,7 +44,7 @@ I<arsnap> retrieves data for a single time and prints it to screen.
 
 Show help message
 
-=item B<--info>, B<--search>, B<--get>
+=item B<--info>, B<--search>, B<--get>, B<--snapshot>
 
 Select operation to perform.  Normally this is implicit in the executable name.
 I<arinfo> is a synonym for I<arget -I>.
@@ -58,9 +58,35 @@ Specify a configuration file section name.
 Search the named archive section.  Can be given more than once to add additional archives.
 When given the default archive section specification is overridden.
 
+=item B<--pv-list>=I<FILE>
+
+Read PVs from file in addition to argument list ("-" for stdin).
+
 =item B<-v>, B<--verbose>
 
 Print more information.  May be given up to 3 times.
+
+=back
+
+=head2 Search Options
+
+=over 2
+
+=item B<-W>, B<--wildcard>
+
+Name patterns are interpreted as wildcard expressions which may contain '*' and '?'.
+This is the default of I<argrep>.
+
+=item B<-R>, B<--regexp>
+
+Name patterns are interpreted as regular expressions.
+This is the default of I<argrep>.
+
+=item B<--exact>
+
+Name patterns are interpreted as list of literal PV names.
+No further interpretation is done.
+This is the default of I<arget>.
 
 =back
 
@@ -93,6 +119,15 @@ The default will usually be sufficient for scalar PVs.  However, for large wavef
 if may not.  If the server reports 500 errors then try setting a smaller chunk size.
 
 This option does not effect the data returned.
+
+=item B<--no-enum>
+
+Print enumerations as integers
+
+=item B<--skip-first>
+
+Do not print the value of PVs at the start of the time range.
+Only PVs which change during the time window are printed.
 
 =back
 

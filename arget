@@ -72,7 +72,7 @@ par.add_option('', '--skip-first', default=False, action='store_true', dest='ski
 
 # Input options
 par.add_option('', '--pv-list', metavar='FILE', dest='pvlist',
-               help='Read PVs from file in addition argument list ("-" for stdin)')
+               help='Read PVs from file in addition to argument list ("-" for stdin)')
 
 # Output options
 par.add_option('-T','--time', metavar='FMT', dest='timefmt',
