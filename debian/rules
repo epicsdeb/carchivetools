@@ -14,6 +14,13 @@ override_dh_auto_build:
 	pod2man --section=1 -c '' --release= arplothdf5.pod arplothdf5.1
 	pod2man --section=1 -c '' --release= arget.pod arget.1
 
+override_dh_auto_test:
+	for pyver in `pyversions -r`; do \
+    rm -rf build/test && cp -r build/lib.*-$${pyver#python} build/test && \
+    (cd build/test && trial carchive) || exit 1; \
+  done
+	rm -rf build/test
+
 override_dh_auto_clean:
 	dh_auto_clean
 	rm -f arget.1 arplothdf5.1
