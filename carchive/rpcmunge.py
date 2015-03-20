@@ -1,4 +1,7 @@
 """
+Copyright 2015 Brookhaven Science Assoc.
+ as operator of Brookhaven National Lab.
+
 Need to make the standard HTTPClient more forgiving
 of non-standard HTTP servers.
 

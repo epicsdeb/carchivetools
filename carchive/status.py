@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 """
+Copyright 2015 Brookhaven Science Assoc.
+ as operator of Brookhaven National Lab.
+
 EPICS Alarm Status codes
 """
 

@@ -4,6 +4,10 @@ import datetime, re
 from carchive.backend.pb.filepath import make_sure_path_exists
 
 '''
+This software is Copyright by the
+ Board of Trustees of Michigan
+ State University (c) Copyright 2015.
+
     Dumps the mysql insert statement into the files named disconnected_<timestamp_now>.sql
     and connected_<timestamp_now>.sql. One contains connected PVs and the other one disconnected.
     The connection state is determined based on the archived data and not on the actual PV connection

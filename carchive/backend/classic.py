@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+"""
+Copyright 2015 Brookhaven Science Assoc.
+ as operator of Brookhaven National Lab.
+"""
 
 # supported RPC call version
 PVER=0

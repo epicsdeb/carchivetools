@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 """
+Copyright 2015 Brookhaven Science Assoc.
+ as operator of Brookhaven National Lab.
+
 Archiver Appliance PB file re-partitioning
 
 Reads samples from a set of .pb files

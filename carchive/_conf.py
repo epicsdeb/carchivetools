@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Internal module
+Copyright 2015 Brookhaven Science Assoc.
+ as operator of Brookhaven National Lab.
 """
 
 import ConfigParser

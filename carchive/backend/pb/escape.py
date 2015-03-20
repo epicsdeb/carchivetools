@@ -1,3 +1,8 @@
+"""
+This software is Copyright by the
+ Board of Trustees of Michigan
+ State University (c) Copyright 2015.
+"""
 # Archiver PB files are split by lines. The first line is some header information.
 # The remaining lines are samples. In these samples some characters are escaped.
 # The escaping rules were obtained from LineEscaper.java.

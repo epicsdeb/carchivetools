@@ -1,3 +1,8 @@
+"""
+This software is Copyright by the
+ Board of Trustees of Michigan
+ State University (c) Copyright 2015.
+"""
 from __future__ import print_function
 import math, datetime
 from carchive.backend import EPICSEvent_pb2 as pbt

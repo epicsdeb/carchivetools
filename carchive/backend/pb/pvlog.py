@@ -1,7 +1,10 @@
 from __future__ import print_function
 import logging
-    
 '''
+This software is Copyright by the
+ Board of Trustees of Michigan
+ State University (c) Copyright 2015.
+
     Gathers the logs related to a specific PV to allow generating a report after the 
     export is finished.
 '''

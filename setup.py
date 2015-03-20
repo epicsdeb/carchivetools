@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Copyright 2015 Brookhaven Science Assoc.
+ as operator of Brookhaven National Lab.
+"""
 
 import subprocess as sp
 

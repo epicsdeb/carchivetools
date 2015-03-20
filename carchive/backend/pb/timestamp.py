@@ -2,6 +2,10 @@ import datetime
 from carchive.date import timeTuple
 
 '''
+This software is Copyright by the
+ Board of Trustees of Michigan
+ State University (c) Copyright 2015.
+
     Timestamps:
         Python datetime: Gregorian calendar
         Channel Archiver: (secs, nano) - time since 1970 UTC

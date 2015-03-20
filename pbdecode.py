@@ -1,5 +1,9 @@
 #!/usr/bin/env python
-"""Test decoding of PB files, either unprocessed retrieved over http, or on disk files
+"""
+Copyright 2015 Brookhaven Science Assoc.
+ as operator of Brookhaven National Lab.
+
+Test decoding of PB files, either unprocessed retrieved over http, or on disk files
 """
 
 import sys, logging

@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""Utility to help with debugging protobuf decode failures
+"""
+Copyright 2015 Brookhaven Science Assoc.
+ as operator of Brookhaven National Lab.
+
+Utility to help with debugging protobuf decode failures
 
 Processes arbitrary PB messages.  Extra information may be injected with --type
 to enable sub-structures to be decoded.
