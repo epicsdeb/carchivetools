@@ -1,8 +1,16 @@
 carchivetools (2.1) UNRELEASED; urgency=low
 
-  * 
+  * appl: use server caplotbinning() operator for fetchplot()
+          Parallelized sample decoding and other performance optimizations
+          Report severity 103 for single sample decode errors
+  * arget: Exports Archiver Appliance data files with -E pbraw
+           add --skip-first
+  * a2aproxy: improve robustness
+  * untwisted: arget() correctly handles when a single string argument expands
+          to many PVs.
+  * carchive.repart: Archiver Appliance file repartitioning
 
- -- Michael Davidsaver <mdavidsaver@bnl.gov>  Wed, 03 Dec 2014 17:31:24 -0500
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Fri, 20 Mar 2015 11:13:46 -0400
 
 carchivetools (2.0) unstable; urgency=low
 
