@@ -329,8 +329,41 @@ class Appliance(object):
         return self.fetchraw(pv, callback, cbArgs=cbArgs, cbKWs=cbKWs,
                              **kws)
 
+    @defer.inlineCallbacks
     def fetchsnap(self, pvs, T=None,
                   archs=None, chunkSize=100,
                   enumAsInt=False):
+        pvs = list(pvs)
 
-        raise NotImplementedError("fetchsnap operation not implemented")
+        # values() request time range is inclusive, so Tcur==Tlast is a no-op
+        sec,ns = Tcur = timeTuple(makeTime(T))
+        ns+=1000
+        if ns>1000000000:
+            ns-=1000000000
+            sec+=1
+        Tlast = sec, ns
+        del sec, ns
+
+        Npvs = len(pvs)
+        values, metas = np.zeros(Npvs, dtype=np.object), np.zeros(Npvs, dtype=dbr_time)
+
+        def store(V, M, i):
+            values[i] = V[-1,0]
+            metas[i]  = M[-1]
+
+        def fault(F, i):
+            metas[i]['severity'] = 104
+            _log.error("Fault while processing %s: %s", pvs[i], F)
+
+        Ds = []
+
+        for i,pv in enumerate(pvs):
+            D = self.fetchraw(pv, store, cbArgs=(i,),
+                              T0=Tcur, Tend=Tlast,
+                              count=2)
+            D.addErrback(fault, i)
+            Ds.append(D)
+
+        yield defer.DeferredList(Ds)
+
+        defer.returnValue((values, metas))
