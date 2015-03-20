@@ -60,10 +60,6 @@ par.add_option('-a','--archive', metavar='NAME', action='append', default=[],
 par.add_option('-H','--how', metavar='NAME', default='raw',
                help="Query method (eg. raw or plot)")
 
-par.add_option('-M','--merge', metavar='NAME', default='simple',
-               help='How to attempt to combine data for one channel received in '
-               'different responces.  Options: none, simple')
-
 # Data options
 par.add_option('', '--no-enum', default=False, action='store_true', dest='enumAsInt',
                help='Return enumerations as integers')
@@ -102,9 +98,6 @@ if opt.helptime:
     from carchive import date
     print date.__doc__
     sys.exit(0)
-
-if opt.merge not in ['none','simple']:
-    par.error('Invalid merge method %s'%opt.merge)
 
 LVL={0:logging.WARN, 1:logging.INFO, 2:logging.DEBUG}
 
