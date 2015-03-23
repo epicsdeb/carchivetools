@@ -70,27 +70,31 @@ class EnumTypeDesc(object):
     def encode_vector(value, sample_pb):
         sample_pb.val.extend(int(x) for x in value)
 
-ALL_TYPE_DESCRIPTIONS = [DoubleTypeDesc, Int32TypeDesc, StringTypeDesc, EnumTypeDesc]
+_desc = [DoubleTypeDesc, Int32TypeDesc, StringTypeDesc, EnumTypeDesc]
+
+_ALL_CLASS_DESCRIPTIONS, _ALL_TYPE_DESCRIPTIONS = {}, {}
+for T in _desc:
+    _ALL_CLASS_DESCRIPTIONS[T.PB_TYPE[0]] = T.PB_CLASS[0]
+    _ALL_CLASS_DESCRIPTIONS[T.PB_TYPE[1]] = T.PB_CLASS[1]
+    _ALL_TYPE_DESCRIPTIONS[T.ORIG_TYPE] = T
 
 def get_type_description(orig_type):
-    for type_desc in ALL_TYPE_DESCRIPTIONS:
-        if orig_type == type_desc.ORIG_TYPE:
-            return type_desc
-    raise TypeError('Got unsupported data type.')
+    desc = _ALL_TYPE_DESCRIPTIONS[orig_type]
+    if desc == None:
+        raise TypeError('Got unsupported data type.')
+    return desc
 
 def get_pv_type(orig_type, is_waveform):
-    for type_desc in ALL_TYPE_DESCRIPTIONS:
-        if orig_type == type_desc.ORIG_TYPE:
-            return type_desc.PB_NAME[1] if is_waveform else type_desc.PB_NAME[0] 
-    raise TypeError('Unsupported data type {0}'.format(orig_type))
+    desc = _ALL_TYPE_DESCRIPTIONS[orig_type]
+    if desc == None:
+        raise TypeError('Unsupported data type {0}'.format(orig_type))
+    return desc.PB_NAME[1] if is_waveform else desc.PB_NAME[0]
 
 class UnknownPbTypeError(Exception):
     pass
 
 def get_pb_class_for_type(pb_type):
-    for type_desc in ALL_TYPE_DESCRIPTIONS:
-        if type_desc.PB_TYPE[0] == pb_type:
-            return type_desc.PB_CLASS[0]
-        if type_desc.PB_TYPE[1] == pb_type:
-            return type_desc.PB_CLASS[1]
-    raise UnknownPbTypeError('Unknown PB type')
+    clazz = _ALL_CLASS_DESCRIPTIONS[pb_type]
+    if clazz == None:
+        raise UnknownPbTypeError('Unknown PB type')
+    return clazz

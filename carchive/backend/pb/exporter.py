@@ -24,12 +24,12 @@ class Exporter(object):
         self._last_meta = {}
         self._last_meta_day = None
         self._meta_dirty = True
-        self._previous_disconnected_event = None
         self._previous_dt_seconds = None
         self._previous_nano = None
         self._pv_disconnected = False
         self._print_mysql = True
         self._last_timestamp_secnano = None
+        self._prev_severity = 0;
         self._appender = pb_appender.Appender(pv_name, gran, out_dir, delimiters, ignore_ts_start, pvlog)
     
     # with statement entry
@@ -38,7 +38,6 @@ class Exporter(object):
     
     # with statement exit - clean up
     def __exit__(self, tyype, value, traceback):
-        self.write_last_disconnected()
         self._pvlog.info('Finished exporting data for PV {0}'.format(self._pv_name))
         self._appender.close()
     
@@ -65,8 +64,8 @@ class Exporter(object):
             self._pvlog.info('Data type: {0} {1}'.format(self._type_desc.NAME, ('Waveform' if self._is_waveform else 'Scalar')))
             
             # We do get enum labels but we cannot store them anywhere :(
-            if extraMeta['the_meta']['type'] == 0:
-                self._pvlog.warning('Enum labels will not be stored.')
+            #if extraMeta['the_meta']['type'] == 0:
+            #    self._pvlog.warning('Enum labels will not be stored.')
             
             # The old Channel Archiver cannot handle arrays of strings, so skip these broken PVs.
             if self._waveform_size_bad(data, extraMeta):
@@ -75,7 +74,12 @@ class Exporter(object):
         else:
             # Check data type, it should be the same as received with the first sample.
             if orig_type != self._orig_type:
-                raise SkipPvError('Inconsitent data type in subsequent chunk!')
+                if self._orig_type == 2 and orig_type == 1:
+                    #if the type changse from an integer type to an enum type, do not complain, just continue storing the samples as ints
+                    self._orig_type = orig_type
+                    self._pvlog.warning("Data changed from int to enum type. Data will continue to be stored as int.")
+                else:
+                    raise SkipPvError('Inconsitent data type in subsequent chunk! Previous={0}, new={1}'.format(self._orig_type, orig_type))
             if is_waveform != self._is_waveform:
                 raise SkipPvError('Inconsitent waveformness in subsequent chunk!')
             
@@ -84,6 +88,9 @@ class Exporter(object):
         
         # If metadata has changed, we will attach it to the first sample in this chunk.
         new_meta = dict((META_MAP[meta_name], meta_val) for (meta_name, meta_val) in extraMeta['the_meta'].iteritems() if meta_name in META_MAP)
+        
+        if new_meta.has_key('states') and new_meta['states'] is not None:
+            new_meta['states'] = ';'.join(new_meta['states'])
         if new_meta != self._last_meta:
             self._last_meta = new_meta
             self._meta_dirty = True
@@ -113,16 +120,6 @@ class Exporter(object):
                 self._mysql_writer.put_pv_info(name=self._pv_name, 
                                              scalar=not self._is_waveform, ncount=array_size,
                                              pv_type=pv_type)
-        
-    def write_last_disconnected(self):
-        ''' If the last event that was pulled from the archive marks the PV as disconnected, it has
-        not been written yet, because extra fields have to be added to the sample. Add those fields
-        to the sample and write it. In addition, mark the disconnected state in the mysql writer.'''
-        if self._previous_disconnected_event is not None:
-            self._write_previous()
-        if self._pv_disconnected:
-            self._mysql_writer.pv_disconnected(self._pv_name)
-            self._pv_disconnected = False
     
     def _process_sample(self, value, sevr, stat, secs, nano):
         #print('sample VAL={} SEVR={} STAT={} SECS={} NANO={}'.format(value, sevr, stat, secs, nano))
@@ -147,30 +144,27 @@ class Exporter(object):
         sample_pb.severity = sevr
         sample_pb.status = stat
         #if the severity is 'Disconnected(3904)' skip writing this sample and write it later
-        if sevr == 3904:
-            if self._previous_disconnected_event is None:
-                sample_pb.fieldvalues.extend([pbt.FieldValue(name='cnxlostepsecs', val='{0}'.format(secs))])
-                sample_pb.severity = 0
-                sample_pb.status = 0
-                self._previous_disconnected_event = sample_pb
-                self._previous_dt_seconds = dt_seconds
+        if sevr == 3904 or sevr == 3848 or sevr == 3872:
+            if self._pv_disconnected is False:
+                self._previous_dt_seconds = secs
                 self._previous_nano = nano
             self._pv_disconnected = True
-            return
-        elif sevr == 3872 or sevr == 3848:
-            self._pv_disconnected = True
         else:
-            if self._previous_disconnected_event is not None:
-                self._previous_disconnected_event.fieldvalues.extend([pbt.FieldValue(name='cnxregainedepsecs', val='{0}'.format(secs))])
-                self._write_previous()
+            if self._pv_disconnected is True:
+                sample_pb.fieldvalues.extend([pbt.FieldValue(name='cnxlostepsecs', val='{0}'.format(self._previous_dt_seconds))])
+                sample_pb.fieldvalues.extend([pbt.FieldValue(name='cnxregainedepsecs', val='{0}'.format(secs))])
+                if self._prev_severity == 3872:
+                    sample_pb.fieldvalues.extend([pbt.FieldValue(name='startup', val='true')])
             self._pv_disconnected = False
         
+        self._prev_severity = sevr
         # Force metadata on new day (unless there are no samples for a day...).
         sample_day = dt_seconds.date()
         if sample_day != self._last_meta_day:
             self._meta_dirty = True
         
         # Flush metadata.
+        
         if self._meta_dirty:
             self._meta_dirty = False
             self._last_meta_day = sample_day
@@ -191,14 +185,6 @@ class Exporter(object):
     def _waveform_size_bad(self, data, extraMeta):
         return self._is_waveform and data.shape[1] != extraMeta['reported_arr_size']
     
-    def _write_previous(self):
-        ''' Write the previous disconnected event. The event has to exist. '''
-        try:
-            self._appender.write_sample(self._previous_disconnected_event, self._previous_dt_seconds, self._previous_nano, self._pb_type)
-        except pb_appender.AppenderError as e:
-            raise SkipPvError(e)
-        self._previous_disconnected_event = None
-
 META_MAP = {
     'units': 'EGU',
     'prec': 'PREC',
@@ -208,6 +194,7 @@ META_MAP = {
     'warn_high': 'HIGH',
     'disp_low': 'LOPR',
     'disp_high': 'HOPR',
+    'states': 'states'
 }
 
 def meta_convert_float(x):

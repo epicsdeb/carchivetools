@@ -109,11 +109,9 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
                     enumAsInt=True, displayMeta=True, rawTimes=True
                 )
             except pb_exporter.SkipPvError as e:
+                #report error and continue with the next PV
                 _log.error('PV ERROR: {0}: {1}'.format(pv, e))
                 pvlog.error(str(e))
-                break
-        #In case the pv is disconnected, write the last sample and include the cnxlostepsecs    
-        the_exporter.write_last_disconnected()
         #Write the pv info to mysql
         mysql_writer.write_pv_info()
         
