@@ -12,17 +12,30 @@ to enable sub-structures to be decoded.
 
 from __future__ import print_function
 
-import struct
+import struct, re
 
 def getargs():
     import argparse
     P = argparse.ArgumentParser()
     P.add_argument('--sample', action='store_const', dest='proc', const=sample)
+    P.add_argument('--file', action='store_const', dest='proc', const=dfile)
     P.add_argument('-S','--show', action='store_true')
     P.add_argument('--test', action='store_const', dest='proc', const=dtest)
     P.add_argument('--type', dest='pbtype', default='Generic')
+    P.add_argument('-U','--unescape', action='store_true')
     P.add_argument('input', nargs='*')
     return P.parse_args()
+
+_unesc = re.compile(r'\x1b(.)')
+_unmap = {
+    '\x01': '\x1b',
+    '\x02': '\x0a',
+    '\x03': '\x0d',
+}
+def _unfn(M):
+    return _unmap[M.group(1)]
+def unescape(inp):
+    return _unesc.sub(_unfn, inp.strip())
 
 def wrap(I):
     for C in I:
@@ -64,7 +77,7 @@ def showV64(B):
 
 def showString(B):
     V = decodeString(B)
-    print('  Value (%d): "%s"'%(len(V),repr(V)))
+    print('  Value (%d): %s'%(len(V),repr(V)))
 
 def showStart(B):
     print('Nested start')
@@ -152,6 +165,23 @@ def sample(args):
         except:
             import traceback
             traceback.print_exc()
+
+def dfile(args):
+    fn=iter
+    if args.show:
+        fn=wrap
+    fname = args.input[0]
+    ln = int(args.input[1] or '1')
+    with open(fname, 'r') as F:
+        for i,L in enumerate(F,1):
+            if i==ln:
+                I = unescape(L)
+                print('Input',repr(I))
+                try:
+                    decode(fn(I), PBTypes[args.pbtype])
+                except:
+                    import traceback
+                    traceback.print_exc()
 
 def dtest(args):
     import doctest
