@@ -75,7 +75,7 @@ class Exporter(object):
             # Check data type, it should be the same as received with the first sample.
             if orig_type != self._orig_type:
                 if self._orig_type == 2 and orig_type == 1:
-                    #if the type changse from an integer type to an enum type, do not complain, just continue storing the samples as ints
+                    #if the type changes from an integer type to an enum type, do not complain, just continue storing the samples as ints
                     self._orig_type = orig_type
                     self._pvlog.warning("Data changed from int to enum type. Data will continue to be stored as int.")
                 else:
@@ -149,15 +149,27 @@ class Exporter(object):
                 self._previous_dt_seconds = secs
                 self._previous_nano = nano
             self._pv_disconnected = True
+            #if the severity is archive off or archive disabled, store severity, so that we can add 
+            #extra fields later when a healthy sample arrives             
+            if (sevr == 3848 or sevr == 3872) and self._prev_severity < 4:
+                self._prev_severity = sevr
+            #samples with severity 3904, 3848 and 3872 are not stored: the info they provide is used
+            #with the next healthy value
+            return
+        elif sevr == 3856 or sevr == 3968:
+            #if the severity is Repeat or Est_Repeat, log a warning
+            self._pvlog.warning("Severity {0} encountered!".format(sevr))
         else:
             if self._pv_disconnected is True:
                 sample_pb.fieldvalues.extend([pbt.FieldValue(name='cnxlostepsecs', val='{0}'.format(self._previous_dt_seconds))])
                 sample_pb.fieldvalues.extend([pbt.FieldValue(name='cnxregainedepsecs', val='{0}'.format(secs))])
                 if self._prev_severity == 3872:
                     sample_pb.fieldvalues.extend([pbt.FieldValue(name='startup', val='true')])
+                elif self._prev_severity == 3848:
+                    sample_pb.fieldvalues.extend([pbt.FieldValue(name='resume', val='true')])
+                self._prev_severity = sevr
             self._pv_disconnected = False
         
-        self._prev_severity = sevr
         # Force metadata on new day (unless there are no samples for a day...).
         sample_day = dt_seconds.date()
         if sample_day != self._last_meta_day:
