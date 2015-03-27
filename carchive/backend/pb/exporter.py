@@ -156,7 +156,8 @@ class Exporter(object):
             #samples with severity 3904, 3848 and 3872 are not stored: the info they provide is used
             #with the next healthy value
             return
-        elif sevr == 3856 or sevr == 3968:
+        elif sevr > 3:
+            #sevr == 3856 or sevr == 3968:
             #if the severity is Repeat or Est_Repeat, log a warning
             self._pvlog.warning("Severity {0} encountered!".format(sevr))
         else:
