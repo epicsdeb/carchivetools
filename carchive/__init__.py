@@ -13,7 +13,8 @@ __all__ = ['__version__',
 
 import logging
 
-__version__ = 'pre2'
+__version__ = '2.1'
+version = (2,1)
 
 if not hasattr(logging, 'NullHandler'):
     class NullHandler(logging.Handler):

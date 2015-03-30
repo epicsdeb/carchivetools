@@ -3,8 +3,10 @@ carchivetools (2.1) UNRELEASED; urgency=low
   * appl: use server caplotbinning() operator for fetchplot()
           Parallelized sample decoding and other performance optimizations
           Report severity 103 for single sample decode errors
+          implement fetchsnap()
   * arget: Exports Archiver Appliance data files with -E pbraw
            add --skip-first
+  * arsnap: Fix detection fo scalar
   * a2aproxy: improve robustness
   * untwisted: arget() correctly handles when a single string argument expands
           to many PVs.
