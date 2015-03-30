@@ -159,7 +159,7 @@ class Exporter(object):
         elif sevr > 3:
             #sevr == 3856 or sevr == 3968:
             #if the severity is Repeat or Est_Repeat, log a warning
-            self._pvlog.warning("Severity {0} encountered!".format(sevr))
+            self._pvlog.warning("Severity {0} encountered at {1}!".format(sevr,secnano))
         else:
             if self._pv_disconnected is True:
                 sample_pb.fieldvalues.extend([pbt.FieldValue(name='cnxlostepsecs', val='{0}'.format(self._previous_dt_seconds))])
