@@ -109,10 +109,10 @@ def check_output(args, shell=False):
     return out
 
 #Debian specific hardening
-extra_cflags=[]
+extra_cflags=['-Wno-write-strings']
 extra_ldflags=[]
 try:
-    extra_cflags =check_output('dpkg-buildflags --get CPPFLAGS', shell=True).split()
+    extra_cflags+=check_output('dpkg-buildflags --get CPPFLAGS', shell=True).split()
     extra_cflags+=check_output('dpkg-buildflags --get CFLAGS', shell=True).split()
     extra_ldflags=check_output('dpkg-buildflags --get LDFLAGS', shell=True).split()
 except:
