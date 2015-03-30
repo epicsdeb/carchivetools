@@ -68,8 +68,13 @@ class PBReceiver(BufferingLineProtocol):
     # responce can be processed at once.
     _rx_buf_size = 2**20
 
+    # Enable processing of in a worker thread.
+    #
+    # User callbacks still run in the reactor thread
+    inthread = True
+
     def __init__(self, cb, cbArgs=(), cbKWs={}, nreport=1000,
-                 count=None, name=None, cadiscon=0, inthread=False):
+                 count=None, name=None, cadiscon=0, inthread=None):
         BufferingLineProtocol.__init__(self)
         self._S, self.defer = StringIO(), defer.Deferred()
         self.name, self.nreport, self.cadiscon = name, nreport, cadiscon
@@ -77,7 +82,8 @@ class PBReceiver(BufferingLineProtocol):
         self.header, self._dec, self.name = None, None, name
         self._count_limit, self._count = count, 0
         self._CB, self._CB_args, self._CB_kws = cb, cbArgs, cbKWs
-        self.inthread = inthread
+        if inthread is not None:
+            self.inthread = inthread # override default
 
     def processLines(self, lines, prev=None):
         _log.debug("Process %d lines for %s", len(lines), self.name)
@@ -156,7 +162,8 @@ class PBReceiver(BufferingLineProtocol):
                     assert not isinstance(D, defer.Deferred), "appl does not support callbacks w/ deferred"
 
             if self._count_limit and self._count>=self._count_limit:
-                _log.debug("%s count limit reached", self.name)
+                _log.debug("%s count limit reached (%d,%d)", self.name,
+                           self._count, self._count_limit)
                 self.transport.stopProducing()
                 break
 
