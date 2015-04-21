@@ -16,14 +16,13 @@ from cStringIO import StringIO
 import numpy as np
 
 from twisted.internet import defer, protocol, reactor, threads
-
-from twisted.web.client import Agent, ResponseDone
-from twisted.web._newclient import ResponseFailed
+from twisted.python import failure
+from twisted.web.client import ResponseDone
 
 from ..date import isoString, makeTime, timeTuple
 from ..dtype import dbr_time
 from ..status import get_status
-from ..util import BufferingLineProtocol
+from ..util import BufferingLineProtocol, LimitedAgent
 from .EPICSEvent_pb2 import PayloadInfo
 
 from carchive.backend.pbdecode import decoders, unescape, DecodeError, linesplitter
@@ -205,7 +204,8 @@ def fetchJSON(agent, url, code=200):
 
 @defer.inlineCallbacks
 def getArchive(conf):
-    A = Agent(reactor, connectTimeout=5)
+    A = LimitedAgent(reactor, connectTimeout=5,
+                     maxRequests=conf.getint('maxrequests', 100))
 
     R = yield A.request('GET', conf['url'])
 
@@ -266,9 +266,13 @@ class Appliance(object):
                 pattern=pattern+'.*'
 
         url='%s/getAllPVs?%s'%(self._info['mgmtURL'],urlencode({'regex':pattern}))
-        _log.debug("Query: %s", url)
 
-        R = yield fetchJSON(self._agent, url)
+        yield self._agent.acquire()
+        try:
+            _log.debug("Query: %s", url)
+            R = yield fetchJSON(self._agent, url)
+        finally:
+            self._agent.release()
 
         if not breakDown:
             meta = makeTime(0), makeTime(time.time())
@@ -294,19 +298,24 @@ class Appliance(object):
         }
 
         url=str('%s/data/getData.raw?%s'%(self._info['dataRetrievalURL'],urlencode(Q)))
-        _log.debug("Query: %s", url)
 
-        R = yield self._agent.request('GET', url)
-
-        if R.code!=200:
-            _log.error("%s for %s", R.code, pv)
-            defer.returnValue(0)
-
-        P = PBReceiver(callback, cbArgs, cbKWs, name=pv,
-                       nreport=chunkSize, count=count, cadiscon=cadiscon)
+        yield self._agent.acquire()
+        try:
+            _log.debug("Query: %s", url)
+            R = yield self._agent.request('GET', url)
     
-        R.deliverBody(P)
-        C = yield P.defer
+            if R.code!=200:
+                _log.error("%s for %s", R.code, pv)
+                defer.returnValue(0)
+    
+            P = PBReceiver(callback, cbArgs, cbKWs, name=pv,
+                           nreport=chunkSize, count=count, cadiscon=cadiscon)
+        
+            R.deliverBody(P)
+            C = yield P.defer
+        finally:
+            self._agent.release()
+
         if P._tend is not None and _log.isEnabledFor(logging.DEBUG):
             elapsed = P._tend - P._tstart
             rate = P._nbytes/elapsed

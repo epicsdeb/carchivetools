@@ -9,6 +9,7 @@ _log = logging.getLogger(__name__)
 import re, collections, time
 from cStringIO import StringIO
 
+from twisted.web.client import Agent
 from twisted.web.server import Site
 from twisted.application.internet import TCPServer
 from twisted.internet import defer, protocol, error
@@ -335,6 +336,22 @@ class LimitedTCPServer(TCPServer):
         fact = self.args[1]
         fact.lport = port = TCPServer._getPort(self)
         return port
+
+class LimitedAgent(Agent):
+    """Coarse rate limiting for Agent requests.
+
+    Limits the number of concurrent requests to maxRequests regardless
+    of destination (we usually have only one).
+    """
+    def __init__(self, *args, **kws):
+        M = self.maxRequests = kws.pop('maxRequests', 100)
+        super(LimitedAgent,self).__init__(*args, **kws)
+        self.sem = defer.DeferredSemaphore(M)
+
+    def acquire(self):
+        return self.sem.acquire()
+    def release(self):
+        return self.sem.release()
 
 if __name__=='__main__':
     import doctest

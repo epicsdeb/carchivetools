@@ -59,6 +59,13 @@ class ConfigDict(object):
     def write(self, fd):
         self._P.write(fd)
 
+    def todict(self):
+        return dict(self.iteritems())
+
+    def __str__(self):
+        return str(self.todict())
+
+    __repr__ = __str__
 
 def loadConfig(N):
     import os.path
@@ -67,7 +74,6 @@ def loadConfig(N):
           'host':'%%(host)s',
           'defaultarchs':'*',
           'defaultcount':'0',
-          'maxrequests':'10',
           'maxquery':'30',
         }
     cf=ConfigParser.SafeConfigParser(defaults=dflt)

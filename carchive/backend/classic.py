@@ -75,7 +75,7 @@ def getArchive(conf):
     instance.
     """
     url = conf.get('url')
-    maxreq = conf.getint('maxrequests')
+    maxreq = conf.getint('maxrequests', 10)
     maxq = conf.getint('maxquery')
     
     proxy=Proxy(url, limit=maxreq, qlimit=maxq)

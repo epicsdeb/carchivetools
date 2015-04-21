@@ -16,9 +16,10 @@ from xmlrpclib import loads, dumps, Fault
 from twisted.internet import defer, protocol
 from twisted.web.iweb import IBodyProducer
 from twisted.web.resource import Resource
-from twisted.web.client import Agent
 from twisted.web.server import NOT_DONE_YET
 from twisted.web.http_headers import Headers
+
+from ..util import LimitedAgent
 
 class StringProducer(object):
     implements(IBodyProducer)
@@ -108,9 +109,6 @@ Cache expires after: %s sec.
 
 class XMLRPCProxy(Resource):
     isLeaf=True
-
-    #agent = client.Agent()
-    #info = info.InfoCache
 
     def render_GET(self, req):
         return _msg%(len(self.requests),
@@ -224,7 +222,7 @@ def buildResource(info=None, reactor=None):
     cgibin.putChild('ArchiveDataServer.cgi', C)
 
     C.info = info
-    C.agent = Agent(reactor)
+    C.agent = LimitedAgent(reactor)
     C.requests = weakref.WeakKeyDictionary()
 
     return root, C
