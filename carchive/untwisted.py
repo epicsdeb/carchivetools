@@ -194,7 +194,8 @@ def arget(names, match = WILDCARD, mode = RAW,
     elif mode!=SNAPSHOT:
         raise ValueError("Unknown plotting mode %d"%mode)
 
-    names = arsearch(names, match=match, archs=archs, conf=conf)
+    if match!=EXACT:
+        names = arsearch(names, match=match, archs=archs, conf=conf)
 
     if mode==SNAPSHOT:
         T = date.makeTimeInterval(start, None)[0]
