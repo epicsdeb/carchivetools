@@ -15,7 +15,7 @@ from twisted.internet import defer, protocol, error
 from twisted.python import failure
 #defer.Deferred.debug=1
 
-from twisted.web.client import ResponseDone
+from twisted.web.client import ResponseDone, ResponseFailed
 
 class HandledError(Exception):
     pass
@@ -257,6 +257,18 @@ class BufferingLineProtocol(protocol.Protocol):
     def connectionLost(self, reason):
         if not isinstance(reason, failure.Failure):
             reason = failure.Failure(reason)
+
+        if reason.check(ResponseFailed):
+            if len(reason.value.reasons)>=1:
+                subR = reason.value.reasons[0]
+                if not isinstance(subR, failure.Failure):
+                    subR = failure.Failure(subR)
+
+                if subR.check(error.ConnectionDone):
+                    # connection closed by user request (aka. count limit reached)
+                    reason = subR
+                    self.rxbuf.truncate(0)
+
 
         if reason.check(error.ConnectionDone, ResponseDone):
             self._tend = time.time()

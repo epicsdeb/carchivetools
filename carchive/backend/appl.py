@@ -179,6 +179,8 @@ class JSONReceiver(protocol.Protocol):
     def dataReceived(self, raw):
         self._S.write(raw)
     def connectionLost(self, reason):
+        if not isinstance(reason, failure.Failure):
+            reason = failure.Failure(reason)
         if reason.check(ResponseDone):
             S = self._S.getvalue()
             try:
