@@ -305,6 +305,12 @@ class Appliance(object):
     
         R.deliverBody(P)
         C = yield P.defer
+        if P._tend is not None and _log.isEnabledFor(logging.DEBUG):
+            elapsed = P._tend - P._tstart
+            rate = P._nbytes/elapsed
+            _log.debug("%s rx'd %d bytes in %f sec (%f Bps)",
+                       pv, P._nbytes, elapsed, rate)
+            
 
         defer.returnValue(C)
 

@@ -210,7 +210,11 @@ class BufferingLineProtocol(protocol.Protocol):
         self.rxbuf.write('x')
         self.rxbuf.truncate(0)
 
+        self._nbytes, self._tstart = 0, time.time()
+        self._tend = None
+
     def dataReceived(self, data):
+        self._nbytes += len(data)
         self.rxbuf.write(data)
         if self.rxbuf.tell()<self.rx_buf_size:
             return # below threshold
@@ -255,6 +259,7 @@ class BufferingLineProtocol(protocol.Protocol):
             reason = failure.Failure(reason)
 
         if reason.check(error.ConnectionDone, ResponseDone):
+            self._tend = time.time()
             # normal completion
             if self.rxbuf.tell()>0:
                 # process remaining
@@ -277,7 +282,6 @@ class BufferingLineProtocol(protocol.Protocol):
                 return reason
 
         self._defer.chainDeferred(self.defer)
-
 
 import weakref
 class LimitedSite(Site):
