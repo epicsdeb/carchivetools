@@ -111,7 +111,7 @@ if opt.pvlist:
             AF = open(opt.pvlist, 'r')
         except IOError:
             print "--pv-list: No such file or directory: '%s'"%opt.pvlist
-            sys.exit(0)
+            sys.exit(1)
     args += filter(lambda L:len(L) and L[0]!='#', map(str.rstrip, AF.readlines()))
     if opt.pvlist != '-':
         AF.close()
