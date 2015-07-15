@@ -129,6 +129,17 @@ def statusPV(pvs, I):
             print('%s\t\t%s'%(pv,R['status']))
 
 @defer.inlineCallbacks
+def setRate(pvs, I, rate):
+    period = 1.0/rate
+    print('Set rate limit to %f Hz (%f sec)'%(rate, period))
+    while len(pvs):
+        pv = pvs.pop()
+        url = '%s/changeArchivalParameters?pv=%s&samplingmethod=MONITOR&samplingperiod=%f'%(I['mgmtURL'],quote_plus(pv),period)
+        print('ACT', pv, url)
+        R = yield getURL(url)
+        print(pv,R,file=sys.stderr)
+
+@defer.inlineCallbacks
 def doStuff(opts, args):
     print('Fetch Appliance info from',opts.url,file=sys.stderr)
     I = yield getURL(opts.url)
@@ -169,7 +180,9 @@ def doStuff(opts, args):
             [pvs.append(pv.split(None,1)[0].strip()) for pv in F]
             F.close()
 
-    if opts.action is None:
+    if opts.set_rate:
+        yield setRate(pvs, I, opts.set_rate)
+    elif opts.action is None:
         map(print, pvs)
     else:
         N = len(pvs)/opts.count
@@ -197,6 +210,8 @@ if __name__=='__main__':
                  help='Show PV status')
     P.add_option('--abort', action='store_const', dest='action', const=abortPV,
                  help='Cancel archiving request')
+    P.add_option('--set-rate', type=float,
+                 help='Set upper limit on PV update rate')
 
     P.add_option('--disconn', action='store_const', dest='pvs', const='disconn', default='pattern',
                  help='Operate on disconnected PVs')
