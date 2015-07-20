@@ -75,6 +75,7 @@ par.add_option('-T','--time', metavar='FMT', dest='timefmt',
                help='Output time format: string, posix')
 
 # General options
+par.add_option('-V','--version', action='store_true', help='Show version number')
 par.add_option('-v','--verbose', action='count', default=0,
                help='Print more')
 par.add_option('-d','--debug', action='store_true', default=False,
@@ -97,6 +98,11 @@ opt, args = par.parse_args()
 if opt.helptime:
     from carchive import date
     print date.__doc__
+    sys.exit(0)
+
+elif opt.version:
+    from carchive import __version__
+    print __version__
     sys.exit(0)
 
 LVL={0:logging.WARN, 1:logging.INFO, 2:logging.DEBUG}
