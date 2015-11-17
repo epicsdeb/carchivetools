@@ -136,6 +136,7 @@ Exports of data to Archiver Appliance and H5 are supported.
                 'carchive.backend',
                 'carchive.backend.test',
                 'carchive.backend.pb',
+                'carchive.test',
                ],
     package_data={'carchive.backend.test': ['*.pb']},
     py_modules = ['twisted.plugins.a2aproxy', 'twisted.plugins.archmiddle'],
