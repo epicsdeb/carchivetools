@@ -19,7 +19,7 @@ from .. import appl
 from ...dtype import dbr_time
 
 # Read in an example PB message stream
-with open(os.path.join(os.path.dirname(__file__), 'testdata.pb')) as F:
+with open(os.path.join(os.path.dirname(__file__), 'testdata.pb'), 'rb') as F:
     _data = F.read()
 del F
 
