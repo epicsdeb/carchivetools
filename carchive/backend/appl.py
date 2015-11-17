@@ -7,13 +7,18 @@ from __future__ import absolute_import
 
 import logging
 import six
-_log = logging.getLogger("carchive.appl")
 
-import json, time, calendar, datetime, math, re
+import json
+import time
+import calendar
+import datetime
+import math
+import re
 
-from urllib import urlencode
+from six.moves.urllib.parse import urlencode
 
-from cStringIO import StringIO
+
+from io import BytesIO
 
 import numpy as np
 
@@ -27,7 +32,10 @@ from ..status import get_status
 from ..util import BufferingLineProtocol, LimitedAgent
 from .EPICSEvent_pb2 import PayloadInfo
 
-from carchive.backend.pbdecode import decoders, unescape, DecodeError, linesplitter
+from carchive.backend.pbdecode import (decoders, unescape, DecodeError,
+                                       linesplitter)
+
+_log = logging.getLogger("carchive.appl")
 
 _dtypes = {
     0: np.dtype('a40'),
@@ -77,7 +85,7 @@ class PBReceiver(BufferingLineProtocol):
     def __init__(self, cb, cbArgs=(), cbKWs={}, nreport=1000,
                  count=None, name=None, cadiscon=0, inthread=None):
         BufferingLineProtocol.__init__(self)
-        self._S, self.defer = StringIO(), defer.Deferred()
+        self._S, self.defer = BytesIO(), defer.Deferred()
         self.name, self.nreport, self.cadiscon = name, nreport, cadiscon
 
         self.header, self._dec, self.name = None, None, name
@@ -176,7 +184,7 @@ class JSONReceiver(protocol.Protocol):
     Decode when entirely received
     """
     def __init__(self):
-        self._S, self.defer = StringIO(), defer.Deferred()
+        self._S, self.defer = BytesIO(), defer.Deferred()
     def dataReceived(self, raw):
         self._S.write(raw)
     def connectionLost(self, reason):
@@ -234,7 +242,7 @@ class Appliance(object):
     def lookupArchive(self, arch):
         return 'all'
 
-    
+
     _severity = {0:'', 1:'MINOR', 2:'Major', 3:'Invalid',
                  3904:'Disconnect', 3872:'Archive_Off', 3848:'Archive_Disable'}
 
@@ -305,14 +313,14 @@ class Appliance(object):
         try:
             _log.debug("Query: %s", url)
             R = yield self._agent.request('GET', url)
-    
+
             if R.code!=200:
                 _log.error("%s for %s", R.code, pv)
                 defer.returnValue(0)
-    
+
             P = PBReceiver(callback, cbArgs, cbKWs, name=pv,
                            nreport=chunkSize, count=count, cadiscon=cadiscon)
-        
+
             R.deliverBody(P)
             C = yield P.defer
         finally:
@@ -323,7 +331,7 @@ class Appliance(object):
             rate = P._nbytes/elapsed
             _log.debug("%s rx'd %d bytes in %f sec (%f Bps)",
                        pv, P._nbytes, elapsed, rate)
-            
+
 
         defer.returnValue(C)
 

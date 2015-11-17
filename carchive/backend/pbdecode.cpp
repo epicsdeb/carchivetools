@@ -320,7 +320,7 @@ PyObject* PBD_decode_X(PyObject *unused, PyObject *args)
 
         if(!PyBytes_Check(line)) {
             locker.lock();
-            return PyErr_Format(PyExc_TypeError, "Input list item must be a string");
+            return PyErr_Format(PyExc_TypeError, "Input list item must be Bytes");
         }
 
         const char *buf = PyBytes_AS_STRING(line);

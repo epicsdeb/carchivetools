@@ -5,19 +5,22 @@ Copyright 2015 Brookhaven Science Assoc.
 from __future__ import absolute_import
 
 import logging
-_log = logging.getLogger(__name__)
+
 
 import re, collections, time
-from cStringIO import StringIO
+from io import BytesIO
 
 from twisted.web.client import Agent
 from twisted.web.server import Site
 from twisted.application.internet import TCPServer
 from twisted.internet import defer, protocol, error
 from twisted.python import failure
-#defer.Deferred.debug=1
+# defer.Deferred.debug=1
 
 from twisted.web.client import ResponseDone, ResponseFailed
+
+_log = logging.getLogger(__name__)
+
 
 class HandledError(Exception):
     pass
@@ -26,7 +29,7 @@ _wild = re.compile(r'(?:\\(.))|([*?])|([^*?\\]+)')
 
 def wild2re(pat):
     """Translate a wildcard pattern into a regular expression
-    
+
     >>> wild2re("hello")
     'hello'
     >>> wild2re("hello.")
@@ -171,10 +174,10 @@ class BufferingLineProtocol(protocol.Protocol):
     If the buffer fills before processing completes, then
     transport C{Producer} will be stopped (pauseProducing()) until processing
     completes, then resumed.
-    
+
     @ivar defer: A Deferred which fires after the protocol is closed, and processing completes.
     @type defer: C{Deferred}
-    
+
     @ivar rx_buf_size: Number of bytes to buffer before processing
     @type rx_buf_size: C{int}
     """
@@ -195,21 +198,21 @@ class BufferingLineProtocol(protocol.Protocol):
 
     def processLines(self, lines, prev=None):
         """Called with a list of strings.
-        
+
         @param prev: holds the value returned from a previous call to processLines,
         or None for the first invokation.
-        
+
         @return: May return a Deferred() which fires when processing is complete
         @rtype: C{Deferred} or any value
         """
         raise NotImplementedError()
 
     def connectionMade(self):
-        self.rxbuf = StringIO()
-        # trick cStringIO to allocate the full buffer size
+        self.rxbuf = BytesIO()
+        # trick BytesIO to allocate the full buffer size
         # to allow append w/o re-alloc
         self.rxbuf.seek(self.rx_buf_size+1024)
-        self.rxbuf.write('x')
+        self.rxbuf.write(b'x')
         self.rxbuf.truncate(0)
 
         self._nbytes, self._tstart = 0, time.time()
@@ -300,14 +303,14 @@ class BufferingLineProtocol(protocol.Protocol):
 import weakref
 class LimitedSite(Site):
     """An HTTP Site which limits the maximum number of client connections.
-    
+
     Additional connections will not be accepted
     """
     lport = None
     maxConnections = 10
     def __init__(self, *args, **kws):
         Site.__init__(self, *args, **kws)
-        
+
         self._connections = weakref.WeakKeyDictionary()
         self._active = True
 

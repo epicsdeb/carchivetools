@@ -53,19 +53,19 @@ class CaptureHandler(logging.Handler):
 
 class TestUnEscape(TestCase):
     def test_noop(self):
-        self.assertEqual('', pbdecode.unescape(''))
-        self.assertEqual('hello', pbdecode.unescape('hello'))
+        self.assertEqual(b'', pbdecode.unescape(''))
+        self.assertEqual(b'hello', pbdecode.unescape('hello'))
 
     def test_unescape(self):
-        self.assertEqual('\x1b', pbdecode.unescape('\x1b\x01'))
-        self.assertEqual('\n', pbdecode.unescape('\x1b\x02'))
-        self.assertEqual('\r', pbdecode.unescape('\x1b\x03'))
+        self.assertEqual(b'\x1b', pbdecode.unescape('\x1b\x01'))
+        self.assertEqual(b'\n', pbdecode.unescape('\x1b\x02'))
+        self.assertEqual(b'\r', pbdecode.unescape('\x1b\x03'))
 
-        self.assertEqual('\n\n', pbdecode.unescape('\x1b\x02\x1b\x02'))
+        self.assertEqual(b'\n\n', pbdecode.unescape('\x1b\x02\x1b\x02'))
 
-        self.assertEqual('Testin \ng', pbdecode.unescape('Testin \x1b\x02g'))
+        self.assertEqual(b'Testin \ng', pbdecode.unescape('Testin \x1b\x02g'))
 
-        self.assertEqual('Test\nin \ng',
+        self.assertEqual(b'Test\nin \ng',
                          pbdecode.unescape('Test\x1b\x02in \x1b\x02g'))
 
     def test_fail(self):
@@ -80,19 +80,19 @@ class TestUnEscape(TestCase):
 
 class TestEscape(TestCase):
     def test_noop(self):
-        self.assertEqual('', pbdecode.escape(''))
-        self.assertEqual('hello', pbdecode.escape('hello'))
+        self.assertEqual(b'', pbdecode.escape(''))
+        self.assertEqual(b'hello', pbdecode.escape('hello'))
 
     def test_escape(self):
-        self.assertEqual('\x1b\x01', pbdecode.escape('\x1b'))
-        self.assertEqual('\x1b\x02', pbdecode.escape('\n'))
-        self.assertEqual('\x1b\x03', pbdecode.escape('\r'))
+        self.assertEqual(b'\x1b\x01', pbdecode.escape('\x1b'))
+        self.assertEqual(b'\x1b\x02', pbdecode.escape('\n'))
+        self.assertEqual(b'\x1b\x03', pbdecode.escape('\r'))
 
-        self.assertEqual('\x1b\x02\x1b\x02', pbdecode.escape('\n\n'))
+        self.assertEqual(b'\x1b\x02\x1b\x02', pbdecode.escape('\n\n'))
 
-        self.assertEqual('Testin \x1b\x02g', pbdecode.escape('Testin \ng'))
+        self.assertEqual(b'Testin \x1b\x02g', pbdecode.escape('Testin \ng'))
 
-        self.assertEqual('Test\x1b\x02in \x1b\x02g',
+        self.assertEqual(b'Test\x1b\x02in \x1b\x02g',
                          pbdecode.escape('Test\nin \ng'))
 
 class TestSplitter(TestCase):
@@ -109,7 +109,7 @@ class TestDecodeScalar(TestCase):
     _vals = [
         ('short', 1, [512, 513]),
         ('int', 5, [0x12345, 0x54321]),
-        ('string', 0, ["hello", "world"]),
+        ('string', 0, [b"hello", b"world"]),
         ('float', 2, [42.5, 43.5]),
         ('double', 6, [42.1, 42.2]),
     ]
@@ -147,13 +147,13 @@ class TestDecodeScalar(TestCase):
 
         raw = [None]*2
 
-        S.val = 'a'
+        S.val = b'a'
         S.secondsintoyear = 1024
         S.nano = 0x1234
 
         raw[0] = S.SerializeToString()
 
-        S.val = 'b'
+        S.val = b'b'
         S.secondsintoyear = 1025
         S.nano = 0x1235
 
@@ -169,7 +169,7 @@ class TestDecodeScalar(TestCase):
 
     def test_fail(self):
         S = _fields[4]()
-        S.val = 'a'
+        S.val = b'a'
         S.secondsintoyear = 1024
         S.nano = 0x1234
 
@@ -184,7 +184,7 @@ class TestDecodeScalar(TestCase):
         L.addHandler(H)
 
         # decode empty string
-        V, M = pbdecode.decode_scalar_byte(['',''], 1)
+        V, M = pbdecode.decode_scalar_byte([b'',b''], 1)
         M = numpy.rec.array(M, dtype=dbr_time)
 
         self.assertEqual(V.shape, (2,1))
@@ -192,7 +192,7 @@ class TestDecodeScalar(TestCase):
         assert_array_equal(M['severity'], [103,103])
 
         # decode partial string
-        V, M = pbdecode.decode_scalar_byte([raw[:5],''], 1)
+        V, M = pbdecode.decode_scalar_byte([raw[:5],b''], 1)
         M = numpy.rec.array(M, dtype=dbr_time)
 
         self.assertEqual(V.shape, (2,1))
@@ -246,7 +246,7 @@ class TestDecodeScalar(TestCase):
         S.secondsintoyear, S.nano = prevT
 
         raw = [S.SerializeToString()]
-        
+
         S.Clear()
         S.val = 2.0
         S.severity = 2
@@ -270,7 +270,7 @@ class TestDecodeScalar(TestCase):
     def test_disconn(self):
         for D in self._dis_data:
             try:
-                self._dis(*D)
+               self._dis(*D)
             except:
                 print('Failure with', D)
                 raise
@@ -358,11 +358,11 @@ class TestSpecial(TestCase):
     def test_invalid2(self):
         """Truncated sample
         """
-        _data=['\x08\xf9\x8e\xc3\x01\x10\x80\xfe\x83\x9d\x03\x19']
+        _data=[b'\x08\xf9\x8e\xc3\x01\x10\x80\xfe\x83\x9d\x03\x19']
         I = pb.ScalarDouble()
         self.assertRaises(PyDecodeError, I.ParseFromString, _data[0])
 
-        _data=['\x08\xf9\x8e\xc3\x01\x10\x80\xfe\x83\x9d\x03\x19']
+        _data=[b'\x08\xf9\x8e\xc3\x01\x10\x80\xfe\x83\x9d\x03\x19']
         V, M = pbdecode.decoders[6](_data, 0)
         M = numpy.rec.array(M, dtype=dbr_time)
 

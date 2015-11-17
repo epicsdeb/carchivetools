@@ -13,7 +13,7 @@ from twisted.trial import unittest
 if sys.version_info<(2,7):
     raise unittest.SkipTest('Not supported for python 2.6')
 
-from cStringIO import StringIO
+from io import BytesIO
 from six.moves.xmlrpc_client import dumps, loads, Fault
 
 from twisted.web.xmlrpc import Proxy
@@ -26,9 +26,9 @@ from .. import resource, xrpcrequest
 class TestRequest(object):
     code = 200
     def __init__(self, content=None):
-        self.content = StringIO(content)
+        self.content = BytesIO(content.encode('utf-8'))
         self.Ds, self.Hs = [], {}
-        self.data = StringIO()
+        self.data = BytesIO()
         self.write = self.data.write
     def setResponseCode(self, code):
         self.code = code
@@ -71,7 +71,7 @@ class TestServer(unittest.TestCase):
         self.site = Site(self.root) # TODO: what is timeout?
         self.serv = reactor.listenTCP(0, self.site, interface='127.0.0.1')
         P = self.serv.getHost().port
-        url = 'http://127.0.0.1:%d/cgi-bin/ArchiveDataServer.cgi'%P
+        url = b'http://127.0.0.1:%d/cgi-bin/ArchiveDataServer.cgi'%P
         self.client = Proxy(url)
 
     def tearDown(self):

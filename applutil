@@ -8,7 +8,7 @@ import sys
 from urllib import quote, quote_plus
 
 import json
-from cStringIO import StringIO
+from io import BytesIO
 
 from twisted.internet import protocol, reactor, defer
 from twisted.web.client import Agent, ResponseDone
@@ -18,7 +18,7 @@ agent = Agent(reactor, connectTimeout=3)
 
 class ReadAll(protocol.Protocol):
     def __init__(self):
-        self._S, self.defer = StringIO(), defer.Deferred()
+        self._S, self.defer = BytesIO(), defer.Deferred()
     def dataReceived(self, raw):
         self._S.write(raw)
     def connectionLost(self, reason):
