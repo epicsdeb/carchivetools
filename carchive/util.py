@@ -214,6 +214,7 @@ class BufferingLineProtocol(protocol.Protocol):
         self.rxbuf.seek(self.rx_buf_size+1024)
         self.rxbuf.write(b'x')
         self.rxbuf.truncate(0)
+        self.rxbuf.seek(0)
 
         self._nbytes, self._tstart = 0, time.time()
         self._tend = None
@@ -233,11 +234,12 @@ class BufferingLineProtocol(protocol.Protocol):
             return
 
         # split into complete lines
-        L = self.rxbuf.getvalue().split('\n')
-        if len(L)==1:
-            return # no newline found
+        L = self.rxbuf.getvalue().split(b'\n')
+        if len(L) == 1:
+            return  # no newline found
 
         self.rxbuf.truncate(0)
+        self.rxbuf.seek(0)
         # any bytes after the last newline are a partial line
         self.rxbuf.write(L[-1])
         assert self._defer.called
@@ -273,7 +275,7 @@ class BufferingLineProtocol(protocol.Protocol):
                     # connection closed by user request (aka. count limit reached)
                     reason = subR
                     self.rxbuf.truncate(0)
-
+                    self.rxbuf.seek(0)
 
         if reason.check(error.ConnectionDone, ResponseDone):
             self._tend = time.time()
@@ -356,6 +358,7 @@ class LimitedAgent(Agent):
         return self.sem.acquire()
     def release(self):
         return self.sem.release()
+
 
 if __name__=='__main__':
     import doctest
