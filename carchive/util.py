@@ -188,7 +188,7 @@ class BufferingLineProtocol(protocol.Protocol):
         # of the final call to processLines
         self.defer = defer.Deferred(canceller=self._abort)
         # The internal Deferred which tracks our processing
-        self._defer= defer.succeed(None)
+        self._defer = defer.succeed(None)
         # Our last processing callback
         self._last = None
         self.active = True
@@ -200,7 +200,7 @@ class BufferingLineProtocol(protocol.Protocol):
         """Called with a list of strings.
 
         @param prev: holds the value returned from a previous call to processLines,
-        or None for the first invokation.
+        or None for the first invocation.
 
         @return: May return a Deferred() which fires when processing is complete
         @rtype: C{Deferred} or any value
@@ -222,8 +222,8 @@ class BufferingLineProtocol(protocol.Protocol):
     def dataReceived(self, data):
         self._nbytes += len(data)
         self.rxbuf.write(data)
-        if self.rxbuf.tell()<self.rx_buf_size:
-            return # below threshold
+        if self.rxbuf.tell() < self.rx_buf_size:
+            return  # below threshold
 
         elif not self._defer.called or self._defer.paused:
             # buffer full and processing in progress
@@ -356,6 +356,7 @@ class LimitedAgent(Agent):
 
     def acquire(self):
         return self.sem.acquire()
+
     def release(self):
         return self.sem.release()
 

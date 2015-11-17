@@ -9,44 +9,47 @@ from twisted.internet import defer, error, protocol
 from twisted.trial import unittest
 from twisted.test import proto_helpers
 from twisted.python import failure
-#defer.Deferred.debug=1
+# defer.Deferred.debug=1
 
 from .. import util
 
-#from twisted.internet.defer import Deferred as RealDeferred
+# from twisted.internet.defer import Deferred as RealDeferred
 #
-#class DebugDeffered(RealDeferred):
-#    def __init__(self, *args, **kws):
-#        RealDeferred.__init__(self, *args, **kws)
-#    def callback(self, *args, **kws):
-#        if self.called:
-#            print 'Already called', self
-#            import traceback
-#            traceback.print_stack()
-#        return RealDeferred.callback(self, *args, **kws)
-#    def errback(self, *args, **kws):
-#        if self.called:
-#            print 'Already called', self
-#            import traceback
-#            traceback.print_stack()
-#        return RealDeferred.errback(self, *args, **kws)
-#    def chainDeferred(self, *args, **kws):
-#        if self.called:
-#            print 'Already called', self
-#            import traceback
-#            traceback.print_stack()
-#        return RealDeferred.chainDeferred(self, *args, **kws)
-#defer.Deferred = DebugDeffered
+# class DebugDeffered(RealDeferred):
+#     def __init__(self, *args, **kws):
+#         RealDeferred.__init__(self, *args, **kws)
+#     def callback(self, *args, **kws):
+#         if self.called:
+#             print 'Already called', self
+#             import traceback
+#             traceback.print_stack()
+#         return RealDeferred.callback(self, *args, **kws)
+#     def errback(self, *args, **kws):
+#         if self.called:
+#             print 'Already called', self
+#             import traceback
+#             traceback.print_stack()
+#         return RealDeferred.errback(self, *args, **kws)
+#     def chainDeferred(self, *args, **kws):
+#         if self.called:
+#             print 'Already called', self
+#             import traceback
+#             traceback.print_stack()
+#         return RealDeferred.chainDeferred(self, *args, **kws)
+# defer.Deferred = DebugDeffered
+
 
 class MockBLP(util.BufferingLineProtocol):
     def __init__(self, *args, **kws):
         util.BufferingLineProtocol.__init__(self, *args, **kws)
         self.lines = None
         self._procD = defer.Deferred()
+
     def processLines(self, lines, prev=None):
         assert self.lines is None
         self.lines, self.prev = lines, prev
         return self._procD
+
     def _finish(self, ok=None, err=None):
         self.lines = None
         D, self._procD = self._procD, defer.Deferred()
@@ -56,11 +59,13 @@ class MockBLP(util.BufferingLineProtocol):
         else:
             D.callback(ok)
 
+
 class TestBLP(unittest.TestCase):
     timeout = 2
 
     def setUp(self):
         self.alldone = False
+
     def tearDown(self):
         self.assertTrue(self.alldone)
 

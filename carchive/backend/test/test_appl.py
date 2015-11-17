@@ -78,12 +78,12 @@ class TestApplST(unittest.TestCase):
             self.assertTrue(self.P.defer.called)
 
         C = yield self.P.defer
-        self.assertEqual(C,22)
+        self.assertEqual(C, 22)
 
         self.assertEqual(len(self.cb.data), 2)
 
         V, M = self.cb.data[0]
-        self.assertEqual(V.shape, (11,1))
+        self.assertEqual(V.shape, (11, 1))
         assert_array_almost_equal(V, _values[0])
         assert_array_almost_equal(M['severity'], _metas[0]['severity'])
         assert_array_almost_equal(M['status'], _metas[0]['status'])
@@ -91,7 +91,7 @@ class TestApplST(unittest.TestCase):
         assert_array_almost_equal(M['ns'], _metas[0]['ns'])
 
         V, M = self.cb.data[1]
-        self.assertEqual(V.shape, (11,1))
+        self.assertEqual(V.shape, (11, 1))
         assert_array_almost_equal(V, _values[1])
         assert_array_almost_equal(M['severity'], _metas[1]['severity'])
         assert_array_almost_equal(M['status'], _metas[1]['status'])
