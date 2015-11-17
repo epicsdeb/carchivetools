@@ -102,21 +102,14 @@ build.build.sub_commands.insert(0, ('build_protobuf', lambda cmd:True))
 # Hook into install command late
 install.install.sub_commands.append(('install_links', lambda cmd:True))
 
-# check_output was added to subprocess in 2.7
-def check_output(args, shell=False):
-    pid = sp.Popen(args, stdout=sp.PIPE, shell=shell)
-    out, _ = pid.communicate()
-    if pid.wait():
-        raise RuntimeError('process failed %s %s'%(args,kws))
-    return out
-
 #Debian specific hardening
 extra_cflags=['-Wno-write-strings']
+
 extra_ldflags=[]
 try:
-    extra_cflags+=check_output('dpkg-buildflags --get CPPFLAGS', shell=True).split()
-    extra_cflags+=check_output('dpkg-buildflags --get CFLAGS', shell=True).split()
-    extra_ldflags=check_output('dpkg-buildflags --get LDFLAGS', shell=True).split()
+    extra_cflags+=sp.check_output('dpkg-buildflags --get CPPFLAGS', shell=True).split()
+    extra_cflags+=sp.check_output('dpkg-buildflags --get CFLAGS', shell=True).split()
+    extra_ldflags=sp.check_output('dpkg-buildflags --get LDFLAGS', shell=True).split()
 except:
     import traceback
     traceback.print_exc()
