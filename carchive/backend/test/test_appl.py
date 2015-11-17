@@ -104,9 +104,9 @@ class TestApplST(unittest.TestCase):
     def test_bytebybyte(self):
         """Receive one byte at a time
         """
-        self.P.rx_buf_size = 1 # shorten buffer
+        self.P.rx_buf_size = 1  # shorten buffer
         self.P.makeConnection(self.T)
-        [self.P.dataReceived(B) for B in _data]
+        [self.P.dataReceived(_data[j:j+1]) for j in range(len(_data))]
 
         if not self.inthread:
             self.assertEqual(len(self.cb.data), 21)
