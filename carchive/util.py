@@ -282,7 +282,7 @@ class BufferingLineProtocol(protocol.Protocol):
             # normal completion
             if self.rxbuf.tell()>0:
                 # process remaining
-                lines = self.rxbuf.getvalue().split('\n')
+                lines = self.rxbuf.getvalue().split(b'\n')
                 @self._defer.addCallback
                 def _flush(V):
                     if len(lines[-1])>0:

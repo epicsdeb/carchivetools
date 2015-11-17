@@ -89,17 +89,19 @@ class TestBLP(unittest.TestCase):
         P = MockBLP()
         P.makeConnection(T)
 
-        P.dataReceived('A\nB\nC\n')
-        self.assertIdentical(P.lines, None) # buffer below limit, no proc.
+        P.dataReceived(b'A\nB\nC\n')
+        self.assertIdentical(P.lines, None)  # buffer below limit, no proc.
 
         P.connectionLost(protocol.connectionDone)
-        self.assertEqual(P.lines, ['A','B','C']) # proc. triggered on close
-        self.assertFalse(P.defer.called) # not called until processing completes
+        # proc. triggered on close
+        self.assertEqual(P.lines, [b'A', b'B', b'C'])
+        # not called until processing completes
+        self.assertFalse(P.defer.called)
 
         ret = object()
-        P._finish(ok=ret) # complete processing
+        P._finish(ok=ret)  # complete processing
 
-        self.assertTrue(P.defer.called) # all done now
+        self.assertTrue(P.defer.called)  # all done now
 
         V = yield P.defer
         self.assertIdentical(V, ret)
@@ -114,23 +116,24 @@ class TestBLP(unittest.TestCase):
         P.rx_buf_size = 4
         P.makeConnection(T)
 
-        P.dataReceived('A\nB\nC\nD')
-        self.assertEqual(P.lines, ['A','B','C']) # first proc. triggered
+        P.dataReceived(b'A\nB\nC\nD')
+        self.assertEqual(P.lines, [b'A', b'B', b'C'])  # first proc. triggered
         self.assertTrue(P.active)
 
-        P.dataReceived('\nE\nF\n')
-        self.assertEqual(P.lines, ['A','B','C']) # first proc. still in progress
+        P.dataReceived(b'\nE\nF\n')
+        # first proc. still in progress
+        self.assertEqual(P.lines, [b'A', b'B', b'C'])
         self.assertFalse(P.active)
 
-        P._finish() # finish first
-        P.dataReceived('G\n') # more data to trigger proc. #2
+        P._finish()  # finish first
+        P.dataReceived(b'G\n')   # more data to trigger proc. #2
 
-        self.assertEqual(P.lines, ['D','E','F','G']) # second results
-        self.assertFalse(P.defer.called) # not done yet
-        
+        self.assertEqual(P.lines, [b'D', b'E', b'F', b'G'])  # second results
+        self.assertFalse(P.defer.called)  # not done yet
+
         ret = object()
-        P._finish(ok=ret) # finish second
-        P.connectionLost(protocol.connectionDone) # close connection
+        P._finish(ok=ret)  # finish second
+        P.connectionLost(protocol.connectionDone)  # close connection
 
         self.assertTrue(P.defer.called)
 
@@ -147,8 +150,8 @@ class TestBLP(unittest.TestCase):
         P.rx_buf_size = 4
         P.makeConnection(T)
 
-        P.dataReceived('A\nB\nC\n')
-        self.assertEqual(P.lines, ['A','B','C'])
+        P.dataReceived(b'A\nB\nC\n')
+        self.assertEqual(P.lines, [b'A', b'B', b'C'])
 
         P._finish(err=RuntimeError('oops'))
         self.assertEqual(T.producerState, 'stopped')
@@ -175,13 +178,15 @@ class TestBLP(unittest.TestCase):
         T.protocol = P
         P.makeConnection(T)
 
-        P.dataReceived('A\nB\nC') # trailing '\n' for last line never sent
-    
-        self.assertEqual(P.lines, ['A','B'])
+        # trailing '\n' for last line never sent
+        P.dataReceived(b'A\nB\nC')
 
-        P.connectionLost(protocol.connectionDone) # normal close
+        self.assertEqual(P.lines, [b'A', b'B'])
+
+        P.connectionLost(protocol.connectionDone)  # normal close
         self.assertFalse(P._procD.called)
-        self.assertFalse(P.defer.called) # not called until processing completes
+        # not called until processing completes
+        self.assertFalse(P.defer.called)
 
         P._finish(ok=42)
 
@@ -205,7 +210,7 @@ class TestBLP(unittest.TestCase):
         T.protocol = P
         P.makeConnection(T)
 
-        P.dataReceived('A\nB\nC\n')
+        P.dataReceived(b'A\nB\nC\n')
         self.assertIdentical(P.lines, None)
 
         P.connectionLost(failure.Failure(error.ConnectionAborted()))
@@ -228,11 +233,12 @@ class TestBLP(unittest.TestCase):
         T.protocol = P
         P.makeConnection(T)
 
-        P.dataReceived('A\nB\nC')
-        self.assertEqual(P.lines, ['A','B'])
+        P.dataReceived(b'A\nB\nC')
+        self.assertEqual(P.lines, [b'A', b'B'])
 
         P.connectionLost(failure.Failure(error.ConnectionAborted()))
-        self.assertFalse(P.defer.called) # not called until processing completes
+        # not called until processing completes
+        self.assertFalse(P.defer.called)
 
         P._finish(ok=42)
 

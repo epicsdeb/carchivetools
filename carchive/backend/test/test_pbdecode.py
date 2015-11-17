@@ -331,7 +331,7 @@ class TestSpecial(TestCase):
         with the wrong type code.
         caplotbinning has since been fixed.
         """
-        _data =['\x08\x80\x88\xa4\x01\x10\x00\x19\x00\x00\x00\x00\x00\x00>@']
+        _data =[b'\x08\x80\x88\xa4\x01\x10\x00\x19\x00\x00\x00\x00\x00\x00>@']
         I = pb.ScalarInt()
         I.ParseFromString(_data[0]) # Should fail! Really ScalarDouble
         self.assertEqual(I.val, 0)
