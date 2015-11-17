@@ -94,7 +94,7 @@ class DataServer(Resource):
         except Exception as e:
             _log.exception("Error decoding request: ")
             req.setResponseCode(400)
-            return e.message
+            return e.args[0]
 
         req.setHeader('Content-Type', 'text/xml')
 

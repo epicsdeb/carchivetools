@@ -161,7 +161,7 @@ class TestBLP(unittest.TestCase):
             yield P.defer
             self.assertTrue(False)
         except RuntimeError as e:
-            self.assertEqual(e.message, 'oops')
+            self.assertEqual(e.args[0], 'oops')
 
         self.alldone = True
 
@@ -189,10 +189,10 @@ class TestBLP(unittest.TestCase):
 
         try:
             V = yield P.defer
-            self.assertEqual(V, 42) # should never get here
+            self.assertEqual(V, 42)  # should never get here
             self.assertTrue(False, 'missing expected exception')
         except RuntimeError as e:
-            self.assertEqual(e.message, 'connection closed with partial line')
+            self.assertEqual(e.args[0], 'connection closed with partial line')
 
         self.alldone = True
 

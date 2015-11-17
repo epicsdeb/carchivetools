@@ -146,7 +146,7 @@ class XMLRPCProxy(Resource):
             traceback.print_exc()
             req.setResponseCode(400)
             req.write("")
-            return e.message
+            return e.args[0]
 
         D.addBoth(cleanupRequest, req)
 
