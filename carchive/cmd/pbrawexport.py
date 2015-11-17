@@ -5,6 +5,7 @@ This software is Copyright by the
  State University (c) Copyright 2015.
 """
 from __future__ import print_function
+from __future__ import absolute_import
 import datetime
 from twisted.internet import defer
 from carchive.backend.pb import granularity as pb_granularity

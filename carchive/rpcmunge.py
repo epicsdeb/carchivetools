@@ -10,6 +10,7 @@ which is perpetrated by xmlrpc-c
 
 Also implement throttling of the number of outstanding queries
 """
+from __future__ import absolute_import
 
 import logging
 _log = logging.getLogger("carchive.rpcmunge")

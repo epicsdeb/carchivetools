@@ -3,6 +3,8 @@
 Copyright 2015 Brookhaven Science Assoc.
  as operator of Brookhaven National Lab.
 """
+from __future__ import absolute_import
+from __future__ import print_function
 
 import sys, logging
 
@@ -137,7 +139,7 @@ class TestDecodeScalar(TestCase):
                     self.assertEqual(V[i], eV)
                     self.assertEqual(tuple(M[i]), (0, 0, 1024+i, 0x1234+i))
             except:
-                print 'Error in test_decode for',L
+                print('Error in test_decode for',L)
                 raise
 
     def test_char(self):
@@ -270,7 +272,7 @@ class TestDecodeScalar(TestCase):
             try:
                 self._dis(*D)
             except:
-                print 'Failure with', D
+                print('Failure with', D)
                 raise
 
 class TestDecodeVector(TestCase):
@@ -313,7 +315,7 @@ class TestDecodeVector(TestCase):
                     #self.assertFalse(numpy.any(V[i,len(eV):]))
                     self.assertEqual(tuple(M[i]), (0, 0, 1024+i, 0x1234+i))
             except:
-                print 'Error in test_decode for',name
+                print('Error in test_decode for',name)
                 raise
 
 class TestSpecial(TestCase):

@@ -3,6 +3,7 @@
 Copyright 2015 Brookhaven Science Assoc.
  as operator of Brookhaven National Lab.
 """
+from __future__ import absolute_import
 
 from twisted.internet import defer, error, protocol
 from twisted.trial import unittest

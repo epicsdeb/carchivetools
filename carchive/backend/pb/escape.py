@@ -3,10 +3,12 @@ This software is Copyright by the
  Board of Trustees of Michigan
  State University (c) Copyright 2015.
 """
+from __future__ import absolute_import
 # Archiver PB files are split by lines. The first line is some header information.
 # The remaining lines are samples. In these samples some characters are escaped.
 # The escaping rules were obtained from LineEscaper.java.
 import re
+from six.moves import range
 try:
     from carchive.backend.pbdecode import unescape
     cppunescape = True
@@ -30,7 +32,7 @@ _UNESCAPE_MAP = {
 R=re.compile(r'[\x1b\x0a\x0d]')
 def X(M):
     return _ESCAPE_MAP[M.group(0)]
-    
+
 def escape_line(data):
     #return ''.join(_ESCAPE_MAP[c] if c in _ESCAPE_MAP else c for c in data) + NEWLINE_CHAR
     return R.sub(X, data) + NEWLINE_CHAR

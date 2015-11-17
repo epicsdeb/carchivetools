@@ -7,6 +7,7 @@ Archiver XMLRPC client
 
 @author: Michael Davidsaver <mdavidsaver@bnl.gov>
 """
+from __future__ import absolute_import
 
 __all__ = ['__version__',
           ]

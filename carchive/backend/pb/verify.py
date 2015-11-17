@@ -4,6 +4,7 @@ This software is Copyright by the
  State University (c) Copyright 2015.
 """
 from __future__ import print_function
+from __future__ import absolute_import
 import google.protobuf as protobuf
 from carchive.backend import EPICSEvent_pb2 as pbt
 from carchive.backend.pb import escape as pb_escape
@@ -21,7 +22,7 @@ def verify_stream(stream, pb_type=None, pv_name=None, year=None, upper_ts_bound=
     
     # Check if we have a header.
     try:
-        header_data = line_iterator.next()
+        header_data = next(line_iterator)
     except pb_escape.IterationError as e:
         raise VerificationError('Reading header: {0}'.format(e))
     except StopIteration:

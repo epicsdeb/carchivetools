@@ -3,13 +3,18 @@
 Copyright 2015 Brookhaven Science Assoc.
  as operator of Brookhaven National Lab.
 """
+from __future__ import absolute_import
 
 import logging
+import six
+from six.moves import map
+from six.moves import range
+from six.moves import zip
 _log = logging.getLogger(__name__)
 
 import time, datetime
 
-from xmlrpclib import dumps, Fault, escape
+from six.moves.xmlrpc_client import dumps, Fault, escape
 
 import numpy
 
@@ -80,7 +85,7 @@ class NamesRequest(XMLRPCRequest):
             'end_sec':now, 'end_nano':0
         }
         rep = []
-        for name in R.iterkeys():
+        for name in six.iterkeys(R):
             D = {'name':name}
             D.update(static)
             rep.append(D)

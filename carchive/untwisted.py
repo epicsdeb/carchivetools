@@ -3,12 +3,15 @@
 Copyright 2015 Brookhaven Science Assoc.
  as operator of Brookhaven National Lab.
 """
+from __future__ import absolute_import
 
 import re
 
 import numpy
 
 from . import archive, date, _conf, util
+import six
+from six.moves import map
 
 __all__ = [
     'arsetdefault',
@@ -81,13 +84,13 @@ def arsearch(names, match = WILDCARD,
     Note that name patterns can be given to arget directly.
     """
     arch = getArchive(conf)
-    if isinstance(names, (str, unicode)):
+    if isinstance(names, (str, six.text_type)):
         names = [names]
 
     if match==EXACT:
         names = ['^'+re.escape(N)+'$' for N in names]
     elif match==WILDCARD:
-        names = map(util.wild2re, names)
+        names = list(map(util.wild2re, names))
     
     archs = _reactor[0].call(arch.archives, archs)
 
@@ -98,12 +101,12 @@ def arsearch(names, match = WILDCARD,
 
     pvs = set()
     if breakDown:
-        for pvname,info in complete.iteritems():
+        for pvname,info in six.iteritems(complete):
             P = ResultPV(pvname)
             P.breakDown = info
             pvs.add(P)
     else:
-        for pvname,info in complete.iteritems():
+        for pvname,info in six.iteritems(complete):
             P = ResultPV(pvname)
             P.start, P.end = info
             pvs.add(P)
@@ -167,7 +170,7 @@ def arget(names, match = WILDCARD, mode = RAW,
     and N is the maximum number of samples of any time point (N=1 for scalars).
     """
     scalar = False
-    if isinstance(names, (str, unicode)):
+    if isinstance(names, (str, six.text_type)):
         scalar, names = True, [names]
     if scalar:
       assert len(names)==1, str(names)
@@ -199,7 +202,7 @@ def arget(names, match = WILDCARD, mode = RAW,
 
     if mode==SNAPSHOT:
         T = date.makeTimeInterval(start, None)[0]
-        names = map(str, names) # strip ResultPV
+        names = list(map(str, names)) # strip ResultPV
         V, M = _reactor[0].call(arch.fetchsnap, names, T=T,
                                 archs=archs, chunkSize=chunkSize)
         return (names, V, M)

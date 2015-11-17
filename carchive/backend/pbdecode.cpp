@@ -1,6 +1,7 @@
 #define PY_SSIZE_T_CLEAN
 
 #include <Python.h>
+#include <bytesobject.h>
 #include <numpy/arrayobject.h>
 
 #include <string.h>
@@ -11,6 +12,11 @@
 #include <typeinfo>
 
 #include "carchive/backend/EPICSEvent.pb.h"
+
+#if PY_MAJOR_VERSION < 3
+    #define PyInt_FromLong PyLong_FromLong
+#endif
+
 
 static PyObject *decoderError;
 
@@ -116,11 +122,11 @@ PyObject* PBD_unescape(PyObject *unused, PyObject *args)
     if(outbuflen<0)
         return PyErr_Format(PyExc_ValueError, "Invalid escaping");
 
-    PyRef ret(PyString_FromStringAndSize(NULL, outbuflen));
+    PyRef ret(PyBytes_FromStringAndSize(NULL, outbuflen));
     if(!ret.get())
         return NULL;
 
-    char *outbuf = PyString_AS_STRING(ret.get());
+    char *outbuf = PyBytes_AS_STRING(ret.get());
 
     int err = unescape(inbuf, inbuflen, outbuf, outbuflen);
     if(err)
@@ -187,11 +193,11 @@ PyObject* PBD_escape(PyObject *unused, PyObject *args)
 
     Py_ssize_t outbuflen = escape_plan(inbuf, inbuflen);
 
-    PyRef ret(PyString_FromStringAndSize(NULL, outbuflen));
+    PyRef ret(PyBytes_FromStringAndSize(NULL, outbuflen));
     if(!ret.get())
         return NULL;
 
-    char *outbuf = PyString_AS_STRING(ret.get());
+    char *outbuf = PyBytes_AS_STRING(ret.get());
 
     escape(inbuf, inbuflen, outbuf, outbuflen);
 
@@ -312,13 +318,13 @@ PyObject* PBD_decode_X(PyObject *unused, PyObject *args)
     for(Py_ssize_t i=0; i<nlines; i++) {
         PyObject *line = PyList_GET_ITEM(lines, i);
 
-        if(!PyString_Check(line)) {
+        if(!PyBytes_Check(line)) {
             locker.lock();
             return PyErr_Format(PyExc_TypeError, "Input list item must be a string");
         }
 
-        const char *buf = PyString_AS_STRING(line);
-        Py_ssize_t buflen = PyString_GET_SIZE(line);
+        const char *buf = PyBytes_AS_STRING(line);
+        Py_ssize_t buflen = PyBytes_GET_SIZE(line);
         PB& D = decoders[i];
 
         try {
@@ -671,20 +677,37 @@ static const mapent decodemap[] = {
     {NULL}
 };
 
-PyMODINIT_FUNC
-initpbdecode(void)
+#if PY_MAJOR_VERSION >= 3
+  static struct PyModuleDef moduledef = {
+    PyModuleDef_HEAD_INIT,
+    "carchive_backend_pbdecode", /* m_name */
+    NULL,      /* m_doc */
+    -1,                  /* m_size */
+    PBDMethods,    /* m_methods */
+    NULL,                /* m_reload */
+    NULL,                /* m_traverse */
+    NULL,                /* m_clear */
+    NULL,                /* m_free */
+  };
+#endif
+
+
+
+
+static PyObject *
+moduleinit(void)
 {
     PyRef map(PyDict_New());
     PyObject *mod;
 
-    if(!map.get())
-        return;
-
     GOOGLE_PROTOBUF_VERIFY_VERSION;
-
+#if PY_MAJOR_VERSION >= 3
+    mod = PyModule_Create(&moduledef);
+#else
     mod = Py_InitModule(moduleName, PBDMethods);
+#endif
     if(!mod)
-        return;
+        return NULL;
     import_array();
 
     /* build a dictionary mapping PayloadType to decoder function */
@@ -692,7 +715,8 @@ initpbdecode(void)
         PyObject *meth = PyObject_GetAttrString(mod, pcur->v);
         if(!meth)
             break;
-        PyObject *pint = PyInt_FromLong(pcur->k);
+
+        PyObject *pint = PyLong_FromLong(pcur->k);
         if(!pint)
             break;
         if(PyDict_SetItem(map.get(), pint, meth)==-1) {
@@ -728,4 +752,22 @@ initpbdecode(void)
         PyErr_Print();
         PyErr_Clear();
     }
+    return mod;
+
 }
+
+
+#if PY_MAJOR_VERSION >= 3
+PyMODINIT_FUNC
+PyInit_pbdecode(void)
+{
+  return moduleinit();
+}
+
+#else
+PyMODINIT_FUNC
+initpbdecode(void)
+{
+  moduleinit();
+}
+#endif

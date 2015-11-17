@@ -3,15 +3,17 @@
 Copyright 2015 Brookhaven Science Assoc.
  as operator of Brookhaven National Lab.
 """
+from __future__ import absolute_import
 
 import logging
+import six
 _log = logging.getLogger(__name__)
 
 import weakref, time
 
 from zope.interface import implements
 
-from xmlrpclib import loads, dumps, Fault
+from six.moves.xmlrpc_client import loads, dumps, Fault
 
 from twisted.internet import defer, protocol
 from twisted.web.iweb import IBodyProducer
@@ -162,11 +164,11 @@ class XMLRPCProxy(Resource):
         results = {}
         names = yield self.info.lookup(sKs, pat)
 
-        for sK, PVs in names.iteritems():
+        for sK, PVs in six.iteritems(names):
             for pv in PVs:
                 results[pv['name']] = pv
 
-        R = dumps((results.values(),), methodresponse=True)
+        R = dumps((list(results.values()),), methodresponse=True)
         req.write(R)
         req.finish()
 

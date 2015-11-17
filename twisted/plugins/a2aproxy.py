@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from __future__ import print_function
 # -*- coding: utf-8 -*-
 
 import logging
@@ -66,7 +68,7 @@ class Maker(object):
         serv.addService(LimitedTCPServer(opts['port'], fact, interface=opts['ip']))
 
         if ShellFactory and opts['manhole']:
-            print 'Opening Manhole'
+            print('Opening Manhole')
             SF = ShellFactory()
             SS = TCPServer(opts['manhole'], SF, interface='127.0.0.1')
 
@@ -75,7 +77,7 @@ class Maker(object):
 
             serv.addService(SS)
         else:
-            print 'No Manhole'
+            print('No Manhole')
 
         return serv
 

@@ -8,6 +8,7 @@ Archiver Appliance PB file re-partitioning
 Reads samples from a set of .pb files
 and writes out a set of .pb files with the requested partion granularity
 """
+from __future__ import absolute_import
 
 import logging
 _log = logging.getLogger(__name__)

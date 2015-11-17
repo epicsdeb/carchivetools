@@ -11,8 +11,10 @@ to enable sub-structures to be decoded.
 """
 
 from __future__ import print_function
+from __future__ import absolute_import
 
 import struct, re
+from six.moves import range
 
 def getargs():
     import argparse
@@ -51,7 +53,7 @@ def decodeVI(B):
     """
     val, n = 0, 0
     while True:
-        x = ord(B.next())
+        x = ord(next(B))
         val += (x&0x7f)<<(n*7)
         if not x&0x80:
             return val
@@ -62,7 +64,7 @@ def decodeString(B):
     print('  Length:',L)
     V = [None]*L
     for n in range(L):
-        V[n] = B.next()
+        V[n] = next(B)
     return ''.join(V)
 
 def showVI(B):
@@ -72,7 +74,7 @@ def showVI(B):
 def showV64(B):
     V = ''
     for i in range(8):
-        V+=B.next()
+        V+=next(B)
     print('  Value:',repr(V),struct.unpack('<d',V)[0])
 
 def showString(B):
@@ -88,7 +90,7 @@ def showEnd(B):
 def showV32(B):
     V = ''
     for i in range(4):
-        V+=B.next()
+        V+=next(B)
     print('  Value:',repr(V),struct.unpack('<f',V)[0])
 
 wirename = {
@@ -122,7 +124,7 @@ PBTypes = {
 def decode(B, Ks, fn=iter):
     try:
         while True:
-            id = ord(B.next())
+            id = ord(next(B))
             # except a message key
             wire = id&0x7
             idx = id>>3
@@ -132,7 +134,7 @@ def decode(B, Ks, fn=iter):
                 print(' bytes',L)
                 sub=''
                 for n in range(L):
-                    sub+=B.next()
+                    sub+=next(B)
 
                 info = Ks[idx]
                 if info[0]=='struct':

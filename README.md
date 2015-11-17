@@ -26,6 +26,7 @@ Basic requirements.
 * [Python](http://www.python.org/) >=2.6, &lt;3.0 (&gt;= 2.7 required for Appliance)
 * [Twisted](http://twistedmatrix.com/) Core and Web >= 10.1
 * [Numpy](http://www.numpy.org/) >= 1.4
+* [six](https://pythonhosted.org/six/) Legacy Python support
 
 Additional requirements for Archive Appliance support.
 
@@ -50,4 +51,3 @@ do an in-place build of the pbdecode Extension (as opposed to "setup.py install"
 
     $ python setup.py build_protobuf -i
     $ python setup.py build_ext -i
-

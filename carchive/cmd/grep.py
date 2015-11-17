@@ -3,8 +3,11 @@
 Copyright 2015 Brookhaven Science Assoc.
  as operator of Brookhaven National Lab.
 """
+from __future__ import absolute_import
+from __future__ import print_function
 
 import logging
+from six.moves import map
 _log = logging.getLogger("argrep")
 
 from twisted.internet import defer
@@ -22,14 +25,14 @@ def cmd(archive=None, opt=None, args=None, conf=None, breakDown=None, **kws):
 
     _log.debug('Found %d results',len(res))
 
-    chs=res.keys()
+    chs=list(res.keys())
     chs.sort()
     for c in chs:
-        print c
+        print(c)
         if opt.verbose>0:
 
             ranges=res[c]
             for s,e,ar in ranges:
-                print ' ', makeTime(s), ',', makeTime(e), ',', archive.lookupArchive(ar)
+                print(' ', makeTime(s), ',', makeTime(e), ',', archive.lookupArchive(ar))
 
     yield defer.succeed(None)

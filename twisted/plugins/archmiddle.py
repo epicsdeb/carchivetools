@@ -1,8 +1,10 @@
+from __future__ import absolute_import
+from __future__ import print_function
 # -*- coding: utf-8 -*-
 
 import logging
 
-from ConfigParser import SafeConfigParser as ConfigParser
+from six.moves.configparser import SafeConfigParser as ConfigParser
 
 from zope.interface import implements
 
@@ -13,6 +15,7 @@ from twisted.application import service
 
 from twisted.application.internet import TCPServer
 from twisted.web.server import Site
+import six
 
 try:
     from twisted.manhole.telnet import ShellFactory
@@ -69,7 +72,7 @@ class Maker(object):
         mservice = service.MultiService()
 
         _M = []
-        for k, v in mapping.iteritems():
+        for k, v in six.iteritems(mapping):
             v = v.split()
             _M.append((k,int(v[0]), v[1:]))
 
@@ -87,7 +90,7 @@ class Maker(object):
                                   interface=server.get('interface','')))
 
         if ShellFactory and server.getint('manhole.port', 0):
-            print 'Opening Manhole'
+            print('Opening Manhole')
             SF = ShellFactory()
             SS = TCPServer(server.getint('manhole.port', 0), SF,
                            interface='127.0.0.1')
@@ -99,7 +102,7 @@ class Maker(object):
 
             mservice.addService(SS)
         else:
-            print 'No Manhole'
+            print('No Manhole')
 
         return mservice
 

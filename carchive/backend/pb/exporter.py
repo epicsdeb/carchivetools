@@ -4,10 +4,12 @@ This software is Copyright by the
  State University (c) Copyright 2015.
 """
 from __future__ import print_function
+from __future__ import absolute_import
 import math, datetime
 from carchive.backend import EPICSEvent_pb2 as pbt
 from carchive.backend.pb import dtypes as pb_dtypes
 from carchive.backend.pb import appender as pb_appender
+import six
 
 class SkipPvError(Exception):
     pass
@@ -87,9 +89,9 @@ class Exporter(object):
                 raise SkipPvError('Inconsistent waveform size (we did manage to archive something)')
         
         # If metadata has changed, we will attach it to the first sample in this chunk.
-        new_meta = dict((META_MAP[meta_name], meta_val) for (meta_name, meta_val) in extraMeta['the_meta'].iteritems() if meta_name in META_MAP)
+        new_meta = dict((META_MAP[meta_name], meta_val) for (meta_name, meta_val) in six.iteritems(extraMeta['the_meta']) if meta_name in META_MAP)
         
-        if new_meta.has_key('states') and new_meta['states'] is not None:
+        if 'states' in new_meta and new_meta['states'] is not None:
             new_meta['states'] = ';'.join(new_meta['states'])
         if new_meta != self._last_meta:
             self._last_meta = new_meta

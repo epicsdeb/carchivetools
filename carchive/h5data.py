@@ -3,8 +3,10 @@
 Copyright 2015 Brookhaven Science Assoc.
  as operator of Brookhaven National Lab.
 """
+from __future__ import absolute_import
 
 import logging
+from six.moves import map
 _log = logging.getLogger("carchive.h5data")
 
 import h5py, numpy

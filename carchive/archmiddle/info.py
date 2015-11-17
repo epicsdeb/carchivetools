@@ -3,8 +3,13 @@
 Copyright 2015 Brookhaven Science Assoc.
  as operator of Brookhaven National Lab.
 """
+from __future__ import absolute_import
 
 import logging
+import six
+from six.moves import filter
+from six.moves import map
+from six.moves import zip
 _log = logging.getLogger(__name__)
 
 import time, re
@@ -35,13 +40,13 @@ class KeyNameMap(object):
 
         # Pre-compute reverse name pattern mapping
         R = self._usr_rev = {}
-        for cN, _pats in self._usr.iteritems():
+        for cN, _pats in six.iteritems(self._usr):
             for pat in _pats:
                 R[pat] = cN
 
         assert len(self._usr)>0, "%s"%self._usr
         assert len(self._usr_rev)>0, "%s -> %s"%(self._usr, self._usr_rev)
-        assert all(map(len,self._usr_rev.values())), "%s -> %s"%(self._usr, self._usr_rev)
+        assert all(map(len,list(self._usr_rev.values()))), "%s -> %s"%(self._usr, self._usr_rev)
 
     def dumpClientKeys(self):
         return [{'key':i, 'name':n, 'path':'/dev/random'}
@@ -54,7 +59,7 @@ class KeyNameMap(object):
 
         snames = dict([(K['name'],K['key']) for K in Ks])
 
-        for P, cN in self._usr_rev.iteritems():
+        for P, cN in six.iteritems(self._usr_rev):
             cK = self._cnames[cN]
             cM = M[cK] = []
             for sName in filter(snames, P):
@@ -140,7 +145,7 @@ class InfoCache(object):
         cache = {}
 
         names = yield self.lookup(sKs, escname)
-        for sK,R in names.iteritems():
+        for sK,R in six.iteritems(names):
             if len(R)>1:
                 _log.warn("name lookup returned several results. %s %s %s", sK, escname, R)
 

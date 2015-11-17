@@ -34,9 +34,14 @@ Supported string syntax:
 
   eg: "-1.4 week 2 hours"
 """
+from __future__ import absolute_import
+from __future__ import print_function
 
 import datetime, time, re, sys, calendar
 from collections import defaultdict
+import six
+from six.moves import range
+from six.moves import zip
 
 __all__ = ["makeTime", "makeTimeInterval", 'timeTuple', 'isoString']
 
@@ -319,7 +324,7 @@ def makeTime(intime, now=None):
         S=tv//1
         NS=(tv%1)*1e9
         intime=(int(S), int(NS))
-    elif isinstance(intime, (int, long)):
+    elif isinstance(intime, six.integer_types):
         intime = (intime, 0)
 
     if isinstance(intime, tuple):
@@ -328,7 +333,7 @@ def makeTime(intime, now=None):
         S+=datetime.timedelta(microseconds=NS/1000)
         return S
 
-    if not isinstance(intime, (str,unicode)):
+    if not isinstance(intime, (str,six.text_type)):
         raise ValueError('Input must be a tuple, number, or string.  Not %s'%type(intime))
 
     intime=intime.strip().lower()
@@ -430,4 +435,4 @@ def _test():
 
 if __name__=='__main__':
     _test()
-    print 'All tests have run'
+    print('All tests have run')

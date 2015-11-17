@@ -3,6 +3,7 @@ This software is Copyright by the
  Board of Trustees of Michigan
  State University (c) Copyright 2015.
 """
+from __future__ import absolute_import
 import datetime
 import calendar
 

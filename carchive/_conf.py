@@ -3,8 +3,10 @@
 Copyright 2015 Brookhaven Science Assoc.
  as operator of Brookhaven National Lab.
 """
+from __future__ import absolute_import
 
-import ConfigParser
+import six.moves.configparser
+import six
 
 class ConfigDict(object):
     def __init__(self, P, S):
@@ -23,7 +25,7 @@ class ConfigDict(object):
     def __getitem__(self, k):
         try:
             return self._P.get(self._S, k)
-        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+        except (six.moves.configparser.NoOptionError, six.moves.configparser.NoSectionError):
             raise KeyError("Section %s has no key %s"%(self._S, k))
 
     def __setitem__(self, k, v):
@@ -35,32 +37,32 @@ class ConfigDict(object):
     def get(self, k, d=None):
         try:
             return self._P.get(self._S, k)
-        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+        except (six.moves.configparser.NoOptionError, six.moves.configparser.NoSectionError):
             return d
 
     def getint(self, k, d=None):
         try:
             return self._P.getint(self._S, k)
-        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+        except (six.moves.configparser.NoOptionError, six.moves.configparser.NoSectionError):
             return d
 
     def getfloat(self, k, d=None):
         try:
             return self._P.getfloat(self._S, k)
-        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+        except (six.moves.configparser.NoOptionError, six.moves.configparser.NoSectionError):
             return d
 
     def getboolean(self, k, d=None):
         try:
             return self._P.getboolean(self._S, k)
-        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+        except (six.moves.configparser.NoOptionError, six.moves.configparser.NoSectionError):
             return d
         
     def write(self, fd):
         self._P.write(fd)
 
     def todict(self):
-        return dict(self.iteritems())
+        return dict(six.iteritems(self))
 
     def __str__(self):
         return str(self.todict())
@@ -76,7 +78,7 @@ def loadConfig(N):
           'defaultcount':'0',
           'maxquery':'30',
         }
-    cf=ConfigParser.SafeConfigParser(defaults=dflt)
+    cf=six.moves.configparser.SafeConfigParser(defaults=dflt)
     cf.read([
         '/etc/carchive.conf',
         os.path.expanduser('~/.carchiverc'),

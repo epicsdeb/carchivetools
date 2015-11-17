@@ -3,6 +3,11 @@
 Copyright 2015 Brookhaven Science Assoc.
  as operator of Brookhaven National Lab.
 """
+from __future__ import absolute_import
+import six
+from six.moves import map
+from six.moves import range
+from functools import reduce
 
 # supported RPC call version
 PVER=0
@@ -12,7 +17,7 @@ import logging
 _log = logging.getLogger("carchive.classic")
 
 import time, math
-from xmlrpclib import Fault
+from six.moves.xmlrpc_client import Fault
 
 from fnmatch import fnmatch
 from collections import defaultdict
@@ -129,22 +134,22 @@ class Archive(object):
             return str(stat)
 
     def archives(self, pattern):
-        if not isinstance(pattern, (str,unicode)):
-            return list(set(reduce(list.__add__, map(self.archives, pattern), [])))
+        if not isinstance(pattern, (str,six.text_type)):
+            return list(set(reduce(list.__add__, list(map(self.archives, pattern)), [])))
         else:
-            return filter(lambda a:fnmatch(a, pattern), self.__archs.iterkeys())
+            return [a for a in six.iterkeys(self.__archs) if fnmatch(a, pattern)]
 
     def lookupArchive(self, arch):
         return self.__rarchs[arch]
 
     def _archname2key(self, archs):
         if archs is None:
-            archs = self.__archs.values()
+            archs = list(self.__archs.values())
         else:
             for i,a in enumerate(archs):
                 try:
                     k = int(a)
-                    if k not in self.__archs.itervalues():
+                    if k not in six.itervalues(self.__archs):
                         raise KeyError("Invalid Archive key '%d'"%k)
                     # do nothing
                     continue
@@ -206,14 +211,14 @@ class Archive(object):
             for i, (junk, A) in enumerate(Ds):
                 for R in A:
                     # Note: Order based on sorting by key name
-                    ens, es, ss, sns, pv = R.values()
+                    ens, es, ss, sns, pv = list(R.values())
                     F = (ss, sns)
                     L = (es, ens)
                     if not rawTime:
                         F, L = makeTime(F), makeTime(L)
                     results[pv].append( (F, L, archs[i]) )
 
-            for R in results.itervalues():
+            for R in six.itervalues(results):
                 R.sort()
 
         else:
@@ -222,7 +227,7 @@ class Archive(object):
             for junk, A in Ds:
                 for R in A:
                     # Note: Order based on sorting by key name
-                    ens, es, ss, sns, pv = R.values()
+                    ens, es, ss, sns, pv = list(R.values())
                     F = (ss, sns)
                     L = (es, ens)
                     if not rawTime:
@@ -233,7 +238,7 @@ class Archive(object):
                     if C[1] is None or L > C[1]:
                         C[1] = L
 
-            results = dict([(K,tuple(V)) for K,V in results.iteritems()])
+            results = dict([(K,tuple(V)) for K,V in six.iteritems(results)])
 
         defer.returnValue(results)
 
@@ -399,7 +404,7 @@ class Archive(object):
             Tcur, Tend = timeTuple(T0), timeTuple(Tend)
 
         _log.debug("Time range: %s -> %s", Tcur, Tend)
-        _log.debug("Planning with: %s", map(lambda (a,b,c):(a,b,self.__rarchs[c]), breakDown))
+        _log.debug("Planning with: %s", [(a_b_c[0],a_b_c[1],self.__rarchs[a_b_c[2]]) for a_b_c in breakDown])
 
         plan = []
         
@@ -453,7 +458,7 @@ class Archive(object):
             _log.warn("Query plan empty.  No data in or before request time range.")
             defer.returnValue(0)
 
-        _log.debug("Using plan of %d queries %s", len(plan), map(lambda (a,b,c):(a,b,self.__rarchs[c]), plan))
+        _log.debug("Using plan of %d queries %s", len(plan), [(a_b_c1[0],a_b_c1[1],self.__rarchs[a_b_c1[2]]) for a_b_c1 in plan])
 
         N = yield self._nextraw(0, pv=pv, plan=plan,
                                 Ctot=0, Climit=count,
@@ -530,7 +535,7 @@ class Archive(object):
         Tcur, Tend = timeTuple(T0), timeTuple(Tend)
 
         _log.debug("Time range: %s -> %s", Tcur, Tend)
-        _log.debug("Planning with: %s", map(lambda (a,b,c):(a,b,self.__rarchs[c]), breakDown))
+        _log.debug("Planning with: %s", [(a_b_c2[0],a_b_c2[1],self.__rarchs[a_b_c2[2]]) for a_b_c2 in breakDown])
 
         N = 0
         # Plan queries

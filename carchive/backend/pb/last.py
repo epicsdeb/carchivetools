@@ -4,10 +4,12 @@ This software is Copyright by the
  State University (c) Copyright 2015.
 """
 from __future__ import print_function
+from __future__ import absolute_import
 import os
 import errno
 from carchive.backend.pb import filepath as pb_filepath
 from carchive.backend.pb import verify as pb_verify
+from six.moves import map
 
 class FindLastSampleError(Exception):
     pass
@@ -26,7 +28,7 @@ def find_last_sample_timestamp(pv_name, out_dir, gran, delimiters):
             raise
     
     # Split time suffixes into integer components, but keep the original suffixes around.
-    time_suffixes = map(lambda x: {'suffix':x, 'ints':map(int, x.split('_'))}, time_suffixes)
+    time_suffixes = [{'suffix':x, 'ints':list(map(int, x.split('_')))} for x in time_suffixes]
     
     # Sanity check numer of components.
     num_comps = gran.suffix_count()

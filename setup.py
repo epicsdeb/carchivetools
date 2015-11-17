@@ -3,6 +3,8 @@
 Copyright 2015 Brookhaven Science Assoc.
  as operator of Brookhaven National Lab.
 """
+from __future__ import absolute_import
+from __future__ import print_function
 
 import subprocess as sp
 
@@ -118,7 +120,7 @@ try:
 except:
     import traceback
     traceback.print_exc()
-    print "Couldn't use debian hardening"
+    print("Couldn't use debian hardening")
 
 setup(
     name = "carchivetools",
