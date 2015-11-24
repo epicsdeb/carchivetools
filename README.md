@@ -1,6 +1,10 @@
 carchivetools
 =============
 
+<a href="https://travis-ci.org/epicsdeb/carchivetools">
+  <img src="https://travis-ci.org/epicsdeb/carchivetools.svg" title="Build Status Images">
+</a>
+
 This package provides command line tools
 to retrieve data from [EPICS][] Channel Archiver
 and Archive Appliance data storage services.
