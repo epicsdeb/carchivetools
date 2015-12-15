@@ -1,4 +1,4 @@
 numpy==1.9.2
 Twisted==15.5.0
-protobuf==2.6.1
+protobuf==3.0.0a3
 six==1.10.0
