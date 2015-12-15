@@ -107,9 +107,9 @@ extra_cflags=['-Wno-write-strings']
 
 extra_ldflags=[]
 try:
-    extra_cflags+=sp.check_output('dpkg-buildflags --get CPPFLAGS', shell=True).split()
-    extra_cflags+=sp.check_output('dpkg-buildflags --get CFLAGS', shell=True).split()
-    extra_ldflags=sp.check_output('dpkg-buildflags --get LDFLAGS', shell=True).split()
+    extra_cflags+=sp.check_output('dpkg-buildflags --get CPPFLAGS', shell=True).decode('ascii').split()
+    extra_cflags+=sp.check_output('dpkg-buildflags --get CFLAGS', shell=True).decode('ascii').split()
+    extra_ldflags=sp.check_output('dpkg-buildflags --get LDFLAGS', shell=True).decode('ascii').split()
 except:
     import traceback
     traceback.print_exc()

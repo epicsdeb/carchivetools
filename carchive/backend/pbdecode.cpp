@@ -708,7 +708,6 @@ moduleinit(void)
 #endif
     if(!mod)
         return NULL;
-    import_array();
 
     /* build a dictionary mapping PayloadType to decoder function */
     for(const mapent *pcur = decodemap; pcur->v; pcur++) {
@@ -761,13 +760,15 @@ moduleinit(void)
 PyMODINIT_FUNC
 PyInit_pbdecode(void)
 {
-  return moduleinit();
+    import_array();
+    return moduleinit();
 }
 
 #else
 PyMODINIT_FUNC
 initpbdecode(void)
 {
-  moduleinit();
+    import_array();
+    moduleinit();
 }
 #endif
