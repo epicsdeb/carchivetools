@@ -5,7 +5,11 @@ Copyright 2015 Brookhaven Science Assoc.
 """
 from __future__ import absolute_import
 
-import six.moves.configparser
+try:
+  from ConfigParser import (SafeConfigParser as ConfigParser, NoSectionError, NoOptionError)
+except ImportError:
+  from configparser import ConfigParser, NoSectionError, NoOptionError
+
 import six
 
 class ConfigDict(object):
@@ -25,7 +29,7 @@ class ConfigDict(object):
     def __getitem__(self, k):
         try:
             return self._P.get(self._S, k)
-        except (six.moves.configparser.NoOptionError, six.moves.configparser.NoSectionError):
+        except (NoOptionError, NoSectionError):
             raise KeyError("Section %s has no key %s"%(self._S, k))
 
     def __setitem__(self, k, v):
@@ -37,25 +41,25 @@ class ConfigDict(object):
     def get(self, k, d=None):
         try:
             return self._P.get(self._S, k)
-        except (six.moves.configparser.NoOptionError, six.moves.configparser.NoSectionError):
+        except (NoOptionError, NoSectionError):
             return d
 
     def getint(self, k, d=None):
         try:
             return self._P.getint(self._S, k)
-        except (six.moves.configparser.NoOptionError, six.moves.configparser.NoSectionError):
+        except (NoOptionError, NoSectionError):
             return d
 
     def getfloat(self, k, d=None):
         try:
             return self._P.getfloat(self._S, k)
-        except (six.moves.configparser.NoOptionError, six.moves.configparser.NoSectionError):
+        except (NoOptionError, NoSectionError):
             return d
 
     def getboolean(self, k, d=None):
         try:
             return self._P.getboolean(self._S, k)
-        except (six.moves.configparser.NoOptionError, six.moves.configparser.NoSectionError):
+        except (NoOptionError, NoSectionError):
             return d
         
     def write(self, fd):
@@ -78,7 +82,7 @@ def loadConfig(N):
           'defaultcount':'0',
           'maxquery':'30',
         }
-    cf=six.moves.configparser.SafeConfigParser(defaults=dflt)
+    cf=ConfigParser(defaults=dflt)
     cf.read([
         '/etc/carchive.conf',
         os.path.expanduser('~/.carchiverc'),

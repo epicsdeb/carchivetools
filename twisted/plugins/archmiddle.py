@@ -4,7 +4,10 @@ from __future__ import print_function
 
 import logging
 
-from six.moves.configparser import SafeConfigParser as ConfigParser
+try:
+  from ConfigParser import SafeConfigParser as ConfigParser
+except ImportError:
+  from configparser import ConfigParser
 
 from zope.interface import implements
 
