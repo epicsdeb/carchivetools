@@ -1,10 +1,13 @@
-sudo: false
+sudo: required
+dist: trusty
 language: python
 python:
   - "2.7"
+  - "3.4"
 env:
   - PROF=deb7
   - PROF=deb8
+  - PROF=testing
 addons:
   apt:
     packages:
@@ -15,3 +18,9 @@ install:
   - python setup.py build_protobuf -i
   - python setup.py build_ext -i
 script: TZ=US/Eastern trial carchive
+matrix:
+  exclude:
+  - python: "3.4"
+    env: PROF=deb7
+  - python: "3.4"
+    env: PROF=deb8
