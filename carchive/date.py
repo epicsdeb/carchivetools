@@ -198,7 +198,7 @@ def _fromAbsString(intime, now):
     parts = [int(v) if v else d for v,d in zip(parts[:6], D)]
     parts += [0,0,-1] # disable DST compensation
 
-    return int(conv(parts)), int(nsec)
+    return int(conv(tuple(parts))), int(nsec)
 
 def timeTuple(dt):
     """Convert (local) datetime object to (sec, nsec)
