@@ -9,7 +9,7 @@ try:
 except ImportError:
   from configparser import ConfigParser
 
-from zope.interface import implements
+from zope.interface import implementer
 
 from twisted.internet import reactor
 from twisted.python import usage, log
@@ -47,8 +47,8 @@ class Options(usage.Options):
             raise usage.UsageError("Error reading '%s' (%s)"%(self['config'],e))
         self['config'] = C
 
+@implementer(service.IServiceMaker, IPlugin)
 class Maker(object):
-    implements(service.IServiceMaker, IPlugin)
     tapname = 'archmiddle'
     description = "Channel Archiver middleware"
     options = Options

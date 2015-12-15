@@ -11,7 +11,7 @@ _log = logging.getLogger(__name__)
 
 import weakref, time
 
-from zope.interface import implements
+from zope.interface import implementer
 
 from six.moves.xmlrpc_client import loads, dumps, Fault
 
@@ -23,8 +23,8 @@ from twisted.web.http_headers import Headers
 
 from ..util import LimitedAgent
 
+@implementer(IBodyProducer)
 class StringProducer(object):
-    implements(IBodyProducer)
     def __init__(self, body):
         self.body = body
         self.length = len(body)
