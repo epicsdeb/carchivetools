@@ -3,8 +3,8 @@ Section: python
 Priority: optional
 Maintainer: Michael Davidsaver <mdavidsaver@bnl.gov>
 Build-Depends: debhelper (>= 7.0.50~),
-               python-all-dev,
-               python-numpy,
+               python-all-dev, python-all-dbg,
+               python-numpy, python-numpy-dbg,
                python-twisted-core, python-twisted-web,
                protobuf-compiler, libprotobuf-dev,
                python-protobuf,
