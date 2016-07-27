@@ -16,6 +16,7 @@ from twisted.python.failure import Failure
 
 from .xrpcrequest import NamesRequest, ValuesRequest
 
+from .._conf import ConfigDict
 from ..backend.appl import getArchive
 from ..status import status
 
@@ -70,7 +71,7 @@ class DataServer(Resource):
     def fetchInfo(self):
         if self.applinfo is not None:
             return defer.succeed(self.applinfo)
-        D = getArchive({'url':self.infourl})
+        D = getArchive(ConfigDict({'url':self.infourl}))
         @D.addCallback
         def storeInfo(I):
             self.applinfo = I
