@@ -14,7 +14,7 @@ of the Appliance server.
 
 For example,
 
-    $ twisted -n a2aproxy -P 8888 capp01.cs.nsls2.local:17665
+    $ twisted -n a2aproxy -P 8888 -A capp01.cs.nsls2.local:17665
 
 On a server named 'myproxy.cs.nsls2.local' will allow Archiver clients
 to be configured with
@@ -23,7 +23,7 @@ to be configured with
 
 Equivalently, the full URL of the getApplianceInfo URL can be provided
 
-    $ twisted -n a2aproxy -P 8888 http://capp01.cs.nsls2.local:17665/mgmt/bpl/getApplianceInfo
+    $ twisted -n a2aproxy -P 8888 -A http://capp01.cs.nsls2.local:17665/mgmt/bpl/getApplianceInfo
 
 Details
 -------
