@@ -1,0 +1,3 @@
+numpy==1.12.1
+Twisted==16.6.0
+protobuf==3.0.0

@@ -5,6 +5,7 @@ python:
 env:
   - PROF=deb7
   - PROF=deb8
+  - PROF=deb9
 addons:
   apt:
     packages:
