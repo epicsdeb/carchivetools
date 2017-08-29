@@ -108,17 +108,26 @@ def check_output(args, shell=False):
         raise RuntimeError('process failed %s %s'%(args,kws))
     return out
 
-#Debian specific hardening
-extra_cflags=['-Wno-write-strings']
+# disable warnings from python 2.x API
+extra_cflags=[]
 extra_ldflags=[]
-try:
-    extra_cflags+=check_output('dpkg-buildflags --get CPPFLAGS', shell=True).split()
-    extra_cflags+=check_output('dpkg-buildflags --get CFLAGS', shell=True).split()
-    extra_ldflags=check_output('dpkg-buildflags --get LDFLAGS', shell=True).split()
-except:
-    import traceback
-    traceback.print_exc()
-    print "Couldn't use debian hardening"
+
+import platform
+if platform.system() == "Linux":
+    extra_cflags.append('-Wno-write-strings')
+    if platform.dist()[0].lower() in ["debian", "ubuntu"]:
+        try:
+            extra_cflags+=check_output('dpkg-buildflags --get CPPFLAGS', shell=True).split()
+            extra_cflags+=check_output('dpkg-buildflags --get CFLAGS', shell=True).split()
+            extra_ldflags=check_output('dpkg-buildflags --get LDFLAGS', shell=True).split()
+        except:
+            import traceback
+            traceback.print_exc()
+    else:
+        import os
+        extra_cflags+=['-D_FORTIFY_SOURCE=2']
+        extra_cflags+=['-g', '-O2', '-fdebug-prefix-map='+os.getcwd()+'=.', '-fstack-protector-strong', '-Wformat', '-Werror=format-security']
+        extra_ldflags=['-z', 'relro']
 
 setup(
     name = "carchivetools",
