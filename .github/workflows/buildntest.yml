@@ -1,0 +1,45 @@
+name: carchivetools
+
+on: [push, pull_request]
+
+jobs:
+  native:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+           - name: Linux w/ 2.7
+             os: ubuntu-latest
+             py: 2.7
+             prof: deb7
+
+           - name: Linux w/ 3.7
+             os: ubuntu-latest
+             py: 3.7
+             prof: latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: "apt-get install"
+      run: |
+        sudo apt-get update
+        sudo apt-get -y install protobuf-compiler libprotobuf-dev
+
+    - name: Setup native python
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.py }}
+
+    - name: Build
+      run: |
+        python -m pip install -r requirements-${{ matrix.prof }}.txt
+        python setup.py build_protobuf -i
+        python setup.py build_ext -i
+
+    - name: Test
+      run: |
+        which trial
+        PYTHONPATH=$PWD TZ=US/Eastern trial carchive
