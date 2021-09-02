@@ -4,6 +4,8 @@ Copyright 2015 Brookhaven Science Assoc.
  as operator of Brookhaven National Lab.
 """
 
+from __future__ import print_function
+
 import sys
 
 def cmd(archive=None, opt=None, conf=None, **kws):
@@ -18,7 +20,7 @@ def cmd(archive=None, opt=None, conf=None, **kws):
     archs=list(archs)
 
     if opt.verbose>0:
-      print 'Archives:'
+      print('Archives:')
     archs.sort()
     for ar in archs:
-        print ar
+        print(ar)

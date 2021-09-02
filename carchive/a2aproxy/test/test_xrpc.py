@@ -4,6 +4,8 @@ Copyright 2015 Brookhaven Science Assoc.
  as operator of Brookhaven National Lab.
 """
 
+
+
 import sys
 
 from twisted.trial import unittest
@@ -11,8 +13,13 @@ from twisted.trial import unittest
 if sys.version_info<(2,7):
     raise unittest.SkipTest('Not supported for python 2.6')
 
-from cStringIO import StringIO
-from xmlrpclib import dumps, loads, Fault
+try:
+    from io import StringIO
+    from xmlrpc.client import loads, dumps, Fault
+except ImportError:
+    from cStringIO import StringIO
+    from xmlrpclib import loads, dumps, Fault
+
 
 from twisted.web.xmlrpc import Proxy
 
@@ -151,5 +158,5 @@ class TestValuesEncoder(unittest.TestCase):
                                      }])
 
             except:
-                print 'Error in',type,val
+                print('Error in',type,val)
                 raise

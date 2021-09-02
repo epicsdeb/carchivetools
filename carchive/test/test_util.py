@@ -4,6 +4,8 @@ Copyright 2015 Brookhaven Science Assoc.
  as operator of Brookhaven National Lab.
 """
 
+from __future__ import print_function
+
 from twisted.internet import defer, error, protocol
 from twisted.trial import unittest
 from twisted.test import proto_helpers
@@ -11,31 +13,6 @@ from twisted.python import failure
 #defer.Deferred.debug=1
 
 from .. import util
-
-#from twisted.internet.defer import Deferred as RealDeferred
-#
-#class DebugDeffered(RealDeferred):
-#    def __init__(self, *args, **kws):
-#        RealDeferred.__init__(self, *args, **kws)
-#    def callback(self, *args, **kws):
-#        if self.called:
-#            print 'Already called', self
-#            import traceback
-#            traceback.print_stack()
-#        return RealDeferred.callback(self, *args, **kws)
-#    def errback(self, *args, **kws):
-#        if self.called:
-#            print 'Already called', self
-#            import traceback
-#            traceback.print_stack()
-#        return RealDeferred.errback(self, *args, **kws)
-#    def chainDeferred(self, *args, **kws):
-#        if self.called:
-#            print 'Already called', self
-#            import traceback
-#            traceback.print_stack()
-#        return RealDeferred.chainDeferred(self, *args, **kws)
-#defer.Deferred = DebugDeffered
 
 class MockBLP(util.BufferingLineProtocol):
     def __init__(self, *args, **kws):

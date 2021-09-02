@@ -9,9 +9,12 @@ _log = logging.getLogger("carchive.appl")
 
 import json, time, calendar, datetime, math, re
 
-from urllib import urlencode
-
-from cStringIO import StringIO
+try:
+    from io import StringIO
+    from urllib.parse import urlencode
+except ImportError:
+    from urllib import urlencode
+    from cStringIO import StringIO
 
 import numpy as np
 
@@ -44,7 +47,7 @@ _dtypes = {
     13:np.float64,
     14:np.uint8,
 }
-_dtypes = dict([(k,np.dtype(v)) for k,v in _dtypes.iteritems()])
+_dtypes = dict([(k,np.dtype(v)) for k,v in _dtypes.items()])
 
 _is_vect = set([7,8,9,10,11,12,13,14])
 
@@ -217,7 +220,7 @@ def getArchive(conf):
     D = yield P.defer
 
     _log.info("Appliance info: %s", conf['url'])
-    for k,v in D.iteritems():
+    for k,v in D.items():
         _log.info(" %s: %s", k,v)
 
     defer.returnValue(Appliance(A, D, conf))
@@ -276,10 +279,10 @@ class Appliance(object):
 
         if not breakDown:
             meta = makeTime(0), makeTime(time.time())
-            R = dict(map(lambda  pv:(pv,meta), R))
+            R = dict([(pv,meta) for pv in R])
         else:
             meta = makeTime(0), makeTime(time.time()), 'all'
-            R = dict(map(lambda  pv:(pv,[meta]), R))
+            R = dict([(pv,[meta]) for pv in R])
 
         defer.returnValue(R)
 

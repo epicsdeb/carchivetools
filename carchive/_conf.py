@@ -4,12 +4,15 @@ Copyright 2015 Brookhaven Science Assoc.
  as operator of Brookhaven National Lab.
 """
 
-import ConfigParser
+try:
+    from configparser import SafeConfigParser, NoOptionError, NoSectionError
+except ImportError:
+    from ConfigParser import SafeConfigParser, NoOptionError, NoSectionError
 
 class ConfigDict(object):
     """dict-like wrapper around a ConfigParser
 
-    >>> P=ConfigParser.SafeConfigParser()
+    >>> P=SafeConfigParser()
     >>> P.set('DEFAULT', 'foo', 'bar')
     >>> P.set('DEFAULT', 'baz', '5')
     >>> D=ConfigDict(P, 'DEFAULT')
@@ -34,7 +37,7 @@ class ConfigDict(object):
     def __init__(self, P, S='DEFAULT'):
         if isinstance(P, dict):
             D = P
-            P = ConfigParser.SafeConfigParser()
+            P = SafeConfigParser()
             if S!='DEFAULT':
                 P.add_section(S)
             for K,V in D.items():
@@ -54,7 +57,7 @@ class ConfigDict(object):
     def __getitem__(self, k):
         try:
             return self._P.get(self._S, k)
-        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+        except (NoOptionError, NoSectionError):
             raise KeyError("Section %s has no key %s"%(self._S, k))
 
     def __setitem__(self, k, v):
@@ -66,25 +69,25 @@ class ConfigDict(object):
     def get(self, k, d=None):
         try:
             return self._P.get(self._S, k)
-        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+        except (NoOptionError, NoSectionError):
             return d
 
     def getint(self, k, d=None):
         try:
             return self._P.getint(self._S, k)
-        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+        except (NoOptionError, NoSectionError):
             return d
 
     def getfloat(self, k, d=None):
         try:
             return self._P.getfloat(self._S, k)
-        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+        except (NoOptionError, NoSectionError):
             return d
 
     def getboolean(self, k, d=None):
         try:
             return self._P.getboolean(self._S, k)
-        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+        except (NoOptionError, NoSectionError):
             return d
         
     def write(self, fd):
@@ -107,7 +110,7 @@ def loadConfig(N):
           'defaultcount':'0',
           'maxquery':'30',
         }
-    cf=ConfigParser.SafeConfigParser(defaults=dflt)
+    cf=SafeConfigParser(defaults=dflt)
     cf.read([
         '/etc/carchive.conf',
         os.path.expanduser('~/.carchiverc'),

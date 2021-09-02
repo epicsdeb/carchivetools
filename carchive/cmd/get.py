@@ -4,6 +4,8 @@ Copyright 2015 Brookhaven Science Assoc.
  as operator of Brookhaven National Lab.
 """
 
+from __future__ import print_function
+
 import logging
 _log = logging.getLogger("arget")
 
@@ -37,21 +39,16 @@ class Printer(object):
                 return # no data
         if not self.printName:
             self.printName=True
-            print self.pvname
+            print(self.pvname)
 
         if data.shape[1] == 1: # scalar
             data = data.reshape((data.shape[0],))
             for M,D in zip(meta,data):
-                print self.timefmt((M['sec'],int(M['ns']))), D,
-                print archive.severity(M['severity']),
-                print archive.status(M['status'])
+                print(self.timefmt((M['sec'],int(M['ns']))), D, archive.severity(M['severity']), archive.status(M['status']))
 
         else: # waveform
             for i,M in enumerate(meta):
-                print self.timefmt((M['sec'],int(M['ns']))),
-                print archive.severity(M['severity']),
-                print archive.status(M['status']),
-                print ', '.join(map(str,data[i,:].tolist()))
+                print(self.timefmt((M['sec'],int(M['ns']))), archive.severity(M['severity']), archive.status(M['status']), ', '.join(map(str,data[i,:].tolist())))
 
 @defer.inlineCallbacks
 def cmd(archive=None, opt=None, args=None, conf=None, breakDown=None, **kws):
@@ -65,7 +62,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, breakDown=None, **kws):
     archs=opt.archive
 
     if len(args)==0:
-        print 'Missing PV names'
+        print('Missing PV names')
         defer.returnValue(0)
     
     T0, Tend = makeTimeInterval(opt.start, opt.end)
@@ -84,4 +81,4 @@ def cmd(archive=None, opt=None, args=None, conf=None, breakDown=None, **kws):
 
         C = yield D
         if printData.printName:
-            print 'Found %s points'%C
+            print('Found %s points'%C)

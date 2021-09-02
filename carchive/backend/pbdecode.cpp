@@ -12,6 +12,10 @@
 
 #include "carchive/backend/EPICSEvent.pb.h"
 
+#if PY_MAJOR_VERSION >= 3
+#  define PyInt_FromLong PyLong_FromLong
+#endif
+
 static PyObject *decoderError;
 
 namespace {
@@ -116,11 +120,11 @@ PyObject* PBD_unescape(PyObject *unused, PyObject *args)
     if(outbuflen<0)
         return PyErr_Format(PyExc_ValueError, "Invalid escaping");
 
-    PyRef ret(PyString_FromStringAndSize(NULL, outbuflen));
+    PyRef ret(PyBytes_FromStringAndSize(NULL, outbuflen));
     if(!ret.get())
         return NULL;
 
-    char *outbuf = PyString_AS_STRING(ret.get());
+    char *outbuf = PyBytes_AS_STRING(ret.get());
 
     int err = unescape(inbuf, inbuflen, outbuf, outbuflen);
     if(err)
@@ -187,11 +191,11 @@ PyObject* PBD_escape(PyObject *unused, PyObject *args)
 
     Py_ssize_t outbuflen = escape_plan(inbuf, inbuflen);
 
-    PyRef ret(PyString_FromStringAndSize(NULL, outbuflen));
+    PyRef ret(PyBytes_FromStringAndSize(NULL, outbuflen));
     if(!ret.get())
         return NULL;
 
-    char *outbuf = PyString_AS_STRING(ret.get());
+    char *outbuf = PyBytes_AS_STRING(ret.get());
 
     escape(inbuf, inbuflen, outbuf, outbuflen);
 
@@ -312,13 +316,13 @@ PyObject* PBD_decode_X(PyObject *unused, PyObject *args)
     for(Py_ssize_t i=0; i<nlines; i++) {
         PyObject *line = PyList_GET_ITEM(lines, i);
 
-        if(!PyString_Check(line)) {
+        if(!PyBytes_Check(line)) {
             locker.lock();
             return PyErr_Format(PyExc_TypeError, "Input list item must be a string");
         }
 
-        const char *buf = PyString_AS_STRING(line);
-        Py_ssize_t buflen = PyString_GET_SIZE(line);
+        const char *buf = PyBytes_AS_STRING(line);
+        Py_ssize_t buflen = PyBytes_GET_SIZE(line);
         PB& D = decoders[i];
 
         try {
@@ -529,7 +533,7 @@ static
 char decoderErrorName[] = "carchive.backend.pbdecode.DecodeError";
 
 static
-char moduleName[] = "carchive.backend.pbdecode";
+const char moduleName[] = "carchive.backend.pbdecode";
 
 static
 PyObject *pblogger;
@@ -671,6 +675,19 @@ static const mapent decodemap[] = {
     {NULL}
 };
 
+#if PY_MAJOR_VERSION >= 3
+static struct PyModuleDef pbdmod = {
+    PyModuleDef_HEAD_INIT,
+    moduleName,
+    NULL,
+    -1,
+    PBDMethods,
+};
+#  define MODRETURN return mod
+#else
+#  define MODRETURN return
+#endif
+
 PyMODINIT_FUNC
 initpbdecode(void)
 {
@@ -678,13 +695,17 @@ initpbdecode(void)
     PyObject *mod;
 
     if(!map.get())
-        return;
+        MODRETURN;
 
     GOOGLE_PROTOBUF_VERIFY_VERSION;
 
+#if PY_MAJOR_VERSION >= 3
+    mod - PyModule_Create(&pbdmod);
+#else
     mod = Py_InitModule(moduleName, PBDMethods);
+#endif
     if(!mod)
-        return;
+        MODRETURN;
     import_array();
 
     /* build a dictionary mapping PayloadType to decoder function */
@@ -728,4 +749,6 @@ initpbdecode(void)
         PyErr_Print();
         PyErr_Clear();
     }
+
+    MODRETURN;
 }

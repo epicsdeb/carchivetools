@@ -21,7 +21,7 @@ def verify_stream(stream, pb_type=None, pv_name=None, year=None, upper_ts_bound=
     
     # Check if we have a header.
     try:
-        header_data = line_iterator.next()
+        header_data = next(line_iterator)
     except pb_escape.IterationError as e:
         raise VerificationError('Reading header: {0}'.format(e))
     except StopIteration:

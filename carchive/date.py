@@ -430,4 +430,3 @@ def _test():
 
 if __name__=='__main__':
     _test()
-    print 'All tests have run'

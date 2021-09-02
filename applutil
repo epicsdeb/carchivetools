@@ -8,7 +8,10 @@ import sys
 from urllib import quote, quote_plus
 
 import json
-from cStringIO import StringIO
+try:
+    from io import StringIO
+except ImportError:
+    from cStringIO import StringIO
 
 from twisted.internet import protocol, reactor, defer
 from twisted.web.client import Agent, ResponseDone

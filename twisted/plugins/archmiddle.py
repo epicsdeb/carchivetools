@@ -1,10 +1,15 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
+
 import logging
 
-from ConfigParser import SafeConfigParser as ConfigParser
+try:
+    from configparser import SafeConfigParser as ConfigParser
+except ImportError:
+    from ConfigParser import SafeConfigParser as ConfigParser
 
-from zope.interface import implements
+from zope.interface import implementer
 
 from twisted.internet import reactor
 from twisted.python import usage, log
@@ -41,8 +46,8 @@ class Options(usage.Options):
             raise usage.UsageError("Error reading '%s' (%s)"%(self['config'],e))
         self['config'] = C
 
+@implementer(service.IServiceMaker, IPlugin)
 class Maker(object):
-    implements(service.IServiceMaker, IPlugin)
     tapname = 'archmiddle'
     description = "Channel Archiver middleware"
     options = Options
@@ -87,7 +92,7 @@ class Maker(object):
                                   interface=server.get('interface','')))
 
         if ShellFactory and server.getint('manhole.port', 0):
-            print 'Opening Manhole'
+            print('Opening Manhole')
             SF = ShellFactory()
             SS = TCPServer(server.getint('manhole.port', 0), SF,
                            interface='127.0.0.1')
@@ -99,7 +104,7 @@ class Maker(object):
 
             mservice.addService(SS)
         else:
-            print 'No Manhole'
+            print('No Manhole')
 
         return mservice
 

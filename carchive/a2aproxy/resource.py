@@ -7,7 +7,10 @@ Copyright 2015 Brookhaven Science Assoc.
 import logging
 _log = logging.getLogger(__name__)
 
-from xmlrpclib import loads, dumps, Fault
+try:
+    from xmlrpc.client import loads, dumps, Fault
+except ImportError:
+    from xmlrpclib import loads, dumps, Fault
 
 from twisted.internet import defer
 from twisted.web.resource import Resource
@@ -25,7 +28,7 @@ _info = {
     'desc':'Archiver to Applicance gateway',
     # list all the possible "how"s even though we won't support them
     'how':['raw', 'spreadsheeet', 'averaged', 'plot-binning', 'linear'],
-    'stat':status.values(),
+    'stat':list(status.values()),
     'sevr':[
         {'num':0, 'sevr':'NO_ALARM','has_value':True, 'txt_stat':True},
         {'num':1, 'sevr':'MINOR',   'has_value':True, 'txt_stat':True},

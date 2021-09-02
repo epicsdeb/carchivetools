@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
+
 from optparse import OptionParser
 
 from carchive import h5data
@@ -38,7 +40,7 @@ class Sampler(object):
     def disconnect(self):
         self.F.mpl_disconnect(self._sid)
     def onpress(self, event):
-        #print self,event.key
+        #print(self,event.key)
         if event.key=='y' and event.inaxes:
             data = []
             ax = event.inaxes
@@ -53,12 +55,12 @@ class Sampler(object):
             data.sort(key=lambda v:v[0].pv.name)
             self.show(event, data)
     def show(self, event, data):
-        print 'All Y values at X=',mdates.num2date(event.xdata)
+        print('All Y values at X=',mdates.num2date(event.xdata))
         for L, i in data:
             if i is None:
-                print "Not Connected\t%s"%L.pv.name
+                print("Not Connected\t%s"%L.pv.name)
             else:
-                print "%s\t%s\t%s\t%s"%(mdates.num2date(L.pv.mtime[i]),L.pv.name,L.pv.value[i], h5data.sevr2str(L.pv.severity[i]))
+                print("%s\t%s\t%s\t%s"%(mdates.num2date(L.pv.mtime[i]),L.pv.name,L.pv.value[i], h5data.sevr2str(L.pv.severity[i])))
 
 class RePlay(object):
     """Replay the events in the visible X region
@@ -69,7 +71,7 @@ class RePlay(object):
     def disconnect(self):
         self.F.mpl_disconnect(self._sid)
     def onpress(self, event):
-        #print self,event.key
+        #print(self,event.key)
         if event.key=='p' and event.inaxes:
             start, end = event.inaxes.get_xbound()
 
@@ -95,15 +97,15 @@ class RePlay(object):
             self.show(event, start, end, inits, deltas)
     def show(self, event, start, end, inits, deltas):
         start = mdates.num2date(start)
-        print "Values at", start
+        print("Values at", start)
         for L, i in inits:
             if i is None:
-                print " Not Connected\t%s"%L.pv.name
+                print(" Not Connected\t%s"%L.pv.name)
             else:
-                print " %s\t%s\t%s\t%s"%(mdates.num2date(L.pv.mtime[i]),L.pv.name,L.pv.value[i], h5data.sevr2str(L.pv.severity[i]))
-        print "Changed within", mdates.num2date(end)-start
+                print(" %s\t%s\t%s\t%s"%(mdates.num2date(L.pv.mtime[i]),L.pv.name,L.pv.value[i], h5data.sevr2str(L.pv.severity[i])))
+        print("Changed within", mdates.num2date(end)-start)
         for L, T, i in deltas:
-            print " %s\t%s\t%s\t%s"%(mdates.num2date(L.pv.mtime[i]),L.pv.name,L.pv.value[i], h5data.sevr2str(L.pv.severity[i]))
+            print(" %s\t%s\t%s\t%s"%(mdates.num2date(L.pv.mtime[i]),L.pv.name,L.pv.value[i], h5data.sevr2str(L.pv.severity[i])))
 
 def main():
     par=opts()
@@ -123,7 +125,7 @@ def main():
         S=_styles[i%len(_styles)]
         data = G[pv]
         if not data.scalar:
-            print 'skipping >1d',pv,data['value'].shape
+            print('skipping >1d',pv,data['value'].shape)
             continue
         
         data.mtime = mdates.epoch2num(data.time)
@@ -133,7 +135,7 @@ def main():
         L[i] = ax.plot(mdates.epoch2num(Xp), Yp, S)[0]
         L[i].pv = data # attach raw data for later use
 
-    print len(L),'lines'
+    print(len(L),'lines')
     
     for A in fig.axes:
         loc = mdates.AutoDateLocator()

@@ -4,6 +4,8 @@ Copyright 2015 Brookhaven Science Assoc.
  as operator of Brookhaven National Lab.
 """
 
+from __future__ import print_function
+
 import logging
 _log = logging.getLogger("carchive.h5export")
 
@@ -79,7 +81,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
     archs=opt.archive
 
     if len(args)==0:
-        print 'Missing PV names'
+        print('Missing PV names')
         defer.returnValue(0)
     
     T0, Tend = makeTimeInterval(opt.start, opt.end)
@@ -134,7 +136,7 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
 
         P.valset = None
 
-        print pv
+        print(pv)
         D = archive.fetchraw(pv, printData, archs=archs,
                                    cbArgs=(archive, P),
                                    T0=T0, Tend=Tend,

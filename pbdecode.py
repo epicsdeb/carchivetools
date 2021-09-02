@@ -6,6 +6,8 @@ Copyright 2015 Brookhaven Science Assoc.
 Test decoding of PB files, either unprocessed retrieved over http, or on disk files
 """
 
+from __future__ import print_function
+
 import sys, logging
 
 from twisted.internet import defer, error, protocol
@@ -17,7 +19,7 @@ from carchive.backend import appl
 logging.basicConfig(level=logging.DEBUG)
 
 def printData(V,M):
-  print 'cb',V.shape,M.shape
+  print('cb',V.shape,M.shape)
 
 if len(sys.argv)>1:
   inp=open(sys.argv[1],'rb')
@@ -35,16 +37,16 @@ P.makeConnection(T)
 while True:
   D = inp.read(size)
   if not D:
-    print 'File consumed'
+    print('File consumed')
     break
   P.dataReceived(D)
   if P.defer.called:
-    print 'Done early',inp.tell()
+    print('Done early',inp.tell())
     break
 
-print 'Flush'
+print('Flush')
 P.connectionLost(protocol.connectionDone)
 
 assert P.defer.called
 
-print 'Done',P.defer.result
+print('Done',P.defer.result)

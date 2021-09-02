@@ -81,13 +81,13 @@ def arsearch(names, match = WILDCARD,
     Note that name patterns can be given to arget directly.
     """
     arch = getArchive(conf)
-    if isinstance(names, (str, unicode)):
+    if isinstance(names, str):
         names = [names]
 
     if match==EXACT:
         names = ['^'+re.escape(N)+'$' for N in names]
     elif match==WILDCARD:
-        names = map(util.wild2re, names)
+        names = list(map(util.wild2re, names))
     
     archs = _reactor[0].call(arch.archives, archs)
 
@@ -98,12 +98,12 @@ def arsearch(names, match = WILDCARD,
 
     pvs = set()
     if breakDown:
-        for pvname,info in complete.iteritems():
+        for pvname,info in complete.items():
             P = ResultPV(pvname)
             P.breakDown = info
             pvs.add(P)
     else:
-        for pvname,info in complete.iteritems():
+        for pvname,info in complete.items():
             P = ResultPV(pvname)
             P.start, P.end = info
             pvs.add(P)
@@ -199,7 +199,7 @@ def arget(names, match = WILDCARD, mode = RAW,
 
     if mode==SNAPSHOT:
         T = date.makeTimeInterval(start, None)[0]
-        names = map(str, names) # strip ResultPV
+        names = list(map(str, names)) # strip ResultPV
         V, M = _reactor[0].call(arch.fetchsnap, names, T=T,
                                 archs=archs, chunkSize=chunkSize)
         return (names, V, M)

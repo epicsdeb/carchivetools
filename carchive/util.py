@@ -7,7 +7,10 @@ import logging
 _log = logging.getLogger(__name__)
 
 import re, collections, time
-from cStringIO import StringIO
+try:
+    from io import StringIO
+except ImportError:
+    from cStringIO import StringIO
 
 from twisted.web.client import Agent
 from twisted.web.server import Site
@@ -208,7 +211,7 @@ class BufferingLineProtocol(protocol.Protocol):
         # trick cStringIO to allocate the full buffer size
         # to allow append w/o re-alloc
         self.rxbuf.seek(self.rx_buf_size+1024)
-        self.rxbuf.write('x')
+        self.rxbuf.write(b'x')
         self.rxbuf.truncate(0)
 
         self._nbytes, self._tstart = 0, time.time()

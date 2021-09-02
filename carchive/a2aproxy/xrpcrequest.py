@@ -9,7 +9,10 @@ _log = logging.getLogger(__name__)
 
 import time, datetime
 
-from xmlrpclib import dumps, Fault, escape
+try:
+    from xmlrpc.client import dumps, Fault, escape
+except ImportError:
+    from xmlrpclib import dumps, Fault, escape
 
 import numpy
 
@@ -80,7 +83,7 @@ class NamesRequest(XMLRPCRequest):
             'end_sec':now, 'end_nano':0
         }
         rep = []
-        for name in R.iterkeys():
+        for name in R.keys():
             D = {'name':name}
             D.update(static)
             rep.append(D)

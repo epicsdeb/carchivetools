@@ -87,7 +87,7 @@ class Exporter(object):
                 raise SkipPvError('Inconsistent waveform size (we did manage to archive something)')
         
         # If metadata has changed, we will attach it to the first sample in this chunk.
-        new_meta = dict((META_MAP[meta_name], meta_val) for (meta_name, meta_val) in extraMeta['the_meta'].iteritems() if meta_name in META_MAP)
+        new_meta = dict((META_MAP[meta_name], meta_val) for (meta_name, meta_val) in extraMeta['the_meta'].items() if meta_name in META_MAP)
         
         if new_meta.has_key('states') and new_meta['states'] is not None:
             new_meta['states'] = ';'.join(new_meta['states'])

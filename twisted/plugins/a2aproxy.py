@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
+
 import logging
 _log = logging.getLogger(__name__)
 
-from zope.interface import implements
+from zope.interface import implementer
 
 from twisted.python import usage, log
 from twisted.plugin import IPlugin
@@ -39,8 +41,8 @@ class Options(usage.Options):
         if self['port'] < 1 or self['port'] > 65535:
             raise usage.UsageError('Port out of range')
 
+@implementer(service.IServiceMaker, IPlugin)
 class Maker(object):
-    implements(service.IServiceMaker, IPlugin)
     tapname = 'a2aproxy'
     description = "Archiver to Appliance proxy"
     options = Options
@@ -66,7 +68,7 @@ class Maker(object):
         serv.addService(LimitedTCPServer(opts['port'], fact, interface=opts['ip']))
 
         if ShellFactory and opts['manhole']:
-            print 'Opening Manhole'
+            print('Opening Manhole')
             SF = ShellFactory()
             SS = TCPServer(opts['manhole'], SF, interface='127.0.0.1')
 
@@ -75,7 +77,7 @@ class Maker(object):
 
             serv.addService(SS)
         else:
-            print 'No Manhole'
+            print('No Manhole')
 
         return serv
 

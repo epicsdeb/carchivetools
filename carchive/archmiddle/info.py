@@ -35,7 +35,7 @@ class KeyNameMap(object):
 
         # Pre-compute reverse name pattern mapping
         R = self._usr_rev = {}
-        for cN, _pats in self._usr.iteritems():
+        for cN, _pats in self._usr.items():
             for pat in _pats:
                 R[pat] = cN
 
@@ -54,7 +54,7 @@ class KeyNameMap(object):
 
         snames = dict([(K['name'],K['key']) for K in Ks])
 
-        for P, cN in self._usr_rev.iteritems():
+        for P, cN in self._usr_rev.items():
             cK = self._cnames[cN]
             cM = M[cK] = []
             for sName in filter(snames, P):
@@ -140,7 +140,7 @@ class InfoCache(object):
         cache = {}
 
         names = yield self.lookup(sKs, escname)
-        for sK,R in names.iteritems():
+        for sK,R in names.items():
             if len(R)>1:
                 _log.warn("name lookup returned several results. %s %s %s", sK, escname, R)
 

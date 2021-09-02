@@ -106,7 +106,7 @@ def check_output(args, shell=False):
     out, _ = pid.communicate()
     if pid.wait():
         raise RuntimeError('process failed %s %s'%(args,kws))
-    return out
+    return out.decode()
 
 # disable warnings from python 2.x API
 extra_cflags=[]

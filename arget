@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
+
 import sys, os.path, logging, re
 from optparse import OptionParser
 _log = logging.getLogger('arget')
@@ -97,12 +99,12 @@ opt, args = par.parse_args()
 
 if opt.helptime:
     from carchive import date
-    print date.__doc__
+    print(date.__doc__)
     sys.exit(0)
 
 elif opt.version:
     from carchive import __version__
-    print __version__
+    print(__version__)
     sys.exit(0)
 
 LVL={0:logging.WARN, 1:logging.INFO, 2:logging.DEBUG}
@@ -140,7 +142,7 @@ if act=='grep' and not opt.match:
 def haveArchive(act, opt, args, conf):
 
     if opt.verbose>0:
-        print 'Command:',act
+        print('Command:',act)
 
     mod = __import__('carchive.cmd', fromlist=[act])
     mod = getattr(mod, act)
@@ -155,7 +157,7 @@ def haveArchive(act, opt, args, conf):
     except:
         E = sys.exc_info()[1]
         if opt.verbose<2:
-            print 'Failed to fetch data server information.',E
+            print('Failed to fetch data server information.',E)
             defer.returnValue(None)
         else:
             raise
@@ -166,7 +168,7 @@ def haveArchive(act, opt, args, conf):
         opt.match='regexp'
 
     if opt.verbose>0:
-        print 'Working with archives', opt.archive
+        print('Working with archives', opt.archive)
     opt.archive=serv.archives(pattern=opt.archive)
 
     breakDown = None
@@ -178,7 +180,7 @@ def haveArchive(act, opt, args, conf):
             breakDown.update(result)
         args = breakDown.keys()
         if len(args)==0:
-            print 'Provided pattern(s) did not match any PV'
+            print('Provided pattern(s) did not match any PV')
             defer.returnValue(None)
 
     elif opt.match!='exact' and len(args)>0:
@@ -189,7 +191,7 @@ def haveArchive(act, opt, args, conf):
             breakDown.update(result)
         args = breakDown.keys()
         if len(args)==0:
-            print 'Provided pattern(s) did not match any PV'
+            print('Provided pattern(s) did not match any PV')
             defer.returnValue(None)
 
     try:
@@ -205,7 +207,7 @@ def haveArchive(act, opt, args, conf):
     except:
         E = sys.exc_info()[1]
         if opt.verbose<2:
-            print 'Operation failed.',E
+            print('Operation failed.',E)
         else:
             raise
 
