@@ -402,7 +402,7 @@ class Archive(object):
             Tcur, Tend = timeTuple(T0), timeTuple(Tend)
 
         _log.debug("Time range: %s -> %s", Tcur, Tend)
-        _log.debug("Planning with: %s", map(lambda (a,b,c):(a,b,self.__rarchs[c]), breakDown))
+        _log.debug("Planning with: %s", map(lambda a,b,c:(a,b,self.__rarchs[c]), breakDown))
 
         plan = []
         
@@ -456,7 +456,7 @@ class Archive(object):
             _log.warn("Query plan empty.  No data in or before request time range.")
             defer.returnValue(0)
 
-        _log.debug("Using plan of %d queries %s", len(plan), map(lambda (a,b,c):(a,b,self.__rarchs[c]), plan))
+        _log.debug("Using plan of %d queries %s", len(plan), map(lambda a,b,c:(a,b,self.__rarchs[c]), plan))
 
         N = yield self._nextraw(0, pv=pv, plan=plan,
                                 Ctot=0, Climit=count,
@@ -533,7 +533,7 @@ class Archive(object):
         Tcur, Tend = timeTuple(T0), timeTuple(Tend)
 
         _log.debug("Time range: %s -> %s", Tcur, Tend)
-        _log.debug("Planning with: %s", map(lambda (a,b,c):(a,b,self.__rarchs[c]), breakDown))
+        _log.debug("Planning with: %s", map(lambda a,b,c:(a,b,self.__rarchs[c]), breakDown))
 
         N = 0
         # Plan queries

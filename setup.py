@@ -4,6 +4,7 @@ Copyright 2015 Brookhaven Science Assoc.
  as operator of Brookhaven National Lab.
 """
 
+import sys
 import subprocess as sp
 
 from distutils.core import setup, Distribution, Extension, Command, DistutilsSetupError
@@ -101,7 +102,7 @@ build.build.sub_commands.insert(0, ('build_protobuf', lambda cmd:True))
 install.install.sub_commands.append(('install_links', lambda cmd:True))
 
 # check_output was added to subprocess in 2.7
-def check_output(args, shell=False):
+def check_output(args, shell=False, **kws):
     pid = sp.Popen(args, stdout=sp.PIPE, shell=shell)
     out, _ = pid.communicate()
     if pid.wait():
@@ -115,7 +116,10 @@ extra_ldflags=[]
 import platform
 if platform.system() == "Linux":
     extra_cflags.append('-Wno-write-strings')
-    if platform.dist()[0].lower() in ["debian", "ubuntu"]:
+    if sp.Popen('which dpkg-buildflags', 
+                stdout=sp.PIPE, 
+                shell=True, 
+                encoding='utf-8').communicate()[0] != '':
         try:
             extra_cflags+=check_output('dpkg-buildflags --get CPPFLAGS', shell=True).split()
             extra_cflags+=check_output('dpkg-buildflags --get CFLAGS', shell=True).split()
@@ -157,7 +161,8 @@ Exports of data to Archiver Appliance and H5 are supported.
     ext_modules=[Extension('carchive.backend.pbdecode',
                            ['carchive/backend/pbdecode.cpp',
                             'carchive/backend/generated.cpp'],
-                           include_dirs=get_numpy_include_dirs(),
+                           include_dirs=get_numpy_include_dirs() + [
+                               sys.exec_prefix + '/include'], # To be able to see "google/protobuf/port_def.inc"
                            libraries=['protobuf'],
                            extra_compile_args=extra_cflags,
                            extra_link_args=extra_ldflags,

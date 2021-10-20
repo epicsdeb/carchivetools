@@ -167,10 +167,10 @@ def arget(names, match = WILDCARD, mode = RAW,
     and N is the maximum number of samples of any time point (N=1 for scalars).
     """
     scalar = False
-    if isinstance(names, (str, unicode)):
+    if isinstance(names, str):
         scalar, names = True, [names]
     if scalar:
-      assert len(names)==1, str(names)
+        assert len(names)==1, str(names)
 
     if mode==PLOTBIN and count is None:
         raise ValueError("PLOTBIN requires sample count")

@@ -20,7 +20,8 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
         def timefmt(ts):
             return makeTime(ts)
     elif opt.timefmt=='posix':
-        def timefmt((sec,ns)):
+        def timefmt(sec_ns_tup):
+            sec,ns = sec_ns_tup
             return sec+1e-9*ns
     else:
         raise ValueError("Invalid time format %s"%opt.timefmt)

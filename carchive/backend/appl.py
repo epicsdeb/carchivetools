@@ -116,7 +116,7 @@ class PBReceiver(BufferingLineProtocol):
             if not self.header:
                 # first message in the stream
                 self.header = H = PayloadInfo()
-                H.ParseFromString(unescape(P[0]))
+                H.ParseFromString(unescape(P[0].encode('iso-8859-1')))
                 try:
                     if H.year<0:
                         H.year = 1 # -1 when no samples available
@@ -140,7 +140,9 @@ class PBReceiver(BufferingLineProtocol):
                 Nsamp = len(P)
 
             try:
-                V, M = decoders[H.type](P, self.cadiscon, self._year)
+                V, M = decoders[H.type](
+                    [p.encode('iso-8859-1') for p in P],
+                    self.cadiscon, self._year)
             except DecodeError as e:
                 _log.error("Failed to decode sample %s %s %s", self.name,H.type,repr(e.args[0]))
                 raise
@@ -179,7 +181,7 @@ class JSONReceiver(protocol.Protocol):
     def __init__(self):
         self._S, self.defer = StringIO(), defer.Deferred()
     def dataReceived(self, raw):
-        self._S.write(raw)
+        self._S.write(raw.decode('utf-8'))
     def connectionLost(self, reason):
         if not isinstance(reason, failure.Failure):
             reason = failure.Failure(reason)
@@ -196,7 +198,11 @@ class JSONReceiver(protocol.Protocol):
 
 @defer.inlineCallbacks
 def fetchJSON(agent, url, code=200):
-    R = yield agent.request('GET', str(url))
+    R = yield agent.request(
+        b'GET',
+        url if not hasattr(url, 'encode')
+        else url.encode('utf-8')
+    )
     if R.code!=code:
         raise RuntimeError("%d: %s"%(R.code,url))
 
@@ -210,7 +216,12 @@ def getArchive(conf):
     A = LimitedAgent(reactor, connectTimeout=5,
                      maxRequests=conf.getint('maxrequests', 100))
 
-    R = yield A.request('GET', conf['url'])
+    R = yield A.request(
+        b'GET',
+        conf['url']
+        if not hasattr(conf['url'], 'encode')
+        else conf['url'].encode('utf-8')
+    )
 
     if R.code==404:
         raise RuntimeError("Not an Archive Appliance")
@@ -305,7 +316,11 @@ class Appliance(object):
         yield self._agent.acquire()
         try:
             _log.debug("Query: %s", url)
-            R = yield self._agent.request('GET', url)
+            R = yield self._agent.request(
+                b'GET',
+                url if not hasattr(url, 'encode')
+                else url.encode('utf-8')
+            )
     
             if R.code!=200:
                 _log.error("%s for %s", R.code, pv)

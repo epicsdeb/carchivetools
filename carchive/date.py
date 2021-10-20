@@ -193,7 +193,7 @@ def _fromAbsString(intime, now):
     parts = [int(v) if v else d for v,d in zip(parts[:6], D)]
     parts += [0,0,-1] # disable DST compensation
 
-    return int(conv(parts)), int(nsec)
+    return int(conv(tuple(parts))), int(nsec)
 
 def timeTuple(dt):
     """Convert (local) datetime object to (sec, nsec)
@@ -319,7 +319,7 @@ def makeTime(intime, now=None):
         S=tv//1
         NS=(tv%1)*1e9
         intime=(int(S), int(NS))
-    elif isinstance(intime, (int, long)):
+    elif isinstance(intime, int):
         intime = (intime, 0)
 
     if isinstance(intime, tuple):
@@ -328,7 +328,7 @@ def makeTime(intime, now=None):
         S+=datetime.timedelta(microseconds=NS/1000)
         return S
 
-    if not isinstance(intime, (str,unicode)):
+    if not isinstance(intime, str):
         raise ValueError('Input must be a tuple, number, or string.  Not %s'%type(intime))
 
     intime=intime.strip().lower()

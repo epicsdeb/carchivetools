@@ -12,7 +12,7 @@ def cmd(archive=None, opt=None, conf=None, **kws):
     if opt.verbose>1:
         conf.write(sys.stdout)
         sys.stdout.write('\n')
-        print archive
+        print(archive)
 
     archs=set()
     for ar in opt.archive:
@@ -20,7 +20,7 @@ def cmd(archive=None, opt=None, conf=None, **kws):
     archs=list(archs)
 
     if opt.verbose>0:
-      print('Archives:')
+        print('Archives:')
     archs.sort()
     for ar in archs:
         print(ar)

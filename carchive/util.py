@@ -211,13 +211,15 @@ class BufferingLineProtocol(protocol.Protocol):
         # trick cStringIO to allocate the full buffer size
         # to allow append w/o re-alloc
         self.rxbuf.seek(self.rx_buf_size+1024)
-        self.rxbuf.write(b'x')
+        self.rxbuf.write('x')
+        self.rxbuf.seek(0) # Critical to have this line for Py-3
         self.rxbuf.truncate(0)
 
         self._nbytes, self._tstart = 0, time.time()
         self._tend = None
 
     def dataReceived(self, data):
+        data = data.decode('iso-8859-1')
         self._nbytes += len(data)
         self.rxbuf.write(data)
         if self.rxbuf.tell()<self.rx_buf_size:

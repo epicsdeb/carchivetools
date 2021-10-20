@@ -24,7 +24,8 @@ class Printer(object):
         else:
             raise ValueError("Invalid time format %s"%opt.timefmt)
 
-    def timeposix(self, (sec,ns)):
+    def timeposix(self, sec_ns_tup):
+        sec, ns = sec_ns_tup
         return sec+1e-9*ns
 
     def timestring(self, ts):

@@ -17,7 +17,8 @@ _log = logging.getLogger("carchive.rpcmunge")
 from twisted.internet import defer
 
 #from twisted.web.http import HTTPClient
-from twisted.web.xmlrpc import QueryProtocol, _QueryFactory, Proxy
+from twisted.web.xmlrpc import QueryProtocol, Proxy
+from twisted.web.xmlrpc import QueryFactory as _QueryFactory
 
 class NiceQueryProtocol(QueryProtocol):
     def lineReceived(self, line):
