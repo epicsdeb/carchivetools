@@ -70,7 +70,11 @@ def cmd(archive=None, opt=None, args=None, conf=None, breakDown=None, **kws):
 
     _log.debug("Time range: %s -> %s", T0, Tend)
 
-    count = opt.count if opt.count>0 else conf.getint('defaultcount')
+    count = (
+        opt.count
+        if (opt.count is not None) and opt.count > 0
+        else conf.getint('defaultcount')
+    )
 
     for pv in args:
         printData = Printer(opt, pv)

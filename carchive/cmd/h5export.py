@@ -87,7 +87,11 @@ def cmd(archive=None, opt=None, args=None, conf=None, **kws):
     T0, Tend = makeTimeInterval(opt.start, opt.end)
     TT0, TT1 = timeTuple(T0), timeTuple(Tend)
 
-    count = opt.count if opt.count>0 else conf.getint('defaultcount')
+    count = (
+        opt.count
+        if (opt.count is not None) and opt.count > 0
+        else conf.getint('defaultcount')
+    )
 
     h5file, _, path = opt.h5file.partition(':')
     if path=='':
