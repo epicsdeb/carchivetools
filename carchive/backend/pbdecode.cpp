@@ -689,7 +689,11 @@ static struct PyModuleDef pbdmod = {
 #endif
 
 PyMODINIT_FUNC
+#if PY_MAJOR_VERSION >= 3
 PyInit_pbdecode(void)
+#else
+initpbdecode(void)
+#endif
 {
     PyRef map(PyDict_New());
     PyObject *mod;

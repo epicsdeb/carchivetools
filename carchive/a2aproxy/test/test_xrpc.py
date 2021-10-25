@@ -76,7 +76,7 @@ class TestServer(unittest.TestCase):
         self.site = Site(self.root) # TODO: what is timeout?
         self.serv = reactor.listenTCP(0, self.site, interface='127.0.0.1')
         P = self.serv.getHost().port
-        url = 'http://127.0.0.1:%d/cgi-bin/ArchiveDataServer.cgi'%P
+        url = b'http://127.0.0.1:%d/cgi-bin/ArchiveDataServer.cgi'%P
         self.client = Proxy(url)
 
     def tearDown(self):

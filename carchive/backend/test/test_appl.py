@@ -18,7 +18,7 @@ from .. import appl
 from ...dtype import dbr_time
 
 # Read in an example PB message stream
-with open(os.path.join(os.path.dirname(__file__), 'testdata.pb')) as F:
+with open(os.path.join(os.path.dirname(__file__), 'testdata.pb'), 'rb') as F:
     _data = F.read()
 del F
 
@@ -105,7 +105,7 @@ class TestApplST(unittest.TestCase):
         """
         self.P.rx_buf_size = 1 # shorten buffer
         self.P.makeConnection(self.T)
-        [self.P.dataReceived(B) for B in _data]
+        [self.P.dataReceived(bytes([B])) for B in _data]
 
         if not self.inthread:
             self.assertEqual(len(self.cb.data), 21)

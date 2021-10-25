@@ -116,13 +116,15 @@ class PBReceiver(BufferingLineProtocol):
             if not self.header:
                 # first message in the stream
                 self.header = H = PayloadInfo()
-                H.ParseFromString(unescape(P[0].encode('iso-8859-1')))
+                H.ParseFromString(unescape(P[0]))
                 try:
                     if H.year<0:
                         H.year = 1 # -1 when no samples available
+                    elif H.year>3000:
+                        raise ValueError("Year %s out of bounds"%H.year)
                     self._year = calendar.timegm(datetime.date(H.year,1,1).timetuple())
                 except ValueError:
-                    _log.error("Error docoding header: %s %s %s", self.name, H.year, repr(P[0]))
+                    _log.error("Error decoding header: %s %s %s", self.name, H.year, repr(P[0]))
                     raise
                 P = P[1:]
             else:
@@ -140,9 +142,7 @@ class PBReceiver(BufferingLineProtocol):
                 Nsamp = len(P)
 
             try:
-                V, M = decoders[H.type](
-                    [p.encode('iso-8859-1') for p in P],
-                    self.cadiscon, self._year)
+                V, M = decoders[H.type](P, self.cadiscon, self._year)
             except DecodeError as e:
                 _log.error("Failed to decode sample %s %s %s", self.name,H.type,repr(e.args[0]))
                 raise

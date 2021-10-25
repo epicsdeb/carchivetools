@@ -247,9 +247,9 @@ def makeTime(intime, now=None):
     datetime.datetime(1970, 1, 1, 0, 1, 5)
     >>>
     >>> makeTime(1300584688.9705319,now)
-    datetime.datetime(2011, 3, 19, 21, 31, 28, 970531)
+    datetime.datetime(2011, 3, 19, 21, 31, 28, 970532)
     >>> makeTime('1300584688.9705319',now)
-    datetime.datetime(2011, 3, 19, 21, 31, 28, 970531)
+    datetime.datetime(2011, 3, 19, 21, 31, 28, 970532)
     >>> makeTime( '12:01', now)
     datetime.datetime(2011, 3, 15, 12, 1)
     >>> makeTime( '12:01:14', now)
@@ -273,27 +273,27 @@ def makeTime(intime, now=None):
     >>> now=datetime.datetime.now()
     >>>
     >>> makeTime('-1 hours', now)
-    datetime.timedelta(-1, 82800)
+    datetime.timedelta(days=-1, seconds=82800)
     >>> makeTime('-1 hours 5 minute', now)
-    datetime.timedelta(-1, 83100)
+    datetime.timedelta(days=-1, seconds=83100)
     >>> makeTime('1 hours', now)
-    datetime.timedelta(0, 3600)
+    datetime.timedelta(seconds=3600)
     >>> makeTime('1 week', now)
-    datetime.timedelta(7)
+    datetime.timedelta(days=7)
     >>> makeTime('0.25 week', now)
-    datetime.timedelta(1, 64800)
+    datetime.timedelta(days=1, seconds=64800)
     >>> makeTime('1 week -1 h', now)
-    datetime.timedelta(6, 82800)
+    datetime.timedelta(days=6, seconds=82800)
     >>> makeTime('1 week -1 h +1 m', now)
-    datetime.timedelta(6, 82860)
+    datetime.timedelta(days=6, seconds=82860)
     >>> makeTime('1 week -1 h +1 m -1 secs', now)
-    datetime.timedelta(6, 82859)
+    datetime.timedelta(days=6, seconds=82859)
     >>> makeTime('1 week -1 h +1 m -1.5 secs', now)
-    datetime.timedelta(6, 82858, 500000)
+    datetime.timedelta(days=6, seconds=82858, microseconds=500000)
     >>> makeTime('1 week -1 h +1 m -1 secs 1 ms', now)
-    datetime.timedelta(6, 82859, 1000)
+    datetime.timedelta(days=6, seconds=82859, microseconds=1000)
     >>> makeTime('1 week -1 h +1 m -1 secs 1 ms -10 us', now)
-    datetime.timedelta(6, 82859, 990)
+    datetime.timedelta(days=6, seconds=82859, microseconds=990)
     >>>
     >>> makeTime('2012-10-11 16:36:44.41248000', now)
     datetime.datetime(2012, 10, 11, 16, 36, 44, 412480)
@@ -316,9 +316,9 @@ def makeTime(intime, now=None):
 
     if isinstance(intime, float):
         tv=float(intime)
-        S=tv//1
-        NS=(tv%1)*1e9
-        intime=(int(S), int(NS))
+        S, NS = divmod(tv, 1.0)
+        intime=(int(S), int(NS * 1e9))
+
     elif isinstance(intime, int):
         intime = (intime, 0)
 

@@ -13,7 +13,7 @@ except ImportError:
     from xmlrpclib import loads, dumps, Fault
 
 from twisted.internet import defer
-from twisted.web.resource import Resource
+from twisted.web.resource import Resource as BaseResource
 from twisted.web.server import NOT_DONE_YET
 from twisted.python.failure import Failure
 
@@ -42,12 +42,12 @@ _info = {
         {'num':3848, 'sevr':'Archive_Disable', 'has_value':False, 'txt_stat':True},
     ],
 }
-_info_rep = dumps((_info,), methodresponse=True)
+_info_rep = dumps((_info,), methodresponse=True).encode()
 
 _archives = [
     {'key':42, 'name':'All', 'path':'All Data'},
 ]
-_archives_rep = dumps((_archives,), methodresponse=True)
+_archives_rep = dumps((_archives,), methodresponse=True).encode()
 
 
 def cleanupRequest(R, req):
@@ -64,6 +64,33 @@ def cleanupRequest(R, req):
     if isinstance(R, Failure):
         _log.error("Unhandled execption during request: %s", R.getTraceback())
 
+class Resource(BaseResource):
+    """Wrap twisted.web.resource.Resource with some debug logging
+    """
+    def getChildWithDefault(self, path, request):
+        _log.debug("Request %r <- %r", path, request)
+        try:
+            ret = BaseResource.getChildWithDefault(self, path, request)
+        except:
+            _log.exception("Error %r <- %r", path, request)
+            raise
+        else:
+            _log.debug("Reply %r -> %r", path, ret)
+        return ret
+
+    def getChild(self, path, request):
+        _log.debug("Request for unknown path %r", path)
+        return BaseResource.getChild(self, path, request)
+
+    def render(self, request):
+        try:
+            ret = BaseResource.render(self, request)
+        except:
+            _log.exception("Error rendering %r", request)
+            raise
+        else:
+            _log.debug("rendering %r -> %r", request, ret)
+        return ret
 
 class DataServer(Resource):
     isLeaf=True
@@ -146,8 +173,8 @@ def buildResource(infourl=None):
 
     root= Resource()
     cgibin = Resource()
-    root.putChild('cgi-bin', cgibin)
-    cgibin.putChild('ArchiveDataServer.cgi', C)
+    root.putChild(b'cgi-bin', cgibin)
+    cgibin.putChild(b'ArchiveDataServer.cgi', C)
     return root
 
 def main():

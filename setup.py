@@ -101,14 +101,6 @@ build.build.sub_commands.insert(0, ('build_protobuf', lambda cmd:True))
 # Hook into install command late
 install.install.sub_commands.append(('install_links', lambda cmd:True))
 
-# check_output was added to subprocess in 2.7
-def check_output(args, shell=False, **kws):
-    pid = sp.Popen(args, stdout=sp.PIPE, shell=shell)
-    out, _ = pid.communicate()
-    if pid.wait():
-        raise RuntimeError('process failed %s %s'%(args,kws))
-    return out.decode()
-
 # disable warnings from python 2.x API
 extra_cflags=[]
 extra_ldflags=[]
@@ -116,14 +108,13 @@ extra_ldflags=[]
 import platform
 if platform.system() == "Linux":
     extra_cflags.append('-Wno-write-strings')
-    if sp.Popen('which dpkg-buildflags', 
+    if sp.call('which dpkg-buildflags', 
                 stdout=sp.PIPE, 
-                shell=True, 
-                encoding='utf-8').communicate()[0] != '':
+                shell=True)==0:
         try:
-            extra_cflags+=check_output('dpkg-buildflags --get CPPFLAGS', shell=True).split()
-            extra_cflags+=check_output('dpkg-buildflags --get CFLAGS', shell=True).split()
-            extra_ldflags=check_output('dpkg-buildflags --get LDFLAGS', shell=True).split()
+            extra_cflags+=sp.check_output('dpkg-buildflags --get CPPFLAGS', shell=True).decode().split()
+            extra_cflags+=sp.check_output('dpkg-buildflags --get CFLAGS', shell=True).decode().split()
+            extra_ldflags=sp.check_output('dpkg-buildflags --get LDFLAGS', shell=True).decode().split()
         except:
             import traceback
             traceback.print_exc()

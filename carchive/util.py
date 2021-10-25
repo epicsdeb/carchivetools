@@ -8,9 +8,9 @@ _log = logging.getLogger(__name__)
 
 import re, collections, time
 try:
-    from io import StringIO
+    from io import BytesIO
 except ImportError:
-    from cStringIO import StringIO
+    from cStringIO import StringIO as BytesIO
 
 from twisted.web.client import Agent
 from twisted.web.server import Site
@@ -207,19 +207,18 @@ class BufferingLineProtocol(protocol.Protocol):
         raise NotImplementedError()
 
     def connectionMade(self):
-        self.rxbuf = StringIO()
+        self.rxbuf = BytesIO()
         # trick cStringIO to allocate the full buffer size
         # to allow append w/o re-alloc
         self.rxbuf.seek(self.rx_buf_size+1024)
-        self.rxbuf.write('x')
-        self.rxbuf.seek(0) # Critical to have this line for Py-3
+        self.rxbuf.write(b'x')
+        self.rxbuf.seek(0)
         self.rxbuf.truncate(0)
 
         self._nbytes, self._tstart = 0, time.time()
         self._tend = None
 
     def dataReceived(self, data):
-        data = data.decode('iso-8859-1')
         self._nbytes += len(data)
         self.rxbuf.write(data)
         if self.rxbuf.tell()<self.rx_buf_size:
@@ -234,10 +233,11 @@ class BufferingLineProtocol(protocol.Protocol):
             return
 
         # split into complete lines
-        L = self.rxbuf.getvalue().split('\n')
+        L = self.rxbuf.getvalue().split(b'\n')
         if len(L)==1:
             return # no newline found
 
+        self.rxbuf.seek(0)
         self.rxbuf.truncate(0)
         # any bytes after the last newline are a partial line
         self.rxbuf.write(L[-1])
@@ -281,7 +281,7 @@ class BufferingLineProtocol(protocol.Protocol):
             # normal completion
             if self.rxbuf.tell()>0:
                 # process remaining
-                lines = self.rxbuf.getvalue().split('\n')
+                lines = self.rxbuf.getvalue().split(b'\n')
                 @self._defer.addCallback
                 def _flush(V):
                     if len(lines[-1])>0:
