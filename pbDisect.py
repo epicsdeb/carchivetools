@@ -8,6 +8,14 @@ Utility to help with debugging protobuf decode failures
 
 Processes arbitrary PB messages.  Extra information may be injected with --type
 to enable sub-structures to be decoded.
+
+eg. operate on line 1 of testdata.pb generically
+
+  ./pbDisect.py --file carchive/backend/test/testdata.pb 1
+
+or specifically as PayloadInfo
+
+  ./pbDisect.py --file carchive/backend/test/testdata.pb 1 --type PayloadInfo
 """
 
 from __future__ import print_function
@@ -26,11 +34,11 @@ def getargs():
     P.add_argument('input', nargs='*')
     return P.parse_args()
 
-_unesc = re.compile(r'\x1b(.)')
+_unesc = re.compile(rb'\x1b(.)')
 _unmap = {
-    '\x01': '\x1b',
-    '\x02': '\x0a',
-    '\x03': '\x0d',
+    b'\x01': b'\x1b',
+    b'\x02': b'\x0a',
+    b'\x03': b'\x0d',
 }
 def _unfn(M):
     return _unmap[M.group(1)]
@@ -51,7 +59,7 @@ def decodeVI(B):
     """
     val, n = 0, 0
     while True:
-        x = ord(B.next())
+        x = next(B)
         val += (x&0x7f)<<(n*7)
         if not x&0x80:
             return val
@@ -62,17 +70,15 @@ def decodeString(B):
     print('  Length:',L)
     V = [None]*L
     for n in range(L):
-        V[n] = B.next()
-    return ''.join(V)
+        V[n] = next(B)
+    return bytes(V)
 
 def showVI(B):
     val = decodeVI(B)
     print('  Value:',val)
 
 def showV64(B):
-    V = ''
-    for i in range(8):
-        V+=B.next()
+    V = bytes([next(B) for i in range(8)])
     print('  Value:',repr(V),struct.unpack('<d',V)[0])
 
 def showString(B):
@@ -88,7 +94,7 @@ def showEnd(B):
 def showV32(B):
     V = ''
     for i in range(4):
-        V+=B.next()
+        V+=next(B)
     print('  Value:',repr(V),struct.unpack('<f',V)[0])
 
 wirename = {
@@ -122,7 +128,7 @@ PBTypes = {
 def decode(B, Ks, fn=iter):
     try:
         while True:
-            id = ord(B.next())
+            id = next(B)
             # except a message key
             wire = id&0x7
             idx = id>>3
@@ -130,9 +136,7 @@ def decode(B, Ks, fn=iter):
             if idx in Ks and wire==2:
                 L = decodeVI(B)
                 print(' bytes',L)
-                sub=''
-                for n in range(L):
-                    sub+=B.next()
+                sub = bytes([next(B) for n in range(L)])
 
                 info = Ks[idx]
                 if info[0]=='struct':
@@ -158,7 +162,7 @@ def sample(args):
         fn=wrap
 
     for I in args.input:
-        I = ast.literal_eval("'%s'"%I)
+        I = ast.literal_eval("b'%s'"%I)
         print('Input',repr(I))
         try:
             decode(fn(I), PBTypes[args.pbtype])
@@ -172,7 +176,7 @@ def dfile(args):
         fn=wrap
     fname = args.input[0]
     ln = int(args.input[1] or '1')
-    with open(fname, 'r') as F:
+    with open(fname, 'rb') as F:
         for i,L in enumerate(F,1):
             if i==ln:
                 I = unescape(L)
