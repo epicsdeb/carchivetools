@@ -12,6 +12,10 @@ from distutils.command import build, build_ext, install
 
 from numpy.distutils.misc_util import get_numpy_include_dirs
 
+if sys.version_info<(3,7):
+    import warnings
+    warnings.warn("Python < 3.7 is no longer supported")
+
 class GenProtobuf(Command):
     """Run protoc code generator
     """
@@ -126,7 +130,7 @@ if platform.system() == "Linux":
 
 setup(
     name = "carchivetools",
-    version = "2.2",
+    version = "3.0",
     description = "Tools to query EPICS Channel Archiver and Archiver Appliance and export data",
     long_description = """Tools to retrieve data from EPICS data archivers.
 Supports Channel Archiver as well as Archiver Appliance.
@@ -135,8 +139,18 @@ Exports of data to Archiver Appliance and H5 are supported.
     url = "https://github.com/epicsdeb/carchivetools",
     download_url = "https://github.com/epicsdeb/carchivetools/releases",
     author = "Michael Davidsaver",
-    author_email = "mdavidsaver@bnl.gov",
+    author_email = "mdavidsaver@gmail.com",
     license = "BSD",
+    classifiers = [
+        'Development Status :: 5 - Production/Stable',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: Implementation :: CPython',
+        'License :: OSI Approved :: BSD License',
+        'Intended Audience :: Science/Research',
+        'Topic :: Scientific/Engineering',
+    ],
+    python_requires='>=3.7',
+
     packages = ['carchive',
                 'carchive.a2aproxy',
                 'carchive.a2aproxy.test',
