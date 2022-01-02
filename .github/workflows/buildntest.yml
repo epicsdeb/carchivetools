@@ -13,7 +13,7 @@ jobs:
            - name: Linux w/ 2.7
              os: ubuntu-latest
              py: 2.7
-             prof: deb7
+             prof: latest
 
            - name: Linux w/ 3.7
              os: ubuntu-latest
