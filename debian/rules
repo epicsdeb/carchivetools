@@ -4,22 +4,15 @@
 export DH_VERBOSE=1
 
 %:
-	dh -Spython_distutils --with python2 $@
+	dh $@ --with python3 --buildsystem=pybuild
 binary: binary-arch binary-indep
 binary-arch binary-indep: install
 install: build
 
 override_dh_auto_build:
 	dh_auto_build
-	pod2man --section=1 -c '' --release= arplothdf5.pod arplothdf5.1
-	pod2man --section=1 -c '' --release= arget.pod arget.1
-
-override_dh_auto_test:
-	for pyver in `pyversions -r`; do \
-    rm -rf build/test && cp -r build/lib.*-$${pyver#python} build/test && \
-    (cd build/test && trial carchive) || exit 1; \
-  done
-	rm -rf build/test
+	pod2man --section=1 -c '' --release=0 arplothdf5.pod arplothdf5.1
+	pod2man --section=1 -c '' --release=0 arget.pod arget.1
 
 override_dh_auto_clean:
 	dh_auto_clean

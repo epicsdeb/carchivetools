@@ -3,12 +3,12 @@ Section: python
 Priority: optional
 Maintainer: Michael Davidsaver <mdavidsaver@bnl.gov>
 Build-Depends: debhelper (>= 7.0.50~),
-               python-all-dev, python-all-dbg,
-               python-numpy, python-numpy-dbg,
-               python-twisted-core, python-twisted-web,
+               python3-all-dev, python3-all-dbg,
+               python3-numpy, python3-numpy-dbg,
+               python3-twisted,
                protobuf-compiler, libprotobuf-dev,
-               python-protobuf,
-XS-Python-Version: >= 2.6
+               python3-protobuf,
+XS-Python3-Version: >= 3.7
 Standards-Version: 3.8.0
 Homepage: https://github.com/epicsdeb/carchivetools
 Vcs-Git: https://github.com/epicsdeb/carchivetools
@@ -16,8 +16,8 @@ Vcs-Git: https://github.com/epicsdeb/carchivetools
 Package: carchivetools
 Architecture: any
 Depends: ${shlibs:Depends}, ${python:Depends},
-         python-numpy,
-         python-twisted-core, python-twisted-web,
+         python3-numpy,
+         python3-twisted,
          ${misc:Depends},
 Recommends: carchivetools-archappl
 Suggests: channelarchiver-a2aproxy, channelarchiver-archmiddle
@@ -31,9 +31,9 @@ Package: carchivetools-archappl
 Architecture: any
 Depends: ${shlibs:Depends}, ${python:Depends},
          carchivetools (>= ${source:Version}), carchivetools (<< ${source:Version}.1~),
-         python-protobuf,
+         python3-protobuf,
          ${misc:Depends},
-XB-Python-Version: 2.7
+XB-Python3-Version: >=3.7
 Description: CLI utilities to query EPICS data archiver systems
  Tools to query and extract data from the EPICS
  Channel Archiver's XMLRPC data server, and the
@@ -47,7 +47,7 @@ Depends: carchivetools-archappl (>= ${source:Version}), carchivetools-archappl (
          ${misc:Depends},
          adduser,
 Suggests: channelarchiver-dataserver
-XB-Python-Version: 2.7
+XB-Python3-Version: >=3.7
 Description: Proxies requests from a Channel Archiver Client to an Archiver Appliance
  Acts as a server for Channel Archiver Dataserver requests and as a client
  to an Archiver Appliance server. Allows legacy Channel Archiver client
