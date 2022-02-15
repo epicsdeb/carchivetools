@@ -1,6 +1,9 @@
 carchivetools
 =============
 
+**Notice** The package is considered to be deprecated in favor of
+[aaclient](https://github.com/mdavidsaver/aaclient).
+
 <a href="https://travis-ci.org/epicsdeb/carchivetools">
   <img src="https://travis-ci.org/epicsdeb/carchivetools.svg" title="Build Status Images">
 </a>
