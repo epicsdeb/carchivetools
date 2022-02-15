@@ -12,9 +12,12 @@ from distutils.command import build, build_ext, install
 
 from numpy.distutils.misc_util import get_numpy_include_dirs
 
+import warnings
+
 if sys.version_info<(3,7):
-    import warnings
     warnings.warn("Python < 3.7 is no longer supported")
+
+warnings.warn("Deprecated in favor of https://github.com/mdavidsaver/aaclient")
 
 class GenProtobuf(Command):
     """Run protoc code generator
